@@ -12,7 +12,7 @@ import (
 
 type ProductService struct{}
 
-func (s *ProductService) GetList(page, size int, name string, minPrice, maxPrice float64, sort string, categoryID int64, isPromotion bool) ([]model.Product, int64, error) {
+func (s *ProductService) GetList(page, size int, name string, minPrice, maxPrice float64, sort string, categoryID int64, isPromotion bool, status *int) ([]model.Product, int64, error) {
 	var list []model.Product
 	var total int64
 
@@ -28,6 +28,9 @@ func (s *ProductService) GetList(page, size int, name string, minPrice, maxPrice
 	}
 	if categoryID > 0 {
 		tx = tx.Where("category_id = ?", categoryID)
+	}
+	if status != nil {
+		tx = tx.Where("status = ?", *status)
 	}
 	if isPromotion {
 		// Promotion is defined by price relation, not stale stored flag.

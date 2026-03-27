@@ -124,6 +124,7 @@ const fetchData = async () => {
     const data = await getProductList({
       name: searchKeyword.value,
       category_id: selectedCategory.value || undefined,
+      status: 1,
       page: page.value,
       size: size.value
     })

@@ -32,8 +32,14 @@ func (h *ProductHandler) List(c *gin.Context) {
 	categoryID, _ := strconv.ParseInt(c.Query("category_id"), 10, 64)
 	// Support true/1 for is_promotion query parameter.
 	isPromotion := c.Query("is_promotion") == "true" || c.Query("is_promotion") == "1"
+	var status *int
+	if statusStr := c.Query("status"); statusStr != "" {
+		if s, err := strconv.Atoi(statusStr); err == nil {
+			status = &s
+		}
+	}
 
-	list, total, err := h.Service.GetList(page, size, name, minPrice, maxPrice, sort, categoryID, isPromotion)
+	list, total, err := h.Service.GetList(page, size, name, minPrice, maxPrice, sort, categoryID, isPromotion, status)
 	if err != nil {
 		response.Fail(c, "获取失败")
 		return

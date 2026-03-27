@@ -308,7 +308,8 @@ func (s *AIService) dispatchToolCall(userID int64, execCtx chatExecutionContext,
 			args.Limit = 10
 		}
 
-		list, total, err := (&ProductService{}).GetList(1, args.Limit, args.Keyword, 0, 0, "sales_desc", 0, false)
+		onShelf := 1
+		list, total, err := (&ProductService{}).GetList(1, args.Limit, args.Keyword, 0, 0, "sales_desc", 0, false, &onShelf)
 		if err != nil {
 			return nil, err
 		}
@@ -708,7 +709,8 @@ func (s *AIService) tryHandleCreateOrderIntent(userID int64, messages []dashScop
 	}
 
 	quantity := extractOrderQuantity(lastUser)
-	products, _, err := (&ProductService{}).GetList(1, 1, keyword, 0, 0, "sales_desc", 0, false)
+	onShelf := 1
+	products, _, err := (&ProductService{}).GetList(1, 1, keyword, 0, 0, "sales_desc", 0, false, &onShelf)
 	if err != nil {
 		return fmt.Sprintf("下单失败：搜索商品失败：%v", err), true, nil
 	}
