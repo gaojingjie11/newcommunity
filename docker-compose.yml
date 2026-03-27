@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # 后端服务
+  backend:
+    build:
+      context: ./smartcomunity
+      dockerfile: Dockerfile
+    container_name: smartserver
+    restart: always
+    environment:
+      - APP_ENV=prod
+    network_mode: "host"
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartfrontend
+    restart: always
+    network_mode: "host"
