@@ -34,9 +34,7 @@ const (
 
 const communityAssistantSystemPrompt = "You are a smart community assistant. Use tools for real data operations. " +
 	"For order payment, user password is required and payment must be explicitly confirmed by user. " +
-	"Never claim order creation/payment success unless backend tool execution succeeds. " +
-	"Never claim repair/complaint ticket creation success unless tool result has success=true and repair_id. " +
-	"Complaint submission is supported via create_repair_ticket with type=complaint."
+	"Never claim order creation/payment success unless backend tool execution succeeds."
 
 type AIService struct{}
 
@@ -104,7 +102,6 @@ type getRecentNoticesArgs struct {
 
 type createRepairTicketArgs struct {
 	Type        string `json:"type"`
-	Category    string `json:"category"`
 	Description string `json:"description"`
 }
 
@@ -183,11 +180,6 @@ func (s *AIService) runAgentWithTools(userID int64, execCtx chatExecutionContext
 	working := append([]dashScopeMessage(nil), messages...)
 	lastUser := latestUserMessage(messages)
 
-	// Deterministic path: create repair/complaint ticket for explicit requests.
-	if reply, handled, err := s.tryHandleRepairIntent(userID, lastUser); handled {
-		return reply, err
-	}
-
 	// Deterministic path: create order directly for simple "下单X瓶" instructions.
 	if reply, handled, err := s.tryHandleCreateOrderIntent(userID, messages, lastUser); handled {
 		return reply, err
@@ -241,7 +233,7 @@ func (s *AIService) executeAndAppendToolResult(working *[]dashScopeMessage, user
 	result, err := s.dispatchToolCall(userID, execCtx, toolCall)
 	if err != nil {
 		log.Printf("tool execution failed, tool=%s userID=%d err=%v", toolCall.Function.Name, userID, err)
-		if isCriticalTool(toolCall.Function.Name) {
+		if isCriticalOrderTool(toolCall.Function.Name) {
 			return formatCriticalToolError(toolCall.Function.Name, err)
 		}
 		result = map[string]interface{}{"success": false, "error": err.Error()}
@@ -287,23 +279,18 @@ func (s *AIService) dispatchToolCall(userID int64, execCtx chatExecutionContext,
 		if err := parseToolArguments(toolCall.Function.Arguments, &args); err != nil {
 			return nil, err
 		}
-		description := strings.TrimSpace(args.Description)
-		if description == "" {
+		if strings.TrimSpace(args.Description) == "" {
 			return nil, errors.New("description cannot be empty")
 		}
-		repairType, ticketTypeLabel, _ := classifyRepairIntent(args.Type, description)
-		category := normalizeRepairCategory(args.Category, args.Type, description)
-		repair, err := s.createAndVerifyRepairTicket(userID, repairType, category, description)
-		if err != nil {
+		tp := strings.TrimSpace(args.Type)
+		if tp == "" {
+			tp = "other"
+		}
+		repair := &model.Repair{UserID: userID, Type: mapRepairType(tp), Category: tp, Content: strings.TrimSpace(args.Description)}
+		if err := (&RepairService{}).Create(repair); err != nil {
 			return nil, err
 		}
-		return map[string]interface{}{
-			"success":     true,
-			"repair_id":   repair.ID,
-			"status":      "pending",
-			"ticket_type": ticketTypeLabel,
-			"category":    category,
-		}, nil
+		return map[string]interface{}{"success": true, "repair_id": repair.ID, "status": "pending"}, nil
 
 	case toolSearchProduct:
 		var args searchProductArgs
@@ -506,15 +493,14 @@ func buildCommunityAgentTools() []dashScopeTool {
 			Type: "function",
 			Function: dashScopeToolFunctionSpec{
 				Name:        toolCreateRepairTicket,
-				Description: "Create repair or complaint ticket. type can be repair/complaint.",
+				Description: "Create repair ticket",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"type":        map[string]interface{}{"type": "string", "description": "repair or complaint"},
-						"category":    map[string]interface{}{"type": "string", "description": "ticket category, e.g. faucet, door, power"},
+						"type":        map[string]interface{}{"type": "string"},
 						"description": map[string]interface{}{"type": "string"},
 					},
-					"required": []string{"description"},
+					"required": []string{"type", "description"},
 				},
 			},
 		},
@@ -602,183 +588,24 @@ func parseToolArguments(raw string, target interface{}) error {
 	return fmt.Errorf("invalid JSON arguments: %s", clean)
 }
 
-func containsAny(text string, keywords ...string) bool {
-	for _, kw := range keywords {
-		if kw != "" && strings.Contains(text, kw) {
-			return true
-		}
-	}
-	return false
-}
-
-func countMatches(text string, keywords ...string) int {
-	count := 0
-	for _, kw := range keywords {
-		if kw != "" && strings.Contains(text, kw) {
-			count++
-		}
-	}
-	return count
-}
-
-func hasExplicitComplaintIntent(text string) bool {
-	return containsAny(text,
-		"\u6295\u8bc9", "\u6211\u8981\u6295\u8bc9", "\u5e2e\u6211\u6295\u8bc9", "\u8bf7\u5e2e\u6211\u6295\u8bc9",
-		"complaint", "report complaint",
-	)
-}
-
-func hasExplicitRepairIntent(text string) bool {
-	return containsAny(text,
-		"\u62a5\u4fee", "\u7ef4\u4fee", "\u6211\u8981\u62a5\u4fee", "\u5e2e\u6211\u62a5\u4fee", "\u8bf7\u5e2e\u6211\u62a5\u4fee",
-		"repair", "fix", "maintenance",
-	)
-}
-
-func classifyRepairIntent(typeHint, description string) (int, string, bool) {
-	typeText := strings.ToLower(strings.TrimSpace(typeHint))
-	descText := strings.ToLower(strings.TrimSpace(description))
-	text := strings.TrimSpace(typeText + " " + descText)
-
-	repairAction := hasExplicitRepairIntent(typeText) || hasExplicitRepairIntent(descText)
-	complaintAction := hasExplicitComplaintIntent(typeText) || hasExplicitComplaintIntent(descText)
-	if complaintAction && !repairAction {
-		return 2, "complaint", false
-	}
-	if repairAction && !complaintAction {
-		return 1, "repair", false
-	}
-
-	repairSymptoms := []string{
-		"\u574f\u4e86", "\u6545\u969c", "\u6f0f\u6c34", "\u4e0d\u70ed", "\u4e0d\u4eae", "\u8df3\u95f8", "\u65e0\u6c34", "\u65e0\u7535",
-		"\u6696\u6c14", "\u4f9b\u6696", "\u6c34\u9f99\u5934", "\u95e8", "\u7a97", "\u7535\u8def", "\u63d2\u5ea7", "\u9a6c\u6876", "\u7a7a\u8c03",
-		"repair", "fix", "broken", "leak", "heating", "radiator", "power",
-	}
-	complaintReasons := []string{
-		"\u6001\u5ea6\u5dee", "\u670d\u52a1\u5dee", "\u4e71\u6536\u8d39", "\u6536\u8d39\u4e0d\u5408\u7406", "\u6270\u6c11", "\u566a\u97f3",
-		"\u4e0d\u5904\u7406", "\u4e0d\u4f5c\u4e3a", "\u957f\u671f\u4e0d\u89e3\u51b3", "\u5f88\u4e0d\u6ee1\u610f", "\u6295\u8bc9",
-		"complaint", "service bad", "overcharge", "noise",
-	}
-
-	repairScore := countMatches(text, repairSymptoms...)
-	complaintScore := countMatches(text, complaintReasons...)
-
-	if complaintScore > repairScore {
-		return 2, "complaint", false
-	}
-	if repairScore > complaintScore {
-		return 1, "repair", false
-	}
-
-	return 1, "repair", true
-}
-
-func normalizeRepairCategory(categoryHint, typeHint, description string) string {
-	explicit := strings.TrimSpace(categoryHint)
-	if explicit != "" {
-		return explicit
-	}
-
-	text := strings.ToLower(strings.TrimSpace(typeHint + " " + description))
+func mapRepairType(typeLabel string) int {
+	normalized := strings.ToLower(strings.TrimSpace(typeLabel))
 	switch {
-	case containsAny(text, "\u6c34\u9f99\u5934", "\u6f0f\u6c34", "\u4e0b\u6c34", "\u9a6c\u6876", "faucet", "plumb", "pipe"):
-		return "plumbing"
-	case containsAny(text, "\u95e8", "\u7a97", "\u95e8\u7a97", "door", "window", "lock"):
-		return "door_window"
-	case containsAny(text, "\u7535", "\u7535\u8def", "\u8df3\u95f8", "\u63d2\u5ea7", "\u706f", "power", "electric"):
-		return "electrical"
-	case containsAny(text, "\u7a7a\u8c03", "aircon", "ac"):
-		return "air_conditioner"
-	case containsAny(text, "\u6696\u6c14", "\u4f9b\u6696", "\u4e0d\u70ed", "heating", "radiator"):
-		return "heating"
-	case containsAny(text, "\u566a\u97f3", "noise"):
-		return "noise"
-	case containsAny(text, "\u536b\u751f", "\u5783\u573e", "clean"):
-		return "sanitation"
+	case strings.Contains(normalized, "水"), strings.Contains(normalized, "plumb"):
+		return 1
+	case strings.Contains(normalized, "电"), strings.Contains(normalized, "power"):
+		return 2
+	case strings.Contains(normalized, "门禁"), strings.Contains(normalized, "access"):
+		return 3
+	case strings.Contains(normalized, "电梯"), strings.Contains(normalized, "lift"), strings.Contains(normalized, "elevator"):
+		return 4
+	case strings.Contains(normalized, "网络"), strings.Contains(normalized, "网"), strings.Contains(normalized, "network"):
+		return 5
 	default:
-		hint := strings.TrimSpace(typeHint)
-		if hint != "" {
-			return hint
-		}
-		return "other"
+		return 0
 	}
 }
 
-func extractRepairDescription(text string) string {
-	content := strings.TrimSpace(text)
-	if content == "" {
-		return ""
-	}
-
-	prefixes := []string{
-		"\u5e2e\u6211\u62a5\u4fee\u4e00\u4e0b", "\u5e2e\u6211\u62a5\u4fee", "\u8bf7\u5e2e\u6211\u62a5\u4fee", "\u62a5\u4fee\u4e00\u4e0b", "\u6211\u8981\u62a5\u4fee",
-		"\u5e2e\u6211\u6295\u8bc9\u4e00\u4e0b", "\u5e2e\u6211\u6295\u8bc9", "\u8bf7\u5e2e\u6211\u6295\u8bc9", "\u6295\u8bc9\u4e00\u4e0b", "\u6211\u8981\u6295\u8bc9",
-	}
-	for _, p := range prefixes {
-		if strings.HasPrefix(content, p) {
-			content = strings.TrimSpace(strings.TrimPrefix(content, p))
-			break
-		}
-	}
-	if content == "" {
-		content = strings.TrimSpace(text)
-	}
-	return content
-}
-
-func (s *AIService) createAndVerifyRepairTicket(userID int64, repairType int, category, content string) (*model.Repair, error) {
-	repair := &model.Repair{
-		UserID:   userID,
-		Type:     repairType,
-		Category: strings.TrimSpace(category),
-		Content:  strings.TrimSpace(content),
-	}
-	if err := (&RepairService{}).Create(repair); err != nil {
-		return nil, err
-	}
-	if repair.ID <= 0 {
-		return nil, errors.New("repair ticket create failed: empty id")
-	}
-
-	var saved model.Repair
-	if err := global.DB.Where("id = ? AND user_id = ?", repair.ID, userID).First(&saved).Error; err != nil {
-		return nil, fmt.Errorf("repair ticket verification failed: %w", err)
-	}
-	return &saved, nil
-}
-
-func (s *AIService) tryHandleRepairIntent(userID int64, lastUser string) (string, bool, error) {
-	text := strings.TrimSpace(lastUser)
-	if text == "" || isPayIntent(text) || isCreateOrderIntent(text) {
-		return "", false, nil
-	}
-	if !containsAny(strings.ToLower(text),
-		"\u62a5\u4fee", "\u7ef4\u4fee", "repair", "fix", "\u6295\u8bc9", "complaint",
-		"\u574f\u4e86", "\u6545\u969c", "\u6f0f\u6c34", "\u566a\u97f3", "\u6270\u6c11", "\u6696\u6c14", "\u4f9b\u6696", "\u4e0d\u70ed",
-	) {
-		return "", false, nil
-	}
-
-	description := extractRepairDescription(text)
-	if strings.TrimSpace(description) == "" {
-		return "\u8bf7\u8865\u5145\u5177\u4f53\u95ee\u9898\u63cf\u8ff0\uff08\u4f8b\u5982\u4f4d\u7f6e\u3001\u6545\u969c\u73b0\u8c61\uff09\uff0c\u6211\u518d\u4e3a\u60a8\u521b\u5efa\u5de5\u5355\u3002", true, nil
-	}
-
-	repairType, typeLabel, ambiguous := classifyRepairIntent("", text)
-	if ambiguous {
-		return "\u8bf7\u786e\u8ba4\u60a8\u662f\u8981\u63d0\u4ea4\u300c\u62a5\u4fee\u300d\u8fd8\u662f\u300c\u6295\u8bc9\u300d\uff1f\u56de\u590d\u201c\u62a5\u4fee\u201d\u6216\u201c\u6295\u8bc9\u201d\u5373\u53ef\u3002", true, nil
-	}
-	category := normalizeRepairCategory("", "", description)
-	repair, err := s.createAndVerifyRepairTicket(userID, repairType, category, description)
-	if err != nil {
-		return fmt.Sprintf("\u521b\u5efa\u5de5\u5355\u5931\u8d25\uff1a%v", err), true, nil
-	}
-
-	if typeLabel == "complaint" {
-		return fmt.Sprintf("\u2705 \u5df2\u4e3a\u60a8\u521b\u5efa\u6295\u8bc9\u5de5\u5355\uff01\n- \u5de5\u5355\u53f7\uff1a#%d\n- \u5de5\u5355\u7c7b\u578b\uff1a\u6295\u8bc9\n- \u5f53\u524d\u72b6\u6001\uff1apending", repair.ID), true, nil
-	}
-	return fmt.Sprintf("\u2705 \u5df2\u4e3a\u60a8\u521b\u5efa\u62a5\u4fee\u5de5\u5355\uff01\n- \u5de5\u5355\u53f7\uff1a#%d\n- \u5de5\u5355\u7c7b\u578b\uff1a\u62a5\u4fee\n- \u5f53\u524d\u72b6\u6001\uff1apending", repair.ID), true, nil
-}
 func requiresForcedSearchIntent(text string) bool {
 	text = strings.TrimSpace(text)
 	if text == "" || isPayIntent(text) || looksLikePasswordOnly(text) {
@@ -853,14 +680,12 @@ func latestUserMessage(messages []dashScopeMessage) string {
 	return ""
 }
 
-func isCriticalTool(name string) bool {
-	return name == toolCreateOrder || name == toolPayOrder || name == toolCreateRepairTicket
+func isCriticalOrderTool(name string) bool {
+	return name == toolCreateOrder || name == toolPayOrder
 }
 
 func formatCriticalToolError(toolName string, err error) error {
 	switch toolName {
-	case toolCreateRepairTicket:
-		return fmt.Errorf("工单创建失败：%s", err.Error())
 	case toolCreateOrder:
 		return fmt.Errorf("订单创建失败：%s", err.Error())
 	case toolPayOrder:
