@@ -681,7 +681,7 @@ func normalizeRepairCategory(categoryHint, typeHint, description string) string 
 
 	text := strings.ToLower(strings.TrimSpace(typeHint + " " + description))
 	switch {
-	case containsAny(text, "\u6c34\u9f99\u5934", "\u6f0f\u6c34", "\u4e0b\u6c34", "\u9a6c\u6876", "faucet", "plumb", "pipe"):
+	case containsAny(text, "\u6c34\u9f99\u5934", "\u6f0f\u6c34", "\u4e0b\u6c34", "\u6c34\u7ba1", "\u7ba1\u9053", "\u9a6c\u6876", "faucet", "plumb", "pipe"):
 		return "\u6c34\u6696"
 	case containsAny(text, "\u95e8", "\u7a97", "\u95e8\u7a97", "door", "window", "lock"):
 		return "\u95e8\u7a97"
@@ -710,7 +710,7 @@ func normalizeRepairCategoryLabel(raw string) string {
 		return ""
 	}
 	switch strings.ToLower(v) {
-	case "plumbing", "water", "\u6c34\u6696", "\u6f0f\u6c34", "\u4e0b\u6c34":
+	case "plumbing", "water", "pipe", "\u6c34\u6696", "\u6f0f\u6c34", "\u4e0b\u6c34", "\u6c34\u7ba1", "\u7ba1\u9053":
 		return "\u6c34\u6696"
 	case "door_window", "door", "window", "lock", "\u95e8\u7a97":
 		return "\u95e8\u7a97"

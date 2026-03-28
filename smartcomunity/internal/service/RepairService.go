@@ -8,14 +8,14 @@ import (
 
 type RepairService struct{}
 
-// Create 提交报修/投诉
+// Create submits a repair/complaint ticket.
 func (s *RepairService) Create(repair *model.Repair) error {
 	repair.Status = 0
 	repair.Category = normalizeRepairCategoryForDisplay(repair.Category)
 	return global.DB.Create(repair).Error
 }
 
-// GetUserList 获取我的报修记录（分页）
+// GetUserList returns current user's tickets.
 func (s *RepairService) GetUserList(userID int64, page, size int) ([]model.Repair, int64, error) {
 	var list []model.Repair
 	var total int64
@@ -28,7 +28,7 @@ func (s *RepairService) GetUserList(userID int64, page, size int) ([]model.Repai
 	return list, total, err
 }
 
-// UpdateStatus 更新报修状态（派单/完成）
+// UpdateStatus updates ticket status.
 func (s *RepairService) UpdateStatus(id int64, status int, feedback string) error {
 	return global.DB.Model(&model.Repair{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"status": status,
@@ -36,7 +36,7 @@ func (s *RepairService) UpdateStatus(id int64, status int, feedback string) erro
 	}).Error
 }
 
-// GetAllList 管理员查看所有报修
+// GetAllList returns latest tickets for admin.
 func (s *RepairService) GetAllList(limit int) ([]model.Repair, error) {
 	var list []model.Repair
 	err := global.DB.Order("id desc").Limit(limit).Find(&list).Error
@@ -44,7 +44,7 @@ func (s *RepairService) GetAllList(limit int) ([]model.Repair, error) {
 	return list, err
 }
 
-// GetPageList 分页获取所有报修
+// GetPageList returns paged tickets for admin.
 func (s *RepairService) GetPageList(page, size int) ([]model.Repair, int64, error) {
 	var list []model.Repair
 	var total int64
@@ -63,7 +63,16 @@ func (s *RepairService) GetPageList(page, size int) ([]model.Repair, int64, erro
 
 func applyRepairCategoryLabels(list []model.Repair) {
 	for i := range list {
-		list[i].Category = normalizeRepairCategoryForDisplay(list[i].Category)
+		cat := normalizeRepairCategoryForDisplay(list[i].Category)
+		if cat == "" || cat == "\u5176\u4ed6" {
+			if inferred := inferRepairCategoryFromContent(list[i].Content); inferred != "" {
+				cat = inferred
+			}
+		}
+		if cat == "" {
+			cat = "\u5176\u4ed6"
+		}
+		list[i].Category = cat
 	}
 }
 
@@ -73,23 +82,57 @@ func normalizeRepairCategoryForDisplay(raw string) string {
 		return ""
 	}
 	switch strings.ToLower(v) {
-	case "plumbing", "water", "漏水", "下水", "水暖":
-		return "水暖"
-	case "door_window", "door", "window", "lock", "门窗":
-		return "门窗"
-	case "electrical", "electric", "power", "电路", "用电":
-		return "电路"
-	case "air_conditioner", "aircon", "ac", "空调":
-		return "空调"
-	case "heating", "radiator", "暖气", "供暖":
-		return "供暖"
-	case "noise", "扰民", "噪音":
-		return "噪音"
-	case "sanitation", "clean", "卫生", "垃圾":
-		return "卫生"
-	case "other", "其他":
-		return "其他"
+	case "plumbing", "water", "pipe", "\u6f0f\u6c34", "\u4e0b\u6c34", "\u6c34\u7ba1", "\u7ba1\u9053", "\u6c34\u6696":
+		return "\u6c34\u6696"
+	case "door_window", "door", "window", "lock", "\u95e8\u7a97":
+		return "\u95e8\u7a97"
+	case "electrical", "electric", "power", "\u7535\u8def", "\u7528\u7535":
+		return "\u7535\u8def"
+	case "air_conditioner", "aircon", "ac", "\u7a7a\u8c03":
+		return "\u7a7a\u8c03"
+	case "heating", "radiator", "\u6696\u6c14", "\u4f9b\u6696":
+		return "\u4f9b\u6696"
+	case "noise", "\u6270\u6c11", "\u566a\u97f3":
+		return "\u566a\u97f3"
+	case "sanitation", "clean", "\u536b\u751f", "\u5783\u573e":
+		return "\u536b\u751f"
+	case "other", "\u5176\u4ed6":
+		return "\u5176\u4ed6"
 	default:
 		return v
 	}
+}
+
+func inferRepairCategoryFromContent(content string) string {
+	text := strings.ToLower(strings.TrimSpace(content))
+	if text == "" {
+		return ""
+	}
+	switch {
+	case containsRepairKeyword(text, "\u6c34\u7ba1", "\u7ba1\u9053", "\u6c34\u9f99\u5934", "\u6f0f\u6c34", "\u4e0b\u6c34", "pipe", "plumb", "faucet"):
+		return "\u6c34\u6696"
+	case containsRepairKeyword(text, "\u95e8", "\u7a97", "\u95e8\u7a97", "door", "window", "lock"):
+		return "\u95e8\u7a97"
+	case containsRepairKeyword(text, "\u7535\u8def", "\u8df3\u95f8", "\u63d2\u5ea7", "\u706f", "power", "electric"):
+		return "\u7535\u8def"
+	case containsRepairKeyword(text, "\u6696\u6c14", "\u4f9b\u6696", "\u4e0d\u70ed", "heating", "radiator"):
+		return "\u4f9b\u6696"
+	case containsRepairKeyword(text, "\u7a7a\u8c03", "aircon", "ac"):
+		return "\u7a7a\u8c03"
+	case containsRepairKeyword(text, "\u566a\u97f3", "\u6270\u6c11", "noise"):
+		return "\u566a\u97f3"
+	case containsRepairKeyword(text, "\u536b\u751f", "\u5783\u573e", "clean"):
+		return "\u536b\u751f"
+	default:
+		return ""
+	}
+}
+
+func containsRepairKeyword(text string, keywords ...string) bool {
+	for _, kw := range keywords {
+		if kw != "" && strings.Contains(text, kw) {
+			return true
+		}
+	}
+	return false
 }
