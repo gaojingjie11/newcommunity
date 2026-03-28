@@ -674,7 +674,7 @@ func classifyRepairIntent(typeHint, description string) (int, string, bool) {
 }
 
 func normalizeRepairCategory(categoryHint, typeHint, description string) string {
-	explicit := normalizeRepairCategoryLabel(categoryHint)
+	explicit := strings.TrimSpace(categoryHint)
 	if explicit != "" {
 		return explicit
 	}
@@ -682,52 +682,25 @@ func normalizeRepairCategory(categoryHint, typeHint, description string) string 
 	text := strings.ToLower(strings.TrimSpace(typeHint + " " + description))
 	switch {
 	case containsAny(text, "\u6c34\u9f99\u5934", "\u6f0f\u6c34", "\u4e0b\u6c34", "\u9a6c\u6876", "faucet", "plumb", "pipe"):
-		return "\u6c34\u6696"
+		return "plumbing"
 	case containsAny(text, "\u95e8", "\u7a97", "\u95e8\u7a97", "door", "window", "lock"):
-		return "\u95e8\u7a97"
+		return "door_window"
 	case containsAny(text, "\u7535", "\u7535\u8def", "\u8df3\u95f8", "\u63d2\u5ea7", "\u706f", "power", "electric"):
-		return "\u7535\u8def"
+		return "electrical"
 	case containsAny(text, "\u7a7a\u8c03", "aircon", "ac"):
-		return "\u7a7a\u8c03"
+		return "air_conditioner"
 	case containsAny(text, "\u6696\u6c14", "\u4f9b\u6696", "\u4e0d\u70ed", "heating", "radiator"):
-		return "\u4f9b\u6696"
+		return "heating"
 	case containsAny(text, "\u566a\u97f3", "noise"):
-		return "\u566a\u97f3"
+		return "noise"
 	case containsAny(text, "\u536b\u751f", "\u5783\u573e", "clean"):
-		return "\u536b\u751f"
+		return "sanitation"
 	default:
-		hint := normalizeRepairCategoryLabel(typeHint)
+		hint := strings.TrimSpace(typeHint)
 		if hint != "" {
 			return hint
 		}
-		return "\u5176\u4ed6"
-	}
-}
-
-func normalizeRepairCategoryLabel(raw string) string {
-	v := strings.TrimSpace(raw)
-	if v == "" {
-		return ""
-	}
-	switch strings.ToLower(v) {
-	case "plumbing", "water", "\u6c34\u6696", "\u6f0f\u6c34", "\u4e0b\u6c34":
-		return "\u6c34\u6696"
-	case "door_window", "door", "window", "lock", "\u95e8\u7a97":
-		return "\u95e8\u7a97"
-	case "electrical", "electric", "power", "\u7535\u8def", "\u7528\u7535":
-		return "\u7535\u8def"
-	case "air_conditioner", "aircon", "ac", "\u7a7a\u8c03":
-		return "\u7a7a\u8c03"
-	case "heating", "radiator", "\u6696\u6c14", "\u4f9b\u6696":
-		return "\u4f9b\u6696"
-	case "noise", "\u566a\u97f3", "\u6270\u6c11":
-		return "\u566a\u97f3"
-	case "sanitation", "clean", "\u536b\u751f", "\u5783\u573e":
-		return "\u536b\u751f"
-	case "other", "\u5176\u4ed6":
-		return "\u5176\u4ed6"
-	default:
-		return v
+		return "other"
 	}
 }
 
@@ -757,7 +730,7 @@ func (s *AIService) createAndVerifyRepairTicket(userID int64, repairType int, ca
 	repair := &model.Repair{
 		UserID:   userID,
 		Type:     repairType,
-		Category: normalizeRepairCategoryLabel(category),
+		Category: strings.TrimSpace(category),
 		Content:  strings.TrimSpace(content),
 	}
 	if err := (&RepairService{}).Create(repair); err != nil {
