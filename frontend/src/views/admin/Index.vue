@@ -119,7 +119,7 @@ const cards = [
     name: 'AI 报表中心',
     desc: '手动生成社区分析报表并支持列表刷新',
     icon: DataAnalysis,
-    roles: ['admin', 'property'],
+    roles: ['admin'],
     buttonType: 'success'
   },
   {

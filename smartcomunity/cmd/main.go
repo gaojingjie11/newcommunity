@@ -52,6 +52,7 @@ func main() {
 		&model.GreenPointRecord{},
 		&model.AIReport{},
 		&model.ChatMessage{},
+		&model.CommunityMessage{},
 	); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}

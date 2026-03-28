@@ -9,7 +9,7 @@
           <p class="sub-title">更新时间：{{ currentTime }}</p>
         </div>
         <div class="header-actions">
-          <el-button @click="router.push('/admin/ai-report')">AI 报表中心</el-button>
+          <el-button v-if="isAdmin" @click="router.push('/admin/ai-report')">AI 报表中心</el-button>
           <el-button type="primary" @click="refreshAll">刷新数据</el-button>
         </div>
       </div>
@@ -75,7 +75,7 @@
           </el-table>
         </el-card>
 
-        <el-card>
+        <el-card v-if="isAdmin">
           <template #header>AI 社区分析报表</template>
           <div class="report-summary" v-if="aiReport">
             <div class="summary-item">近 7 日新增报修：{{ aiReport.repair_new_count }}</div>
@@ -101,13 +101,16 @@ import { ElMessage } from 'element-plus'
 import Navbar from '@/components/layout/Navbar.vue'
 import { getDashboardStats, getAIReport } from '@/api/admin'
 import { getGreenPointsLeaderboard } from '@/api/greenPoints'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const currentTime = ref(dayjs().format('YYYY-MM-DD HH:mm:ss'))
 const stats = ref({})
 const aiReport = ref(null)
 const leaderboard = ref([])
 const rankingView = ref('datav')
+const isAdmin = computed(() => userStore.userInfo.role === 'admin')
 
 const lineChartRef = ref(null)
 const pieChartRef = ref(null)
@@ -183,15 +186,19 @@ function renderCharts() {
 
 async function refreshAll() {
   try {
-    const [dashboardRes, reportRes, leaderboardRes] = await Promise.all([
+    const [dashboardRes, leaderboardRes] = await Promise.all([
       getDashboardStats(),
-      getAIReport(),
       getGreenPointsLeaderboard({ limit: 10 })
     ])
 
     stats.value = dashboardRes || {}
-    aiReport.value = reportRes
     leaderboard.value = leaderboardRes.list || []
+
+    if (isAdmin.value) {
+      aiReport.value = await getAIReport()
+    } else {
+      aiReport.value = null
+    }
     renderCharts()
   } catch (error) {
     ElMessage.error(error.response?.data?.msg || error.message || '刷新数据失败')

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="service-page">
     <Navbar />
 
@@ -27,7 +27,7 @@
 
 <script setup>
 import Navbar from '@/components/layout/Navbar.vue'
-import { Bell, Tools, UserFilled, Van, Wallet, Trophy } from '@element-plus/icons-vue'
+import { Bell, Tools, UserFilled, Van, Wallet, Trophy, ChatDotRound } from '@element-plus/icons-vue'
 
 const serviceCards = [
   {
@@ -65,6 +65,12 @@ const serviceCards = [
     name: '绿色积分',
     desc: '垃圾分类识别、积分发放与排行榜',
     icon: Trophy
+  },
+  {
+    path: '/service/community-chat',
+    name: '社区群聊',
+    desc: '全社区用户公共讨论区',
+    icon: ChatDotRound
   }
 ]
 </script>

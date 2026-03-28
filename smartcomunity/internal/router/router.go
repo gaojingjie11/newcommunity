@@ -24,6 +24,7 @@ func InitRouter(r *gin.Engine) {
 	commentHandler := controller.CommentHandler{}
 	aiHandler := controller.AIHandler{}
 	greenPointHandler := controller.GreenPointHandler{}
+	communityMessageHandler := controller.CommunityMessageHandler{}
 
 	publicAPI := r.Group("/api/v1")
 	{
@@ -130,13 +131,15 @@ func InitRouter(r *gin.Engine) {
 		private.POST("/admin/user/freeze", middleware.RequireRole("admin"), adminHandler.FreezeUser)
 		private.POST("/admin/user/assign_role", middleware.RequireRole("admin"), adminHandler.AssignRole)
 		private.POST("/admin/user/update_balance", middleware.RequireRole("admin"), adminHandler.UpdateUserBalance)
-		private.POST("/admin/ai-report/generate", middleware.RequireRole("admin", "property"), adminHandler.GenerateAIReport)
-		private.GET("/admin/ai-report/list", middleware.RequireRole("admin", "property"), adminHandler.ListAIReports)
-		private.GET("/admin/ai-report/:id", middleware.RequireRole("admin", "property"), adminHandler.GetAIReportDetail)
-		private.GET("/admin/ai-report", middleware.RequireRole("admin", "property"), adminHandler.GetAIReport)
+		private.POST("/admin/ai-report/generate", middleware.RequireRole("admin"), adminHandler.GenerateAIReport)
+		private.GET("/admin/ai-report/list", middleware.RequireRole("admin"), adminHandler.ListAIReports)
+		private.GET("/admin/ai-report/:id", middleware.RequireRole("admin"), adminHandler.GetAIReportDetail)
+		private.GET("/admin/ai-report", middleware.RequireRole("admin"), adminHandler.GetAIReport)
 
 		private.POST("/comment/create", commentHandler.Create)
 		private.POST("/chat/send", aiHandler.Send)
 		private.GET("/chat/history", aiHandler.History)
+		private.POST("/community/message", communityMessageHandler.Send)
+		private.GET("/community/messages", communityMessageHandler.List)
 	}
 }

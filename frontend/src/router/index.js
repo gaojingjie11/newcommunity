@@ -20,6 +20,7 @@ const routes = [
   { path: '/service/parking', name: 'Parking', component: () => import('@/views/service/Parking.vue'), meta: { requiresAuth: true } },
   { path: '/service/property', name: 'PropertyFee', component: () => import('@/views/service/PropertyFee.vue'), meta: { requiresAuth: true } },
   { path: '/service/green-points', name: 'GreenPoints', component: () => import('@/views/service/GreenPoints.vue'), meta: { requiresAuth: true } },
+  { path: '/service/community-chat', name: 'CommunityChat', component: () => import('@/views/service/CommunityChat.vue'), meta: { requiresAuth: true } },
   { path: '/profile', name: 'Profile', component: () => import('@/views/profile/Index.vue'), meta: { requiresAuth: true } },
   { path: '/admin', name: 'Admin', component: () => import('@/views/admin/Index.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'store', 'property'] } },
   { path: '/user/favorites', name: 'FavoriteList', component: () => import('@/views/user/FavoriteList.vue'), meta: { requiresAuth: true } },
@@ -33,7 +34,7 @@ const routes = [
   { path: '/admin/visitors', name: 'AdminVisitorList', component: () => import('@/views/admin/VisitorList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
   { path: '/admin/parking', name: 'AdminParkingList', component: () => import('@/views/admin/ParkingList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
   { path: '/admin/property-fee', name: 'AdminPropertyFeeList', component: () => import('@/views/admin/PropertyFeeList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
-  { path: '/admin/ai-report', name: 'AdminAIReport', component: () => import('@/views/admin/AIReport.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
+  { path: '/admin/ai-report', name: 'AdminAIReport', component: () => import('@/views/admin/AIReport.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin'] } },
   { path: '/chat', name: 'Chat', component: () => import('@/views/chat/Index.vue'), meta: { requiresAuth: true } }
 ]
 

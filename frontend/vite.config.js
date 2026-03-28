@@ -14,7 +14,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-          // target: 'http://42.193.104.173', // 连接服务器 Nginx 端口
+          // target: 'http://42.193.104.173:8082', // 连接服务器 Nginx 端口
         target: 'http://127.0.0.1:8080', // 连接本地后端 (dev.yaml 配置为 8080)
         changeOrigin: true
       }
