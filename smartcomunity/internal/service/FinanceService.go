@@ -25,6 +25,9 @@ const (
 	TransactionTypeTransfer = 4
 	GreenPointsPerYuan      = 10
 	CentsPerGreenPoint      = 100 / GreenPointsPerYuan
+
+	AuthTypePassword = "password"
+	AuthTypeFace     = "face"
 )
 
 type MixedPaymentResult struct {
@@ -38,14 +41,25 @@ type MixedPaymentResult struct {
 }
 
 func (s *FinanceService) UnifiedPay(userID int64, businessID int64, payType int, password string) (*MixedPaymentResult, error) {
+	return s.UnifiedPayWithAuth(userID, businessID, payType, password, AuthTypePassword)
+}
+
+func (s *FinanceService) UnifiedPayWithAuth(userID int64, businessID int64, payType int, password string, authType string) (*MixedPaymentResult, error) {
 	var result *MixedPaymentResult
+	authType = strings.ToLower(strings.TrimSpace(authType))
+	if authType == "" {
+		authType = AuthTypePassword
+	}
+	if authType != AuthTypePassword && authType != AuthTypeFace {
+		return nil, errors.New("unsupported auth type")
+	}
 
 	err := global.DB.Transaction(func(tx *gorm.DB) error {
 		var user model.SysUser
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, userID).Error; err != nil {
 			return errors.New("user not found")
 		}
-		if requiresPaymentPassword(payType) {
+		if requiresPaymentPassword(payType, authType) {
 			if strings.TrimSpace(password) == "" {
 				return errors.New("payment password is required")
 			}
@@ -337,6 +351,9 @@ func minInt(a, b int) int {
 	return b
 }
 
-func requiresPaymentPassword(payType int) bool {
-	return payType == PayTypeOrder || payType == PayTypePropertyFee
+func requiresPaymentPassword(payType int, authType string) bool {
+	if payType != PayTypeOrder && payType != PayTypePropertyFee {
+		return false
+	}
+	return authType == AuthTypePassword
 }

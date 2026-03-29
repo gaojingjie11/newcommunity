@@ -141,6 +141,23 @@ func (s *UserService) GetInfo(userID int64) (*model.SysUser, error) {
 	return &user, err
 }
 
+func (s *UserService) RegisterFace(userID int64, faceImageURL string) error {
+	faceImageURL = strings.TrimSpace(faceImageURL)
+	if faceImageURL == "" {
+		return errors.New("face image url is required")
+	}
+
+	var user model.SysUser
+	if err := global.DB.First(&user, userID).Error; err != nil {
+		return errors.New("user not found")
+	}
+
+	return global.DB.Model(&user).Updates(map[string]interface{}{
+		"face_registered": true,
+		"face_image_url":  faceImageURL,
+	}).Error
+}
+
 // SendSMSCode 发送验证码
 func (s *UserService) SendSMSCode(mobile string) error {
 	// 1. 生成6位随机验证码

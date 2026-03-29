@@ -1,25 +1,25 @@
-server:
-  port: "8080" # 开发环境运行在 8080
+﻿server:
+  port: "8080"
 
 db:
-  # 注意：如果是本地运行 go run main.go，用 localhost
-  # 如果是 Docker 运行，这里可能需要改成 service name 或者宿主机 IP
   dsn: "root:root@tcp(localhost:13306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
 
 redis:
   addr: "localhost:6379"
 
-
-# --- 新增 MinIO 配置 ---
 minio:
-  endpoint: "42.193.104.173:9000"    # MinIO 服务地址 (不带 http://)
-  access_key: "minioadmin"           # 你的 MinIO 账号
-  secret_key: "minioadmin123"        # 你的 MinIO 密码
-  bucket: "community"           # 存储桶名称
-  use_ssl: false                # 本地通常是 false，线上如果是 https 则为 true
+  endpoint: "42.193.104.173:9000"
+  access_key: "admin"
+  secret_key: "12345678"
+  bucket: "community"
+  use_ssl: false
 
 ai:
   api_key: "sk-3afaa00674244df6b483dcf36272997f"
-  # 华北2 (北京)
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
   model: "qwen-plus"
+
+facebody:
+  access_key_id: ""
+  access_key_secret: ""
+  endpoint: "facebody.cn-shanghai.aliyuncs.com"

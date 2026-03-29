@@ -112,6 +112,7 @@ func InitRouter(r *gin.Engine) {
 		private.POST("/logout", userHandler.Logout)
 		private.POST("/user/update", userHandler.Update)
 		private.POST("/user/change_password", userHandler.ChangePassword)
+		private.POST("/user/face/register", userHandler.RegisterFace)
 		private.GET("/user/info", userHandler.Info)
 
 		private.GET("/parking/admin/list", middleware.RequireRole("admin", "property"), securityHandler.GetAllParking)

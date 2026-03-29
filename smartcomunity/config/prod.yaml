@@ -1,16 +1,14 @@
 server:
-  port: "8082" # 生产环境容器内运行在 8082
+  port: "8082"
 
 db:
-  # Host网络模式下，127.0.0.1 就是宿主机
   dsn: "root:sdl@admin@tcp(42.193.104.173:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
 
 redis:
-  # Host网络模式下，127.0.0.1 就是宿主机
   addr: "42.193.104.173:6379"
 
 minio:
-  endpoint: "42.193.104.173:9000"           # MinIO 必须保持公网IP供前端访问
+  endpoint: "42.193.104.173:9000"
   access_key: "admin"
   secret_key: "12345678"
   bucket: "community"
@@ -20,3 +18,8 @@ ai:
   api_key: "sk-3afaa00674244df6b483dcf36272997f"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
   model: "qwen-plus"
+
+facebody:
+  access_key_id: ""
+  access_key_secret: ""
+  endpoint: "facebody.cn-shanghai.aliyuncs.com"

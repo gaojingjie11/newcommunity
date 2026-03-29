@@ -8,25 +8,31 @@
       <el-card class="profile-card">
         <div class="profile-header">
           <div class="avatar-container" @click="openEditProfile">
-            <img :src="userInfo.avatar || defaultAvatar" class="avatar-img" />
+            <img :src="userInfo.avatar || defaultAvatar" class="avatar-img" alt="avatar" />
             <div class="avatar-overlay">编辑资料</div>
           </div>
 
           <div class="user-info">
             <h2>{{ userInfo.real_name || userInfo.username }}</h2>
             <p>{{ userInfo.mobile }}</p>
-            <el-tag size="small">{{ roleText }}</el-tag>
+            <div class="user-tags">
+              <el-tag size="small">{{ roleText }}</el-tag>
+              <el-tag size="small" :type="faceRegistered ? 'success' : 'warning'">
+                {{ faceRegistered ? '已录入人脸' : '未录入人脸' }}
+              </el-tag>
+            </div>
           </div>
 
           <div class="header-actions">
             <el-button type="primary" plain @click="openEditProfile">编辑资料</el-button>
+            <el-button type="success" plain @click="openFaceDialog">录入人脸</el-button>
           </div>
         </div>
 
         <div class="profile-stats">
           <div class="stat-item">
             <div class="stat-label">余额</div>
-            <div class="stat-value">¥{{ formatAmount(userInfo.balance) }}</div>
+            <div class="stat-value">￥{{ formatAmount(userInfo.balance) }}</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">绿色积分</div>
@@ -64,7 +70,7 @@
           <el-form :model="editForm" label-width="80px">
             <el-form-item label="头像">
               <div class="avatar-uploader" @click="triggerFileUpload">
-                <img v-if="editForm.avatar" :src="editForm.avatar" class="upload-avatar" />
+                <img v-if="editForm.avatar" :src="editForm.avatar" class="upload-avatar" alt="upload-avatar" />
                 <span v-else>上传</span>
                 <input ref="fileInput" type="file" accept="image/*" style="display: none" @change="handleUpload" />
               </div>
@@ -108,23 +114,56 @@
         </el-tab-pane>
       </el-tabs>
     </el-dialog>
+
+    <el-dialog
+      v-model="showFaceDialog"
+      title="人脸录入"
+      width="560px"
+      :close-on-click-modal="false"
+      @close="closeFaceDialog"
+    >
+      <div class="face-panel">
+        <el-alert
+          :type="faceRegistered ? 'warning' : 'info'"
+          :closable="false"
+          show-icon
+          class="face-alert"
+        >
+          <template #title>
+            {{ faceRegistered ? '当前账号已录入人脸，重新录入将覆盖原底图。' : '请先开启摄像头并抓拍清晰正脸照片。' }}
+          </template>
+        </el-alert>
+
+        <video ref="faceVideoRef" class="face-video" autoplay playsinline muted />
+        <img v-if="facePreview" :src="facePreview" class="face-preview" alt="face-preview" />
+
+        <p v-if="faceError" class="face-error">{{ faceError }}</p>
+
+        <div class="face-actions">
+          <el-button @click="startFaceCamera">开启摄像头</el-button>
+          <el-button type="primary" @click="captureFace" :disabled="!faceCameraReady">抓拍</el-button>
+          <el-button type="success" :loading="enrolling" @click="saveFace">拍照并保存</el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ShoppingBag, Trophy, Star, Wallet, Service, Setting, SwitchButton } from '@element-plus/icons-vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
-import { updateUserInfo, changePassword } from '@/api/user'
+import { updateUserInfo, changePassword, registerFace } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo || {})
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+const faceRegistered = computed(() => Boolean(userInfo.value.face_registered))
 
 const showEditDialog = ref(false)
 const activeTab = ref('info')
@@ -132,6 +171,15 @@ const loading = ref(false)
 const fileInput = ref(null)
 const editForm = ref({})
 const pwdForm = ref({ old_password: '', new_password: '' })
+
+const showFaceDialog = ref(false)
+const faceVideoRef = ref(null)
+const faceCameraReady = ref(false)
+const facePreview = ref('')
+const faceBlob = ref(null)
+const faceError = ref('')
+const enrolling = ref(false)
+let faceStream = null
 
 const roleText = computed(() => {
   const map = { admin: '系统管理员', store: '商户', property: '物业人员', user: '居民' }
@@ -209,6 +257,7 @@ function triggerFileUpload() {
 async function handleUpload(event) {
   const file = event.target.files?.[0]
   if (!file) return
+
   const formData = new FormData()
   formData.append('file', file)
 
@@ -259,13 +308,126 @@ async function submitPwd() {
 }
 
 function handleLogout() {
-  ElMessageBox.confirm('确认退出登录吗？', '提示', {
-    type: 'warning'
-  }).then(async () => {
-    await userStore.logout()
-    router.push('/home')
-  }).catch(() => {})
+  ElMessageBox.confirm('确认退出登录吗？', '提示', { type: 'warning' })
+    .then(async () => {
+      await userStore.logout()
+      router.push('/home')
+    })
+    .catch(() => {})
 }
+
+function resetFaceState() {
+  facePreview.value = ''
+  faceBlob.value = null
+  faceError.value = ''
+  faceCameraReady.value = false
+}
+
+function openFaceDialog() {
+  showFaceDialog.value = true
+}
+
+async function startFaceCamera() {
+  faceError.value = ''
+  if (faceStream) return
+
+  try {
+    faceStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' },
+      audio: false
+    })
+
+    if (!faceVideoRef.value) return
+    faceVideoRef.value.srcObject = faceStream
+    await faceVideoRef.value.play()
+    faceCameraReady.value = true
+  } catch (error) {
+    faceError.value = '摄像头打开失败，请检查浏览器权限设置'
+    stopFaceCamera()
+  }
+}
+
+function stopFaceCamera() {
+  if (faceStream) {
+    faceStream.getTracks().forEach((track) => track.stop())
+    faceStream = null
+  }
+  if (faceVideoRef.value) {
+    faceVideoRef.value.srcObject = null
+  }
+  faceCameraReady.value = false
+}
+
+function captureFace() {
+  if (!faceVideoRef.value || !faceCameraReady.value) {
+    ElMessage.warning('请先开启摄像头')
+    return
+  }
+
+  const video = faceVideoRef.value
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth || 640
+  canvas.height = video.videoHeight || 480
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    ElMessage.error('抓拍失败，请重试')
+    return
+  }
+
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  facePreview.value = canvas.toDataURL('image/jpeg', 0.9)
+  canvas.toBlob((blob) => {
+    faceBlob.value = blob
+  }, 'image/jpeg', 0.9)
+}
+
+async function saveFace() {
+  if (!faceBlob.value) {
+    ElMessage.warning('请先抓拍人脸照片')
+    return
+  }
+
+  enrolling.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', faceBlob.value, `face-register-${Date.now()}.jpg`)
+
+    const uploadRes = await request({
+      url: '/upload',
+      method: 'post',
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+
+    await registerFace({ face_image_url: uploadRes.url })
+    await userStore.fetchUserInfo()
+    ElMessage.success('人脸录入成功')
+    closeFaceDialog()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || error.message || '人脸录入失败')
+  } finally {
+    enrolling.value = false
+  }
+}
+
+function closeFaceDialog() {
+  stopFaceCamera()
+  resetFaceState()
+  showFaceDialog.value = false
+}
+
+watch(showFaceDialog, (visible) => {
+  if (visible) {
+    resetFaceState()
+    return
+  }
+  stopFaceCamera()
+})
+
+onBeforeUnmount(() => {
+  stopFaceCamera()
+})
 
 onMounted(() => {
   userStore.fetchUserInfo()
@@ -317,8 +479,15 @@ onMounted(() => {
   flex: 1;
 }
 
+.user-tags {
+  display: flex;
+  gap: 8px;
+}
+
 .header-actions {
   margin-left: auto;
+  display: flex;
+  gap: 10px;
 }
 
 .profile-stats {
@@ -406,11 +575,43 @@ onMounted(() => {
   object-fit: cover;
 }
 
+.face-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.face-alert {
+  margin-bottom: 8px;
+}
+
+.face-video,
+.face-preview {
+  width: 100%;
+  border-radius: 10px;
+  background: #f3f4f6;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.face-error {
+  color: #d93025;
+  margin: 0;
+}
+
+.face-actions {
+  display: flex;
+  gap: 10px;
+}
+
 @media (max-width: 768px) {
   .profile-header,
   .profile-stats {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    margin-left: 0;
   }
 }
 </style>

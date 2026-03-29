@@ -4,6 +4,7 @@ import (
 	"smartcommunity/internal/model"
 	"smartcommunity/internal/service"
 	"smartcommunity/pkg/response"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -236,4 +237,50 @@ func (h *UserHandler) Info(c *gin.Context) {
 		return
 	}
 	response.Success(c, user)
+}
+
+// RegisterFace 人脸录入
+// 支持两种方式：
+// 1) multipart/form-data 传 file 字段，服务端上传 MinIO 得到 URL
+// 2) application/json 直接传 face_image_url
+func (h *UserHandler) RegisterFace(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	uid := userID.(int64)
+
+	faceImageURL := ""
+
+	file, err := c.FormFile("file")
+	if err == nil && file != nil {
+		storage := service.StorageService{}
+		url, _, uploadErr := storage.UploadMultipartFile(file, "face")
+		if uploadErr != nil {
+			response.Fail(c, "face image upload failed: "+uploadErr.Error())
+			return
+		}
+		faceImageURL = url
+	} else {
+		var req struct {
+			FaceImageURL string `json:"face_image_url"`
+		}
+		if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
+			response.Fail(c, "invalid request parameters")
+			return
+		}
+		faceImageURL = strings.TrimSpace(req.FaceImageURL)
+	}
+
+	if faceImageURL == "" {
+		response.Fail(c, "face image is required")
+		return
+	}
+
+	if err := h.Service.RegisterFace(uid, faceImageURL); err != nil {
+		response.Fail(c, "face register failed: "+err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{
+		"face_registered": true,
+		"face_image_url":  faceImageURL,
+	})
 }

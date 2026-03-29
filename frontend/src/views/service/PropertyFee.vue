@@ -55,6 +55,14 @@
         />
       </div>
     </div>
+
+    <PayAuthDialog
+      v-model="showPayAuth"
+      title="物业费支付验证"
+      :face-registered="Boolean(userStore.userInfo?.face_registered)"
+      :loading="paySubmitting"
+      @confirm="submitFeePay"
+    />
   </div>
 </template>
 
@@ -63,6 +71,7 @@ import { ref, onMounted } from 'vue'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Navbar from '@/components/layout/Navbar.vue'
+import PayAuthDialog from '@/components/payment/PayAuthDialog.vue'
 import { getPropertyFeeList, payPropertyFee } from '@/api/service'
 import { useUserStore } from '@/stores/user'
 import { GREEN_POINTS_PER_YUAN, getMixedPaymentPreview } from '@/utils/payment'
@@ -73,6 +82,9 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const payingId = ref(0)
+const showPayAuth = ref(false)
+const paySubmitting = ref(false)
+const pendingFee = ref(null)
 
 function formatAmount(value) {
   return Number(value || 0).toFixed(2)
@@ -104,33 +116,32 @@ async function handlePay(fee) {
       { type: 'warning' }
     )
 
-    const { value } = await ElMessageBox.prompt(
-      '请输入登录密码完成支付',
-      '安全支付验证',
-      {
-        inputType: 'password',
-        inputPlaceholder: '登录密码',
-        confirmButtonText: '确认支付',
-        cancelButtonText: '取消'
-      }
-    )
-
-    const password = (value || '').trim()
-    if (!password) {
-      ElMessage.warning('未输入登录密码，已取消支付')
-      return
-    }
-
-    payingId.value = fee.id
-    const result = await payPropertyFee(fee.id, password)
-    ElMessage.success(`支付成功，使用积分 ${result.used_points}，余额 ￥${formatAmount(result.used_balance)}`)
-    await Promise.all([fetchFees(), userStore.fetchUserInfo()])
+    pendingFee.value = fee
+    showPayAuth.value = true
   } catch (error) {
     if (error === 'cancel' || error === 'close') {
       return
     }
     ElMessage.error(error.response?.data?.msg || error.message || '支付失败')
+  }
+}
+
+async function submitFeePay(authPayload) {
+  if (!pendingFee.value) return
+
+  paySubmitting.value = true
+  payingId.value = pendingFee.value.id
+  try {
+    const res = await payPropertyFee(pendingFee.value.id, authPayload)
+    const paymentResult = res?.payment_result || res
+    ElMessage.success(`支付成功，使用积分 ${paymentResult.used_points}，余额 ￥${formatAmount(paymentResult.used_balance)}`)
+    showPayAuth.value = false
+    pendingFee.value = null
+    await Promise.all([fetchFees(), userStore.fetchUserInfo()])
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || error.message || '支付失败')
   } finally {
+    paySubmitting.value = false
     payingId.value = 0
   }
 }

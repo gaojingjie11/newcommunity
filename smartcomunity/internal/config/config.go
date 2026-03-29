@@ -9,11 +9,12 @@ import (
 var Conf *Config
 
 type Config struct {
-	Server ServerConfig `mapstructure:"server"`
-	DB     DBConfig     `mapstructure:"db"`
-	Redis  RedisConfig  `mapstructure:"redis"`
-	MinIO  MinIOConfig  `mapstructure:"minio"`
-	AI     AIConfig     `mapstructure:"ai"`
+	Server   ServerConfig   `mapstructure:"server"`
+	DB       DBConfig       `mapstructure:"db"`
+	Redis    RedisConfig    `mapstructure:"redis"`
+	MinIO    MinIOConfig    `mapstructure:"minio"`
+	AI       AIConfig       `mapstructure:"ai"`
+	FaceBody FaceBodyConfig `mapstructure:"facebody"`
 }
 
 type ServerConfig struct {
@@ -40,6 +41,12 @@ type AIConfig struct {
 	APIKey  string `mapstructure:"api_key"`
 	BaseURL string `mapstructure:"base_url"`
 	Model   string `mapstructure:"model"`
+}
+
+type FaceBodyConfig struct {
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	AccessKeySecret string `mapstructure:"access_key_secret"`
+	Endpoint        string `mapstructure:"endpoint"`
 }
 
 func Init(env string) {

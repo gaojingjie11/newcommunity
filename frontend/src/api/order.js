@@ -47,13 +47,16 @@ export function getOrderList(params) {
 }
 
 export function payOrder(data) {
+  const businessId = data.business_id || data.order_id || data.id
   return request({
     url: '/finance/pay',
     method: 'post',
     data: {
-      business_id: data.order_id,
-      pay_type: 1,
-      password: data.password || ''
+      business_id: businessId,
+      business_type: data.business_type || 1,
+      pay_type: data.pay_type || 'password',
+      password: data.password || '',
+      face_image_url: data.face_image_url || ''
     }
   })
 }

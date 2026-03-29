@@ -22,3 +22,11 @@ export function changePassword(data) {
         data
     })
 }
+
+export function registerFace(data) {
+    return request({
+        url: '/user/face/register',
+        method: 'post',
+        data
+    })
+}

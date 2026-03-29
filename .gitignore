@@ -7,6 +7,9 @@ frontend/dist/
 frontend/.env.local
 frontend/.npmrc
 docker-compose.yml
+.env
+.env.*
+!.env.example
 .gocache
 # 后端
 *.exe

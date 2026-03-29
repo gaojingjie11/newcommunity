@@ -10,6 +10,9 @@ services:
     restart: always
     environment:
       - APP_ENV=prod
+      - ALIYUN_ACCESS_KEY_ID=${ALIYUN_ACCESS_KEY_ID}
+      - ALIYUN_ACCESS_KEY_SECRET=${ALIYUN_ACCESS_KEY_SECRET}
+      - ALIYUN_FACEBODY_ENDPOINT=${ALIYUN_FACEBODY_ENDPOINT:-facebody.cn-shanghai.aliyuncs.com}
     network_mode: "host"
 
   # 前端服务
