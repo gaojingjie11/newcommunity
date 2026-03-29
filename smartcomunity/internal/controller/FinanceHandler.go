@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -59,6 +60,7 @@ func (h *FinanceHandler) Pay(c *gin.Context) {
 
 		score, err := faceService.CompareFace(user.FaceImageURL, req.FaceImageURL)
 		if err != nil {
+			log.Printf("face verification error: user_id=%d registered_url=%s capture_url=%s err=%v", uid, user.FaceImageURL, req.FaceImageURL, err)
 			response.Fail(c, "人脸验证失败，请稍后重试")
 			return
 		}
