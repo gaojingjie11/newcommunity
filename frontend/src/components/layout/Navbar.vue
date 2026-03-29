@@ -14,9 +14,20 @@
           <router-link to="/chat" class="nav-link" v-if="userStore.isLoggedIn"
             >AI助手</router-link
           >
-          <router-link to="/order" class="nav-link" v-if="userStore.isLoggedIn"
-            >我的订单</router-link
+          <router-link
+            v-if="userStore.isLoggedIn && !hasAdminAccess"
+            to="/order"
+            class="nav-link"
           >
+            我的订单
+          </router-link>
+          <router-link
+            v-if="userStore.isLoggedIn && hasAdminAccess"
+            to="/admin"
+            class="nav-link"
+          >
+            管理后台
+          </router-link>
         </div>
 
         <div class="navbar-right">
@@ -80,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useCartStore } from "@/stores/cart";
@@ -91,6 +102,9 @@ const router = useRouter();
 const userStore = useUserStore();
 const cartStore = useCartStore();
 const showUserMenu = ref(false);
+const hasAdminAccess = computed(() =>
+  ["admin", "store", "property"].includes(userStore.userInfo?.role),
+);
 
 const handleLogout = () => {
   userStore.logout();

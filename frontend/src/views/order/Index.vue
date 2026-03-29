@@ -3,9 +3,7 @@
     <Navbar />
 
     <div class="container custom-container">
-      <div class="page-header">
-        <h1 class="page-title highlight-title">我的订单</h1>
-      </div>
+      
 
       <!-- 高级提示横幅 -->
       <div class="premium-alert">
@@ -376,6 +374,7 @@ watch(currentTab, () => {
 
 /* 高级提示横幅 */
 .premium-alert {
+  margin-top: 40px;
   display: flex;
   align-items: flex-start;
   background: #f0f7ff;
@@ -591,8 +590,8 @@ watch(currentTab, () => {
 }
 
 .point-item {
-  color: #00b894; 
-  background: rgba(0, 184, 148, 0.1);
+  color: #2d597b;
+  background: #f0f7ff;
   padding: 4px 10px;
   border-radius: 6px;
 }
@@ -643,12 +642,12 @@ watch(currentTab, () => {
 }
 
 .btn-success {
-  background: #00b894;
+  background: #2d597b;
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 184, 148, 0.2);
 }
 .btn-success:hover:not(:disabled) {
-  background: #00997a;
+  background: #2d597b;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0, 184, 148, 0.3);
 }

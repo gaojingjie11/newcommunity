@@ -2,11 +2,17 @@
   <div class="admin-child-page">
     <Navbar />
     <div class="container">
-      <div class="page-header">
-        <h1 class="page-title">报修处理</h1>
+ <div class="page-header">
+        <div class="page-nav">
+        <div class="back-btn" @click="$router.push('/admin')">
+          <el-icon class="back-icon"><ArrowLeft /></el-icon> 
+          <span></span>
+        </div>
+      </div>
+        
       </div>
 
-      <div class="table-container card">
+      <div class="table-container card" style="margin-top: 0px;">
         <el-table :data="list" style="width: 100%" stripe border>
           <el-table-column label="提交人" min-width="120">
             <template #default="{ row }">
@@ -180,6 +186,12 @@ onMounted(fetchList)
 
 <style scoped>
 /* Reuse styles */
+.page-nav { padding: 24px 0 16px; }
+.back-btn {
+  display: inline-flex; align-items: center; color: #606266; font-size: 15px;
+  cursor: pointer; transition: color 0.3s; padding: 8px 16px 8px 0;
+}
+.back-icon { margin-right: 6px; font-size: 16px; }
 .admin-child-page { min-height: 100vh; padding-bottom: var(--spacing-xl); }
 .page-header { display: flex; justify-content: space-before; margin-bottom: var(--spacing-lg); }
 .table { width: 100%; border-collapse: collapse; }

@@ -11,9 +11,7 @@
         </div>
       </div>
 
-      <div class="page-header">
-        <h1 class="page-title highlight-title">订单详情</h1>
-      </div>
+      
 
       <div v-loading="loading" class="detail-content">
         <template v-if="order">

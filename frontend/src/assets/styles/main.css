@@ -141,7 +141,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #00997a; /* 对应辅助色深色 */
+  background: #005e99; /* 对应辅助色深色 */
   transform: translateY(-2px);
 }
 
