@@ -216,7 +216,8 @@ const handleUpload = async (event) => {
     })
     form.value.image_url = res.url
   } catch (e) {
-    ElMessage.error('上传失败')
+    const msg = e?.response?.data?.msg || e?.message || '上传失败'
+    ElMessage.error(msg)
   } finally {
     uploading.value = false
     // Clear input value to allow re-uploading same file
