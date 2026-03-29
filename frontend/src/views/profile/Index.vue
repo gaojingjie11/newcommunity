@@ -25,7 +25,9 @@
 
           <div class="header-actions">
             <el-button type="primary" plain @click="openEditProfile">编辑资料</el-button>
-            <el-button type="success" plain @click="openFaceDialog">录入人脸</el-button>
+            <el-button type="success" plain @click="openFaceDialog">
+              {{ faceRegistered ? '重新录入人脸' : '录入人脸' }}
+            </el-button>
           </div>
         </div>
 
