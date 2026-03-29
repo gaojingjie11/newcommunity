@@ -3,7 +3,10 @@
     <Navbar />
 
     <div class="container">
-      <h1 class="page-title">社区服务</h1>
+      <!-- 统一的高光标题样式 -->
+      <div class="page-header">
+        <h1 class="page-title highlight-title">社区服务</h1>
+      </div>
 
       <div class="service-menu">
         <div
@@ -81,6 +84,36 @@ const serviceCards = [
   padding-bottom: var(--spacing-xl);
 }
 
+/* ================= 统一标题样式 ================= */
+.page-header {
+  padding: 32px 0 24px;
+}
+
+.highlight-title {
+  display: inline-block;
+  position: relative;
+  font-size: 28px;
+  color: #2c3e50;
+  font-weight: 600;
+  margin: 0;
+  z-index: 1;
+}
+
+.highlight-title::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: -5%;
+  width: 110%;
+  height: 12px;
+  background-color: #2d597b; /* 统一的商务蓝 */
+  opacity: 0.2;
+  border-radius: 4px;
+  z-index: -1;
+  transition: all 0.3s ease;
+}
+
+/* ================= 原有卡片样式保留 ================= */
 .service-menu {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));

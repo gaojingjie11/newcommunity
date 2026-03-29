@@ -2,12 +2,14 @@
   <div class="community-chat-page">
     <Navbar />
 
-    <div class="container">
-      <h1 class="page-title">社区群聊</h1>
+    <div class="container custom-container">
+      <div class="page-header">
+        <h1 class="page-title highlight-title">社区群聊</h1>
+      </div>
 
-      <div class="chat-card card">
-        <div class="chat-list" ref="listRef" v-loading="loading">
-          <el-empty v-if="!loading && messages.length === 0" description="暂无消息，来发第一条吧" />
+      <div class="chat-card">
+        <div class="chat-list custom-scrollbar" ref="listRef" v-loading="loading">
+          <el-empty v-if="!loading && messages.length === 0" description="暂无消息，来发第一条吧" image-size="120" />
 
           <div
             v-for="item in messages"
@@ -37,12 +39,15 @@
             :rows="3"
             maxlength="1000"
             show-word-limit
-            placeholder="说点什么..."
+            placeholder="参与社区讨论，说点什么..."
+            class="custom-textarea"
             @keydown.ctrl.enter.prevent="handleSend"
           />
           <div class="actions">
-            <span class="hint">Ctrl + Enter 发送</span>
-            <el-button type="primary" :loading="sending" @click="handleSend">发送</el-button>
+            <span class="hint">快捷发送: <strong>Ctrl + Enter</strong></span>
+            <button class="btn-send" :class="{ 'is-loading': sending }" :disabled="!draft.trim() || sending" @click="handleSend">
+              {{ sending ? '发送中...' : '发 送' }}
+            </button>
           </div>
         </div>
       </div>
@@ -132,27 +137,53 @@ onUnmounted(() => {
 <style scoped>
 .community-chat-page {
   min-height: 100vh;
-  padding-bottom: 40px;
+  background-color: #f8f9fa;
+  padding-bottom: 60px;
+}
+
+.custom-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.page-header { padding: 32px 0 24px; }
+
+.highlight-title {
+  display: inline-block; position: relative; font-size: 32px; color: #2c3e50; font-weight: 700; z-index: 1; margin: 0;
+}
+.highlight-title::after {
+  content: ''; position: absolute; bottom: 4px; left: -5%; width: 110%; height: 14px;
+  background-color: #2d597b; opacity: 0.15; border-radius: 6px; z-index: -1;
 }
 
 .chat-card {
   display: flex;
   flex-direction: column;
-  min-height: 70vh;
+  height: 75vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.02);
 }
 
 .chat-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 32px;
+  background: #fbfcfd;
 }
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #dcdfe6; border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c0c4cc; }
 
 .message-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .message-item.is-self {
@@ -160,19 +191,17 @@ onUnmounted(() => {
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  background: #f5f5f5;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .bubble-wrap {
-  flex: 1;
-  min-width: 0;
+  max-width: 70%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
 }
 
 .message-item.is-self .bubble-wrap {
@@ -183,52 +212,88 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
+  font-size: 13px;
+  color: #a4b0be;
+  margin-bottom: 6px;
 }
 
-.message-item.is-self .meta {
-  justify-content: flex-end;
-}
-
-.name {
-  font-weight: 600;
-}
+.name { font-weight: 600; color: #606266; }
 
 .bubble {
   display: inline-block;
-  max-width: 75%;
-  background: #f2f4f7;
-  border-radius: 10px;
-  border-top-left-radius: 4px;
-  padding: 10px 12px;
+  padding: 12px 18px;
+  font-size: 15px;
   line-height: 1.6;
   word-break: break-word;
+  background: #ffffff;
+  color: #2c3e50;
+  border-radius: 12px;
+  border-top-left-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  border: 1px solid #ebeef5;
 }
 
 .message-item.is-self .bubble {
-  background: linear-gradient(135deg, #3a8bff, #66b1ff);
-  color: #fff;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 4px;
+  background: #2d597b;
+  color: #ffffff;
+  border: none;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 2px;
 }
 
 .composer {
-  border-top: 1px solid var(--border-color);
-  padding: 12px 16px 16px;
-  background: #fff;
+  padding: 24px 32px;
+  background: #ffffff;
+  border-top: 1px solid #f0f2f5;
+}
+
+:deep(.custom-textarea .el-textarea__inner) {
+  background: #f8f9fa;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 15px;
+  box-shadow: none;
+  transition: all 0.3s;
+}
+
+:deep(.custom-textarea .el-textarea__inner:focus) {
+  background: #ffffff;
+  border-color: #2d597b;
+  box-shadow: 0 0 0 3px rgba(45, 89, 123, 0.1);
 }
 
 .actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
-.hint {
-  font-size: 12px;
-  color: var(--text-secondary);
+.hint { font-size: 13px; color: #a4b0be; }
+.hint strong { background: #f4f4f5; padding: 2px 6px; border-radius: 4px; color: #606266; }
+
+.btn-send {
+  background: #2d597b;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(45, 89, 123, 0.2);
+}
+
+.btn-send:hover:not(:disabled) {
+  background: #1f435d;
+  transform: translateY(-2px);
+}
+
+.btn-send:disabled {
+  background: #c0c4cc;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 </style>

@@ -1,4 +1,4 @@
-/* 全局样式系统 - 清新简洁风格 */
+/* 全局样式系统 - 清新简洁风格（蓝色主调） */
 
 /* 重置样式 */
 *, *::before, *::after {
@@ -9,14 +9,14 @@
 
 /* CSS变量定义 - 清新配色 */
 :root {
-  /* 主色调 */
-  --primary-color: #00b894;
-  --primary-light: #55efc4;
-  --primary-dark: #00997a;
+  /* 主色调 (清新蓝) */
+  --primary-color: #2d597b;
+  --primary-light: #47719b;
+  --primary-dark: #1a5c92;
   
-  /* 辅助色 */
-  --secondary-color: #0984e3;
-  --secondary-light: #74b9ff;
+  /* 辅助色 (薄荷绿) */
+  --secondary-color: #276193;
+  --secondary-light: #276193;
   
   /* 语义色 */
   --success-color: #00b894;
@@ -141,7 +141,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #0770c7;
+  background: #00997a; /* 对应辅助色深色 */
   transform: translateY(-2px);
 }
 
@@ -185,7 +185,8 @@ body {
 
 .input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1);
+  /* 同步修改为蓝色的 rgba 阴影 */
+  box-shadow: 0 0 0 3px rgba(9, 132, 227, 0.1);
 }
 
 .input::placeholder {

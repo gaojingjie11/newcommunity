@@ -1,5 +1,18 @@
 <template>
   <div class="login-page">
+    <!-- 背景轮播层（和登录页相同） -->
+    <div class="bg-wrapper">
+      <div
+        class="bg-image"
+        v-for="(img, index) in bgImages"
+        :key="index"
+        :style="{
+          backgroundImage: `url(${img})`,
+          opacity: currentBg === index ? 1 : 0
+        }"
+      ></div>
+    </div>
+
     <div class="login-container">
       <div class="login-card card">
         <h2 class="login-title">创建账号</h2>
@@ -55,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
@@ -74,8 +87,26 @@ const form = ref({
 
 const loading = ref(false)
 
+// 轮播背景（和登录页一致）
+const bgImages = [
+  new URL("@/assets/images/bg1.png", import.meta.url).href,
+  new URL("@/assets/images/bg2.png", import.meta.url).href,
+  new URL("@/assets/images/bg3.png", import.meta.url).href,
+];
+const currentBg = ref(0);
+let bgTimer = null;
+
+onMounted(() => {
+  bgTimer = setInterval(() => {
+    currentBg.value = (currentBg.value + 1) % bgImages.length;
+  }, 7000);
+});
+
+onUnmounted(() => {
+  if (bgTimer) clearInterval(bgTimer);
+});
+
 const handleRegister = async () => {
-  // 自动生成username
   if (!form.value.username) {
     form.value.username = 'user_' + form.value.mobile.slice(-6)
   }
@@ -94,21 +125,60 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
+/* 页面容器 */
 .login-page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
+  overflow: hidden;
 }
 
+/* 背景轮播 */
+.bg-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.bg-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: opacity 1.5s ease;
+  will-change: opacity;
+}
+
+/* 遮罩层 */
+.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(128, 128, 128, 0.35);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 登录内容层 */
 .login-container {
+  position: relative;
+  z-index: 2;
   width: 100%;
   max-width: 400px;
   padding: var(--spacing-lg);
 }
 
+/* 毛玻璃半透明卡片 */
 .login-card {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   animation: fadeIn 0.5s ease;
 }
 
@@ -117,12 +187,12 @@ const handleRegister = async () => {
   font-weight: 600;
   text-align: center;
   margin-bottom: var(--spacing-sm);
-  color: var(--text-primary);
+  color: #fff;
 }
 
 .login-subtitle {
   text-align: center;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.85);
   margin-bottom: var(--spacing-xl);
 }
 
@@ -140,7 +210,24 @@ const handleRegister = async () => {
 
 .form-group label {
   font-weight: 500;
-  color: var(--text-primary);
+  color: #fff;
+}
+
+/* 输入框半透明 */
+.input {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  outline: none;
+}
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+.input:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .form-footer {
@@ -149,16 +236,21 @@ const handleRegister = async () => {
 }
 
 .link {
-  color: var(--primary-color);
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   font-size: var(--font-size-sm);
 }
-
 .link:hover {
   text-decoration: underline;
+  color: #fff;
 }
 
 .btn-lg {
   width: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
