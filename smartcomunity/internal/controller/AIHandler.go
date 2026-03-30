@@ -19,6 +19,8 @@ func (h *AIHandler) Send(c *gin.Context) {
 		Content         string `json:"content"`
 		Message         string `json:"message"`
 		PaymentPassword string `json:"payment_password"`
+		PayType         string `json:"pay_type"`
+		FaceImageURL    string `json:"face_image_url"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Fail(c, "invalid request parameters")
@@ -45,7 +47,13 @@ func (h *AIHandler) Send(c *gin.Context) {
 		return
 	}
 
-	reply, err := h.Service.ChatWithMemory(userID, content, strings.TrimSpace(req.PaymentPassword))
+	reply, err := h.Service.ChatWithMemory(
+		userID,
+		content,
+		strings.TrimSpace(req.PaymentPassword),
+		strings.TrimSpace(req.PayType),
+		strings.TrimSpace(req.FaceImageURL),
+	)
 	if err != nil {
 		response.Fail(c, err.Error())
 		return

@@ -1,10 +1,9 @@
 <template>
   <div class="chat-page">
     <Navbar />
-    
+
     <div class="container chat-container">
       <div class="chat-card">
-        <!-- 头部 -->
         <div class="chat-header">
           <div class="header-left">
             <span class="header-icon">🤖</span>
@@ -19,7 +18,6 @@
           </div>
         </div>
 
-        <!-- 聊天记录区 -->
         <div ref="historyRef" class="chat-history custom-scrollbar">
           <div
             v-for="(msg, index) in messages"
@@ -40,7 +38,6 @@
             </div>
           </div>
 
-          <!-- 加载动画 -->
           <div v-if="loading" class="message-item assistant">
             <div class="avatar">🤖</div>
             <div class="content">
@@ -53,14 +50,13 @@
           </div>
         </div>
 
-        <!-- 输入区 -->
         <div class="chat-input-area">
           <div class="input-wrapper">
             <el-input
               v-model="inputContent"
               type="textarea"
               :rows="3"
-              placeholder="请输入您的问题，例如：'帮我总结一下最新的社区公告'..."
+              placeholder="请输入您的问题，例如：帮我总结下最新公告"
               class="custom-textarea"
               @keyup.enter.ctrl="handleSend"
               resize="none"
@@ -69,27 +65,39 @@
 
           <div class="actions">
             <span class="tip">快捷发送: <strong>Ctrl + Enter</strong></span>
-            <button 
-              class="btn-send" 
-              :class="{ 'is-loading': loading, 'is-disabled': !inputContent.trim() && !loading }" 
-              :disabled="(!inputContent.trim() && !loading) || loading" 
+            <button
+              class="btn-send"
+              :class="{ 'is-loading': loading || paySubmitting, 'is-disabled': !inputContent.trim() && !loading }"
+              :disabled="(!inputContent.trim() && !loading) || loading || paySubmitting"
               @click="handleSend"
             >
-              {{ loading ? '发送中...' : '发 送' }}
+              {{ loading || paySubmitting ? '发送中...' : '发送' }}
             </button>
           </div>
         </div>
       </div>
     </div>
+
+    <PayAuthDialog
+      v-model="showPayAuth"
+      title="AI支付验证"
+      :face-registered="Boolean(userStore.userInfo?.face_registered)"
+      :loading="paySubmitting"
+      @confirm="submitAIPay"
+    />
   </div>
 </template>
 
 <script setup>
 import { nextTick, onMounted, ref } from 'vue'
 import dayjs from 'dayjs'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import Navbar from '@/components/layout/Navbar.vue'
+import PayAuthDialog from '@/components/payment/PayAuthDialog.vue'
 import { getChatHistory, sendChat } from '@/api/chat'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
 
 const buildGreetingMessage = () => ({
   role: 'assistant',
@@ -106,6 +114,10 @@ const messages = ref([buildGreetingMessage()])
 const inputContent = ref('')
 const loading = ref(false)
 const historyRef = ref(null)
+
+const showPayAuth = ref(false)
+const paySubmitting = ref(false)
+const pendingPayContent = ref('')
 
 const isPayIntent = (text) => ['支付', '付款', '结算', '确认支付'].some((kw) => text.includes(kw))
 
@@ -135,55 +147,31 @@ const loadHistory = async () => {
     scrollToBottom()
   } catch {
     messages.value = [buildGreetingMessage()]
-    ElMessage.warning('聊天记录加载失败，已展示默认欢迎语')
+    ElMessage.warning('聊天记录加载失败，已显示默认欢迎语')
     scrollToBottom()
   }
 }
 
-const handleSend = async () => {
-  const content = inputContent.value.trim()
-  if (!content || loading.value) {
-    return
-  }
-
-  let paymentPassword = ''
-  if (isPayIntent(content)) {
-    try {
-      const { value } = await ElMessageBox.prompt(
-        '请输入登录密码完成支付',
-        '安全支付验证',
-        {
-          inputType: 'password',
-          inputPlaceholder: '登录密码',
-          confirmButtonText: '确认支付',
-          cancelButtonText: '取消'
-        }
-      )
-      paymentPassword = (value || '').trim()
-      if (!paymentPassword) {
-        ElMessage.warning('未输入支付密码，已取消本次支付请求')
-        return
-      }
-    } catch {
-      return
-    }
-  }
-
+async function sendContentToAI(content, authPayload = {}) {
   messages.value.push({
     role: 'user',
     content,
     time: dayjs().format('HH:mm')
   })
-  inputContent.value = ''
   loading.value = true
   scrollToBottom()
 
   try {
-    const res = await sendChat({
-      content,
-      payment_password: paymentPassword
-    })
+    const req = { content }
+    if (authPayload?.pay_type === 'password') {
+      req.payment_password = authPayload.password || ''
+      req.pay_type = 'password'
+    } else if (authPayload?.pay_type === 'face') {
+      req.pay_type = 'face'
+      req.face_image_url = authPayload.face_image_url || ''
+    }
 
+    const res = await sendChat(req)
     const reply = (res?.reply || '').trim()
     if (!reply) {
       throw new Error('empty AI response')
@@ -206,36 +194,69 @@ const handleSend = async () => {
   }
 }
 
-onMounted(() => {
-  loadHistory()
+const handleSend = async () => {
+  const content = inputContent.value.trim()
+  if (!content || loading.value || paySubmitting.value) {
+    return
+  }
+
+  inputContent.value = ''
+  if (isPayIntent(content)) {
+    pendingPayContent.value = content
+    showPayAuth.value = true
+    return
+  }
+
+  await sendContentToAI(content)
+}
+
+const submitAIPay = async (authPayload) => {
+  const content = pendingPayContent.value.trim()
+  if (!content) {
+    showPayAuth.value = false
+    return
+  }
+
+  paySubmitting.value = true
+  try {
+    await sendContentToAI(content, authPayload || {})
+    pendingPayContent.value = ''
+    showPayAuth.value = false
+  } finally {
+    paySubmitting.value = false
+  }
+}
+
+onMounted(async () => {
+  await userStore.fetchUserInfo().catch(() => {})
+  await loadHistory()
 })
 </script>
-
 <style scoped>
 .chat-page {
   min-height: 100vh;
   padding-bottom: 40px;
-  background-color: #f5f7fa; /* 灰底色衬托主卡片 */
+  background-color: #f5f7fa; /* 鐏板簳鑹茶‖鎵樹富鍗＄墖 */
 }
 
-/* ★ 加宽的聊天容器 ★ */
+/* 鈽?鍔犲鐨勮亰澶╁鍣?鈽?*/
 .chat-container {
-  max-width: 1100px; /* 原来是800px，现在加宽 */
+  max-width: 1100px; /* 鍘熸潵鏄?00px锛岀幇鍦ㄥ姞瀹?*/
   margin: 30px auto;
 }
 
 .chat-card {
-  height: 82vh; /* 稍微增加一点高度 */
+  height: 82vh; /* 绋嶅井澧炲姞涓€鐐归珮搴?*/
   display: flex;
   flex-direction: column;
   background: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06); /* 高级软阴影 */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06); /* 楂樼骇杞槾褰?*/
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.02);
 }
 
-/* 头部样式 */
+/* 澶撮儴鏍峰紡 */
 .chat-header {
   padding: 20px 32px;
   border-bottom: 1px solid #f0f2f5;
@@ -299,16 +320,16 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* 聊天历史区 */
+/* 鑱婂ぉ鍘嗗彶鍖?*/
 .chat-history {
   flex: 1;
   padding: 32px;
   overflow-y: auto;
-  background: #f8f9fa; /* 浅灰色背景，让气泡更突出 */
+  background: #f8f9fa; /* 娴呯伆鑹茶儗鏅紝璁╂皵娉℃洿绐佸嚭 */
   scroll-behavior: smooth;
 }
 
-/* 优化滚动条 */
+/* 浼樺寲婊氬姩鏉?*/
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -323,7 +344,7 @@ onMounted(() => {
   background: #c0c4cc;
 }
 
-/* 气泡行布局 */
+/* 姘旀场琛屽竷灞€ */
 .message-item {
   display: flex;
   margin-bottom: 28px;
@@ -362,7 +383,7 @@ onMounted(() => {
 }
 
 .content {
-  max-width: 75%; /* 加宽了容器，气泡占比也可以相应增加 */
+  max-width: 75%; /* 鍔犲浜嗗鍣紝姘旀场鍗犳瘮涔熷彲浠ョ浉搴斿鍔?*/
   display: flex;
   flex-direction: column;
 }
@@ -376,7 +397,7 @@ onMounted(() => {
   align-items: flex-start;
 }
 
-/* 对话气泡样式 */
+/* 瀵硅瘽姘旀场鏍峰紡 */
 .bubble {
   padding: 14px 20px;
   border-radius: 16px;
@@ -388,16 +409,16 @@ onMounted(() => {
 }
 
 .message-item.user .bubble {
-  background: #2d597b; /* 统一的商务蓝 */
+  background: #2d597b; /* 缁熶竴鐨勫晢鍔¤摑 */
   color: #ffffff;
-  border-top-right-radius: 4px; /* 尖角朝向右侧 */
+  border-top-right-radius: 4px; /* 灏栬鏈濆悜鍙充晶 */
 }
 
 .message-item.assistant .bubble {
   background: #ffffff;
   color: #2c3e50;
   border: 1px solid #ebeef5;
-  border-top-left-radius: 4px; /* 尖角朝向左侧 */
+  border-top-left-radius: 4px; /* 灏栬鏈濆悜宸︿晶 */
 }
 
 .message-item.system .bubble {
@@ -413,7 +434,7 @@ onMounted(() => {
   margin-top: 8px;
 }
 
-/* 输入区域 */
+/* 杈撳叆鍖哄煙 */
 .chat-input-area {
   padding: 24px 32px;
   background: #ffffff;
@@ -468,12 +489,12 @@ onMounted(() => {
   border: 1px solid #e9e9eb;
 }
 
-/* 发送按钮定制 */
+/* 鍙戦€佹寜閽畾鍒?*/
 .btn-send {
   background: #2d597b;
   color: #ffffff;
   border: none;
-  border-radius: 20px; /* 胶囊按钮 */
+  border-radius: 20px; /* 鑳跺泭鎸夐挳 */
   padding: 10px 32px;
   font-size: 15px;
   font-weight: 600;
@@ -494,7 +515,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* 加载动画点点 */
+/* 鍔犺浇鍔ㄧ敾鐐圭偣 */
 .loading-bubble {
   padding: 12px 24px;
 }

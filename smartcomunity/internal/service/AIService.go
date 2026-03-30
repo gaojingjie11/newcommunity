@@ -24,6 +24,7 @@ const (
 	chatContextWindowSize = 10
 	maxChatHistoryLimit   = 200
 	maxAgentToolRounds    = 5
+	facePayMinConfidence  = 85.0
 
 	toolGetRecentNotices   = "get_recent_notices"
 	toolCreateRepairTicket = "create_repair_ticket"
@@ -33,7 +34,7 @@ const (
 )
 
 const communityAssistantSystemPrompt = "You are a smart community assistant. Use tools for real data operations. " +
-	"For order payment, user password is required and payment must be explicitly confirmed by user. " +
+	"For order payment, auth can be password or face, and payment must be explicitly confirmed by user. " +
 	"Never claim order creation/payment success unless backend tool execution succeeds. " +
 	"Never claim repair/complaint ticket creation success unless tool result has success=true and repair_id. " +
 	"Complaint submission is supported via create_repair_ticket with type=complaint."
@@ -42,6 +43,8 @@ type AIService struct{}
 
 type chatExecutionContext struct {
 	paymentPassword string
+	payType         string
+	faceImageURL    string
 }
 
 type dashScopeMessage struct {
@@ -127,6 +130,8 @@ type payOrderArgs struct {
 	OrderIDRaw json.RawMessage `json:"order_id"`
 	OrderNo    string          `json:"order_no"`
 	Password   string          `json:"password"`
+	PayType    string          `json:"pay_type"`
+	FaceImage  string          `json:"face_image_url"`
 }
 
 func (s *AIService) Chat(userContent string) (string, error) {
@@ -137,7 +142,7 @@ func (s *AIService) Chat(userContent string) (string, error) {
 	return s.callTextModel(config.Conf.AI.Model, messages, nil)
 }
 
-func (s *AIService) ChatWithMemory(userID int64, userContent string, paymentPassword string) (string, error) {
+func (s *AIService) ChatWithMemory(userID int64, userContent string, paymentPassword string, payType string, faceImageURL string) (string, error) {
 	userContent = strings.TrimSpace(userContent)
 	if userID <= 0 {
 		return "", errors.New("invalid user id")
@@ -166,7 +171,11 @@ func (s *AIService) ChatWithMemory(userID int64, userContent string, paymentPass
 		}
 	}
 
-	reply, err := s.runAgentWithTools(userID, chatExecutionContext{paymentPassword: strings.TrimSpace(paymentPassword)}, messages)
+	reply, err := s.runAgentWithTools(userID, chatExecutionContext{
+		paymentPassword: strings.TrimSpace(paymentPassword),
+		payType:         strings.ToLower(strings.TrimSpace(payType)),
+		faceImageURL:    strings.TrimSpace(faceImageURL),
+	}, messages)
 	if err != nil {
 		return "", err
 	}
@@ -361,14 +370,16 @@ func (s *AIService) dispatchToolCall(userID int64, execCtx chatExecutionContext,
 		if err != nil {
 			return nil, err
 		}
+		authType := normalizeAIAuthType(args.PayType, execCtx.payType)
 		password := strings.TrimSpace(args.Password)
 		if password == "" {
 			password = strings.TrimSpace(execCtx.paymentPassword)
 		}
-		if password == "" {
-			return nil, errors.New("payment password is required")
+		faceImageURL := strings.TrimSpace(args.FaceImage)
+		if faceImageURL == "" {
+			faceImageURL = strings.TrimSpace(execCtx.faceImageURL)
 		}
-		payResult, err := (&FinanceService{}).UnifiedPay(userID, orderID, PayTypeOrder, password)
+		payResult, err := s.payOrderWithAIAuth(userID, orderID, authType, password, faceImageURL)
 		if err != nil {
 			return nil, err
 		}
@@ -487,6 +498,92 @@ func (s *AIService) resolveOrderIDForPayment(userID int64, args payOrderArgs) (i
 	return 0, errors.New("order not found")
 }
 
+func normalizeAIAuthType(primary string, fallback string) string {
+	value := strings.ToLower(strings.TrimSpace(primary))
+	if value == "" {
+		value = strings.ToLower(strings.TrimSpace(fallback))
+	}
+	if value == AuthTypeFace {
+		return AuthTypeFace
+	}
+	return AuthTypePassword
+}
+
+func (s *AIService) payOrderWithAIAuth(userID int64, orderID int64, authType, password, faceImageURL string) (*MixedPaymentResult, error) {
+	authType = normalizeAIAuthType(authType, AuthTypePassword)
+	password = strings.TrimSpace(password)
+
+	if authType == AuthTypeFace {
+		if err := s.verifyAIFacePayment(userID, strings.TrimSpace(faceImageURL)); err != nil {
+			return nil, err
+		}
+		password = ""
+	} else if password == "" {
+		return nil, errors.New("请输入支付密码")
+	}
+
+	result, err := (&FinanceService{}).UnifiedPayWithAuth(userID, orderID, PayTypeOrder, password, authType)
+	if err != nil {
+		return nil, localizeAIPaymentError(err)
+	}
+	return result, nil
+}
+
+func (s *AIService) verifyAIFacePayment(userID int64, faceImageURL string) error {
+	if faceImageURL == "" {
+		return errors.New("请先完成刷脸抓拍")
+	}
+
+	var user model.SysUser
+	if err := global.DB.Select("id", "face_registered", "face_image_url").First(&user, userID).Error; err != nil {
+		return errors.New("用户不存在")
+	}
+	if !user.FaceRegistered || strings.TrimSpace(user.FaceImageURL) == "" {
+		return errors.New("当前账号未录入人脸，请先到个人中心录入")
+	}
+
+	faceService, err := NewFaceService()
+	if err != nil {
+		log.Printf("face service init failed in ai pay, userID=%d err=%v", userID, err)
+		return errors.New("人脸服务暂不可用，请稍后重试")
+	}
+	score, err := faceService.CompareFace(user.FaceImageURL, faceImageURL)
+	if err != nil {
+		log.Printf("face verification failed in ai pay, userID=%d err=%v", userID, err)
+		return errors.New("人脸验证失败，请稍后重试")
+	}
+	if score < facePayMinConfidence {
+		return errors.New("人脸不匹配，请重试")
+	}
+	return nil
+}
+
+func localizeAIPaymentError(err error) error {
+	if err == nil {
+		return nil
+	}
+	msg := strings.TrimSpace(err.Error())
+	lower := strings.ToLower(msg)
+	switch {
+	case strings.Contains(lower, "insufficient balance"):
+		return errors.New("余额不足")
+	case strings.Contains(lower, "payment password") && strings.Contains(lower, "incorrect"):
+		return errors.New("支付密码错误")
+	case strings.Contains(lower, "payment password"):
+		return errors.New("请输入支付密码")
+	case strings.Contains(lower, "order not found"):
+		return errors.New("未找到订单")
+	case strings.Contains(lower, "status") && strings.Contains(lower, "pay"):
+		return errors.New("订单状态不支持支付")
+	case strings.Contains(lower, "user not found"), strings.Contains(lower, "payer not found"):
+		return errors.New("用户不存在")
+	case strings.Contains(lower, "unsupported"):
+		return errors.New("不支持的支付类型")
+	default:
+		return err
+	}
+}
+
 func buildCommunityAgentTools() []dashScopeTool {
 	return []dashScopeTool{
 		{
@@ -562,7 +659,7 @@ func buildCommunityAgentTools() []dashScopeTool {
 			Type: "function",
 			Function: dashScopeToolFunctionSpec{
 				Name:        toolPayOrder,
-				Description: "Pay order with login password",
+				Description: "Pay order with password or face auth",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
@@ -574,9 +671,19 @@ func buildCommunityAgentTools() []dashScopeTool {
 							"type":        "string",
 							"description": "Order number, can be used instead of order_id",
 						},
-						"password": map[string]interface{}{"type": "string"},
+						"password": map[string]interface{}{
+							"type":        "string",
+							"description": "required when pay_type=password",
+						},
+						"pay_type": map[string]interface{}{
+							"type":        "string",
+							"description": "password or face",
+						},
+						"face_image_url": map[string]interface{}{
+							"type":        "string",
+							"description": "required when pay_type=face",
+						},
 					},
-					"required": []string{"password"},
 				},
 			},
 		},
@@ -942,12 +1049,16 @@ func (s *AIService) tryHandlePayIntent(userID int64, execCtx chatExecutionContex
 		return "", false, nil
 	}
 
+	authType := normalizeAIAuthType(execCtx.payType, AuthTypePassword)
 	password := strings.TrimSpace(execCtx.paymentPassword)
-	if password == "" && looksLikePasswordOnly(lastUser) {
+	if authType == AuthTypePassword && password == "" && looksLikePasswordOnly(lastUser) {
 		password = strings.TrimSpace(lastUser)
 	}
-	if password == "" {
+	if authType == AuthTypePassword && password == "" {
 		return "支付失败：请先点击“确认支付”并输入登录密码。", true, nil
+	}
+	if authType == AuthTypeFace && strings.TrimSpace(execCtx.faceImageURL) == "" {
+		return "支付失败：请先完成刷脸抓拍。", true, nil
 	}
 
 	var order model.Order
@@ -955,7 +1066,7 @@ func (s *AIService) tryHandlePayIntent(userID int64, execCtx chatExecutionContex
 		return "支付失败：未找到待支付订单。", true, nil
 	}
 
-	payResult, err := (&FinanceService{}).UnifiedPay(userID, order.ID, PayTypeOrder, password)
+	payResult, err := s.payOrderWithAIAuth(userID, order.ID, authType, password, execCtx.faceImageURL)
 	if err != nil {
 		return fmt.Sprintf("支付失败：%v", err), true, nil
 	}
