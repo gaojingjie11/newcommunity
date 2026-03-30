@@ -51,20 +51,20 @@ func (s *FinanceService) UnifiedPayWithAuth(userID int64, businessID int64, payT
 		authType = AuthTypePassword
 	}
 	if authType != AuthTypePassword && authType != AuthTypeFace {
-		return nil, errors.New("unsupported auth type")
+		return nil, errors.New("不支持的认证方式")
 	}
 
 	err := global.DB.Transaction(func(tx *gorm.DB) error {
 		var user model.SysUser
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, userID).Error; err != nil {
-			return errors.New("user not found")
+			return errors.New("用户不存在")
 		}
 		if requiresPaymentPassword(payType, authType) {
 			if strings.TrimSpace(password) == "" {
-				return errors.New("payment password is required")
+				return errors.New("请输入支付密码")
 			}
 			if !utils.CheckPasswordHash(password, user.Password) {
-				return errors.New("invalid payment password")
+				return errors.New("支付密码错误")
 			}
 		}
 
@@ -74,7 +74,7 @@ func (s *FinanceService) UnifiedPayWithAuth(userID int64, businessID int64, payT
 		case PayTypePropertyFee:
 			return s.payPropertyFee(tx, &user, businessID, &result)
 		default:
-			return errors.New("unsupported pay type")
+			return errors.New("不支持的支付类型")
 		}
 	})
 	if err != nil {
@@ -90,10 +90,10 @@ func (s *FinanceService) payOrder(tx *gorm.DB, user *model.SysUser, orderID int6
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("id = ? AND user_id = ?", orderID, user.ID).
 		First(&order).Error; err != nil {
-		return errors.New("order not found")
+		return errors.New("未找到订单")
 	}
 	if order.Status != 0 {
-		return errors.New("order status does not allow payment")
+		return errors.New("订单状态不支持支付")
 	}
 
 	paymentResult, err := s.consumeGreenPointsAndBalance(tx, user, order.TotalAmount, orderID, PayTypeOrder, "mall_consume", fmt.Sprintf("Pay order %s", order.OrderNo))
@@ -122,10 +122,10 @@ func (s *FinanceService) payPropertyFee(tx *gorm.DB, user *model.SysUser, feeID 
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("id = ? AND user_id = ?", feeID, user.ID).
 		First(&fee).Error; err != nil {
-		return errors.New("property fee not found")
+		return errors.New("未找到物业费记录")
 	}
 	if fee.Status == 1 {
-		return errors.New("property fee has already been paid")
+		return errors.New("该物业费已缴纳")
 	}
 
 	paymentResult, err := s.consumeGreenPointsAndBalance(tx, user, fee.Amount, fee.ID, PayTypePropertyFee, "property_fee", fmt.Sprintf("Pay property fee %s", fee.Month))
@@ -156,7 +156,7 @@ func (s *FinanceService) consumeGreenPointsAndBalance(tx *gorm.DB, user *model.S
 	balanceCentsToUse := totalCents - pointsToUse*CentsPerGreenPoint
 
 	if amountToCents(user.Balance) < balanceCentsToUse {
-		return nil, errors.New("insufficient balance after green points deduction")
+		return nil, errors.New("余额不足")
 	}
 
 	updates := map[string]interface{}{}
