@@ -1231,36 +1231,51 @@ func (s *AIService) GenerateCommunityReport(prompt string) (string, error) {
 }
 
 func (s *AIService) RecognizeGarbage(imageURL string) (*GarbageRecognitionResult, error) {
-	prompt := `请识别图片中的垃圾是否已正确分类，并根据垃圾数量和分类准确度返回 1 到 50 的整数奖励积分。
-请严格只返回 JSON：{"points": 20, "reason": "分类准确，包含可回收物"}`
-	messages := []dashScopeMessage{
-		{
-			Role: "user",
-			Content: []map[string]interface{}{
-				{
-					"type": "text",
-					"text": prompt,
-				},
-				{
-					"type": "image_url",
-					"image_url": map[string]string{
-						"url": imageURL,
+	basePrompt := `请识别图片中的垃圾是否已正确分类，并返回 1 到 50 的整数奖励积分。
+只返回 JSON，例如：{"points": 20, "reason": "分类准确"}。`
+
+	buildMessages := func(prompt string) []dashScopeMessage {
+		return []dashScopeMessage{
+			{
+				Role: "user",
+				Content: []map[string]interface{}{
+					{
+						"type": "text",
+						"text": prompt,
+					},
+					{
+						"type": "image_url",
+						"image_url": map[string]string{
+							"url": imageURL,
+						},
 					},
 				},
 			},
-		},
+		}
 	}
 
-	content, err := s.callTextModel(qwenVisionModel, messages, map[string]string{"type": "json_object"})
-	if err != nil {
-		return nil, err
+	prompts := []string{
+		basePrompt,
+		basePrompt + "\n只允许返回一个合法 JSON 对象，禁止返回任何额外字符。",
+	}
+	var lastErr error
+	for idx, prompt := range prompts {
+		content, err := s.callTextModel(qwenVisionModel, buildMessages(prompt), map[string]string{"type": "json_object"})
+		if err != nil {
+			return nil, err
+		}
+		result, parseErr := parseGarbageRecognitionResult(content)
+		if parseErr == nil {
+			return result, nil
+		}
+		lastErr = parseErr
+		log.Printf("garbage recognition parse failed, attempt=%d content=%q err=%v", idx+1, content, parseErr)
 	}
 
-	result, err := parseGarbageRecognitionResult(content)
-	if err != nil {
-		return nil, err
+	if lastErr == nil {
+		lastErr = errors.New("empty response")
 	}
-	return result, nil
+	return nil, fmt.Errorf("garbage recognition response format invalid: %w", lastErr)
 }
 
 func (s *AIService) callTextModel(model string, messages []dashScopeMessage, responseFormat map[string]string) (string, error) {
@@ -1359,22 +1374,71 @@ func extractMessageContent(content interface{}) string {
 }
 
 func parseGarbageRecognitionResult(raw string) (*GarbageRecognitionResult, error) {
+	candidates := buildGarbageJSONCandidates(raw)
+	var lastErr error
+	for _, clean := range candidates {
+		result, err := decodeGarbageRecognitionResult(clean)
+		if err == nil {
+			return result, nil
+		}
+		lastErr = err
+	}
+	if lastErr == nil {
+		lastErr = errors.New("empty response")
+	}
+	return nil, lastErr
+}
+
+func buildGarbageJSONCandidates(raw string) []string {
 	clean := strings.TrimSpace(raw)
 	clean = strings.TrimPrefix(clean, "```json")
 	clean = strings.TrimPrefix(clean, "```")
 	clean = strings.TrimSuffix(clean, "```")
 	clean = strings.TrimSpace(clean)
-
-	if !strings.HasPrefix(clean, "{") {
-		re := regexp.MustCompile(`\{[\s\S]*\}`)
-		match := re.FindString(clean)
-		if match != "" {
-			clean = match
-		}
+	if clean == "" {
+		return nil
 	}
 
+	candidates := make([]string, 0, 4)
+	seen := make(map[string]struct{}, 4)
+	appendCandidate := func(v string) {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			return
+		}
+		if _, ok := seen[v]; ok {
+			return
+		}
+		seen[v] = struct{}{}
+		candidates = append(candidates, v)
+	}
+
+	appendCandidate(clean)
+
+	start := strings.Index(clean, "{")
+	end := strings.LastIndex(clean, "}")
+	if start >= 0 && end > start {
+		appendCandidate(clean[start : end+1])
+	}
+	if start >= 0 && end < start {
+		appendCandidate(clean[start:] + "}")
+	}
+
+	re := regexp.MustCompile(`\{[\s\S]*\}`)
+	if match := re.FindString(clean); match != "" {
+		appendCandidate(match)
+	}
+
+	return candidates
+}
+
+func decodeGarbageRecognitionResult(clean string) (*GarbageRecognitionResult, error) {
+	normalized := strings.NewReplacer("“", "\"", "”", "\"", "，", ",", "：", ":").Replace(clean)
+	normalized = regexp.MustCompile(`,\s*}`).ReplaceAllString(normalized, "}")
+	normalized = strings.TrimSpace(normalized)
+
 	var result GarbageRecognitionResult
-	if err := json.Unmarshal([]byte(clean), &result); err != nil {
+	if err := json.Unmarshal([]byte(normalized), &result); err != nil {
 		return nil, err
 	}
 	if result.Points < 1 {
