@@ -1,636 +1,976 @@
 <template>
   <div class="data-screen">
-    <Navbar />
-
-    <div class="container custom-container">
+    <!-- 全屏容器，使用 DataV 提供的缩放适配方案 -->
+    <dv-full-screen-container>
+      
+      <!-- ================== 顶部 Header ================== -->
       <div class="screen-header">
-        <div class="header-left">
-          <h1 class="page-title highlight-title">社区智能分析大盘</h1>
-          <p class="sub-title">
-            <el-icon><Clock /></el-icon> 数据最后更新于：{{ currentTime }}
-          </p>
+        <dv-decoration-8 style="width:300px;height:50px;" />
+        <div class="header-center">
+          <dv-decoration-5 style="width:500px;height:40px;" />
+          <div class="title-text">智慧社区数据中枢大屏</div>
         </div>
-        <div class="header-actions">
-          <button v-if="isAdmin" class="action-btn btn-outline" @click="router.push('/admin/ai-report')">
-            <el-icon><DataAnalysis /></el-icon> AI 报表中心
-          </button>
-          <button class="action-btn btn-primary" @click="refreshAll">
-            <el-icon><Refresh /></el-icon> 刷新数据
-          </button>
+        <dv-decoration-8 :reverse="true" style="width:300px;height:50px;" />
+        <div class="time-text">{{ currentTime }}</div>
+        <div class="back-btn" @click="goBack">
+          <el-icon><HomeFilled /></el-icon> 首页
         </div>
       </div>
 
-      <!-- 核心指标卡片区 -->
-      <div class="stats-grid">
-        <div class="metric-card">
-          <div class="metric-icon-wrap icon-user">
-            <el-icon><User /></el-icon>
-          </div>
-          <div class="metric-content">
-            <span class="metric-label">总注册用户数</span>
-            <strong class="metric-value">{{ stats.totalUsers || 0 }}</strong>
-          </div>
-        </div>
+      <!-- ================== 主体 Body ================== -->
+      <div class="screen-body">
         
-        <div class="metric-card">
-          <div class="metric-icon-wrap icon-order">
-            <el-icon><ShoppingBag /></el-icon>
-          </div>
-          <div class="metric-content">
-            <span class="metric-label">今日新增订单</span>
-            <strong class="metric-value">{{ stats.todayOrders || 0 }}</strong>
-          </div>
-        </div>
-        
-        <div class="metric-card">
-          <div class="metric-icon-wrap icon-income">
-            <el-icon><Money /></el-icon>
-          </div>
-          <div class="metric-content">
-            <span class="metric-label">本月累计营收</span>
-            <strong class="metric-value highlight-income"><span class="currency">¥</span>{{ formatAmount(stats.monthIncome) }}</strong>
-          </div>
-        </div>
-        
-        <div class="metric-card">
-          <div class="metric-icon-wrap icon-parking">
-            <el-icon><Van /></el-icon>
-          </div>
-          <div class="metric-content">
-            <span class="metric-label">当前车位占用率</span>
-            <strong class="metric-value">{{ stats.parkingRate || '0%' }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- 图表与列表区 -->
-      <div class="content-grid">
-        <!-- 营收趋势图 -->
-        <div class="premium-card">
-          <div class="card-header">
-            <span class="header-indicator"></span> 7 日营收趋势分析
-          </div>
-          <div class="card-body">
-            <div ref="lineChartRef" class="chart-box"></div>
-          </div>
-        </div>
-
-        <!-- 报修分类饼图 -->
-        <div class="premium-card">
-          <div class="card-header">
-            <span class="header-indicator"></span> 工单问题分类占比
-          </div>
-          <div class="card-body">
-            <div ref="pieChartRef" class="chart-box"></div>
-          </div>
-        </div>
-
-        <!-- 积分排行榜 -->
-        <div class="premium-card">
-          <div class="card-header ranking-header">
-            <div class="header-title">
-              <span class="header-indicator"></span> 累计绿色积分排行榜
+        <!-- ================== 左侧栏 ================== -->
+        <div class="column-side">
+          <!-- 1. 核心运行指标 -->
+          <dv-border-box-11 class="tech-card box-h-30" title="实时核心指标">
+            <div class="metrics-grid">
+              <div class="metric-item">
+                <div class="m-icon" style="color: #00f2fe;"><el-icon><User /></el-icon></div>
+                <div class="m-info">
+                  <span class="m-label">总注册用户</span>
+                  <span class="m-value">{{ stats.totalUsers || 0 }}</span>
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="m-icon" style="color: #4facfe;"><el-icon><ShoppingBag /></el-icon></div>
+                <div class="m-info">
+                  <span class="m-label">今日新增订单</span>
+                  <span class="m-value">{{ stats.todayOrders || 0 }}</span>
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="m-icon" style="color: #409EFF;"><el-icon><Van /></el-icon></div>
+                <div class="m-info">
+                  <span class="m-label">车位占用率</span>
+                  <span class="m-value">{{ stats.parkingRate || '0%' }}</span>
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="m-icon" style="color: #79bbff;"><el-icon><Money /></el-icon></div>
+                <div class="m-info">
+                  <span class="m-label">本月累计营收</span>
+                  <span class="m-value num-small">¥{{ formatAmount(stats.monthIncome) }}</span>
+                </div>
+              </div>
             </div>
-            <el-radio-group v-model="rankingView" size="small" class="custom-radio-group">
-              <el-radio-button label="datav">动态展示</el-radio-button>
-              <el-radio-button label="table">经典表格</el-radio-button>
-            </el-radio-group>
-          </div>
-          <div class="card-body">
-            <dv-scroll-ranking-board
-              v-if="rankingView === 'datav'"
-              class="ranking-board"
-              :config="rankingBoardConfig"
-            />
+          </dv-border-box-11>
 
-            <el-table v-else :data="leaderboard" class="custom-table" height="320">
-              <el-table-column prop="rank" label="排名" width="80" align="center">
-                <template #default="{ row }">
-                  <span class="rank-badge" :class="`rank-${row.rank}`">#{{ row.rank }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="社区之星">
-                <template #default="{ row }">
-                  <div class="table-user">
-                    <img :src="row.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" class="user-avatar" />
-                    <span class="user-name">{{ row.nickname || row.username }}</span>
+          <!-- 2. 工单报修分类饼图 -->
+          <dv-border-box-13 class="tech-card box-h-35 mt-15">
+             <div class="chart-title"><span class="indicator"></span>工单问题分类占比</div>
+             <div ref="pieChartRef" class="chart-container"></div>
+          </dv-border-box-13>
+
+          <!-- 3. 营收趋势折线图 -->
+          <dv-border-box-13 class="tech-card box-h-35 mt-15">
+             <div class="chart-title"><span class="indicator"></span>7日营收趋势分析</div>
+             <div ref="lineChartRef" class="chart-container"></div>
+          </dv-border-box-13>
+        </div>
+
+        <!-- ================== 中间栏 ================== -->
+        <div class="column-center">
+           <div class="center-map-box">
+             <dv-border-box-10>
+                 <!-- 中间全景图 -->
+                 <div class="map-bg"></div>
+                 <div class="map-mask"></div>
+                 <div class="map-title-overlay">社区 3D 态势感知模型</div>
+                 
+                 <!-- 核心悬浮数据：数字翻牌器 -->
+                 <div class="center-data">
+                    <div class="c-item">
+                       <div class="c-label">当月社区总营收 (元)</div>
+                       <div class="c-num">
+                         <dv-digital-flop :config="flopIncomeConfig" style="width:240px;height:50px;" />
+                       </div>
+                    </div>
+                    <div class="c-item">
+                       <div class="c-label">活跃用户基数 (人)</div>
+                       <div class="c-num">
+                         <dv-digital-flop :config="flopUserConfig" style="width:200px;height:50px;" />
+                       </div>
+                    </div>
+                 </div>
+                 
+                 <!-- 模拟的扫描雷达光效 -->
+                 <div class="radar-scan"></div>
+             </dv-border-box-10>
+           </div>
+        </div>
+
+        <!-- ================== 右侧栏 ================== -->
+        <div class="column-side">
+           <!-- 1. 绿色积分排行榜 -->
+           <dv-border-box-13 class="tech-card box-h-35">
+             <div class="chart-title flex-between">
+                <div class="title-left"><span class="indicator"></span>社区环保积分先锋榜</div>
+                <!-- 切换视图组件 -->
+                <el-radio-group v-model="rankingView" size="small" class="dark-radio">
+                  <el-radio-button label="datav">动态展示</el-radio-button>
+                  <el-radio-button label="table">经典表格</el-radio-button>
+                </el-radio-group>
+             </div>
+             <div class="ranking-wrap">
+               <!-- DataV 轮播排名榜 -->
+               <dv-scroll-ranking-board 
+                 v-if="rankingView === 'datav' && rankingBoardConfig.data.length" 
+                 :config="rankingBoardConfig" 
+                 style="width:100%;height:100%" 
+               />
+               
+               <!-- 经典表格视图 -->
+               <el-table
+                 v-else-if="rankingView === 'table' && leaderboardList.length"
+                 :data="leaderboardList"
+                 class="dark-theme-table custom-scrollbar"
+                 height="100%"
+               >
+                 <el-table-column label="排名" width="60" align="center">
+                   <template #default="scope">
+                     <span class="rank-badge" :class="'rank-' + (scope.$index + 1)">
+                       {{ scope.$index + 1 }}
+                     </span>
+                   </template>
+                 </el-table-column>
+                 <el-table-column label="社区之星" show-overflow-tooltip>
+                   <template #default="scope">
+                     {{ scope.row.nickname || scope.row.username || `用户${scope.row.user_id}` }}
+                   </template>
+                 </el-table-column>
+                 <el-table-column prop="points" label="环保积分" width="85" align="right">
+                   <template #default="scope">
+                     <strong style="color: #00f2fe;">{{ scope.row.points }}</strong>
+                   </template>
+                 </el-table-column>
+               </el-table>
+
+               <div v-else class="empty-data">暂无排行数据</div>
+             </div>
+           </dv-border-box-13>
+
+           <!-- 2. 费用缴费构成 (增加的展示图表) -->
+           <dv-border-box-13 class="tech-card box-h-35 mt-15">
+             <div class="chart-title"><span class="indicator"></span>社区各模块收入构成</div>
+             <div ref="barChartRef" class="chart-container"></div>
+           </dv-border-box-13>
+
+           <!-- 3. AI 运营诊断大屏播报 -->
+           <dv-border-box-11 class="tech-card box-h-30 mt-15" title="AI 智能预警与诊断">
+             <div class="ai-report-wrap">
+               <div class="ai-status">
+                  <div class="status-left">
+                    <div class="status-dot pulse"></div>
+                    <span>AI 守护引擎运行中</span>
                   </div>
-                </template>
-              </el-table-column>
-              <el-table-column prop="points" label="环保积分" width="120" align="right">
-                <template #default="{ row }">
-                  <strong class="points-text">{{ row.points }}</strong>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
+                  <!-- 新增展开按钮 -->
+                  <div class="status-right expand-btn" @click="dialogVisible = true">
+                    <el-icon><FullScreen /></el-icon> 展开
+                  </div>
+               </div>
+               <div class="report-content custom-scrollbar">
+                 <p class="ai-text line-clamp">{{ aiReport?.report || '正在实时诊断社区运营数据，请稍候...' }}</p>
+                 
+                 <!-- 如果有具体诊断数据，展示几个关键tag -->
+                 <div class="ai-tags" v-if="aiReport">
+                    <span class="tag danger" v-if="aiReport.repair_pending_count > 0">
+                      待办报修: {{ aiReport.repair_pending_count }}
+                    </span>
+                    <span class="tag success" v-if="aiReport.visitor_new_count">
+                      新增访客: {{ aiReport.visitor_new_count }}
+                    </span>
+                 </div>
+               </div>
+             </div>
+           </dv-border-box-11>
         </div>
 
-        <!-- AI 社区报表 -->
-        <div class="premium-card" v-if="isAdmin">
-          <div class="card-header">
-            <span class="header-indicator"></span> AI 社区运营诊断报表
-          </div>
-          <div class="card-body">
-            <div class="report-summary" v-if="aiReport">
-              <div class="summary-item repair">近 7 日新增报修：<strong>{{ aiReport.repair_new_count }}</strong> 单</div>
-              <div class="summary-item pending">未处理报修：<strong>{{ aiReport.repair_pending_count }}</strong> 单</div>
-              <div class="summary-item visitor">新增访客：<strong>{{ aiReport.visitor_new_count }}</strong> 人</div>
-              <div class="summary-item income">物业收缴：<strong>¥{{ formatAmount(aiReport.property_paid_amount) }}</strong></div>
-            </div>
-            <div class="report-content-wrap custom-scrollbar">
-              <div class="report-text">{{ aiReport?.report || '正在等待 AI 生成数据诊断...' }}</div>
-            </div>
-          </div>
-        </div>
       </div>
-    </div>
+
+      <!-- AI 诊断内容展开对话框：采用 parsedReport 渲染高亮格式 -->
+      <el-dialog
+        v-model="dialogVisible"
+        title="AI 智能预警与诊断深度报告"
+        width="680px"
+        class="dark-theme-dialog"
+        append-to-body
+        destroy-on-close
+      >
+        <div class="dialog-report-content custom-scrollbar" v-html="parsedReport"></div>
+      </el-dialog>
+
+    </dv-full-screen-container>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { ref, onMounted, onUnmounted, reactive, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import Navbar from '@/components/layout/Navbar.vue'
 import { getDashboardStats, getAIReport } from '@/api/admin'
 import { getGreenPointsLeaderboard } from '@/api/greenPoints'
+import { HomeFilled, User, ShoppingBag, Van, Money, FullScreen } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-// 引入必需的图标
-import { Clock, DataAnalysis, Refresh, User, ShoppingBag, Money, Van } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
+const isAdmin = ref(userStore.userInfo?.role === 'admin')
+
 const currentTime = ref(dayjs().format('YYYY-MM-DD HH:mm:ss'))
+let clockTimer = null
+
+// 核心数据状态
 const stats = ref({})
 const aiReport = ref(null)
-const leaderboard = ref([])
+
+// 排行榜控制
 const rankingView = ref('datav')
-const isAdmin = computed(() => userStore.userInfo.role === 'admin')
+const leaderboardList = ref([])
 
-const lineChartRef = ref(null)
+// 对话框控制变量
+const dialogVisible = ref(false)
+
+// ================== AI 报告文本美化解析 ==================
+const parsedReport = computed(() => {
+  if (!aiReport.value?.report) return '<div style="color:#a0cfff;">暂无详细数据</div>'
+  
+  let html = aiReport.value.report
+  
+  // 1. 替换标题 (## / ###)
+  html = html.replace(/### (.*)/g, '<h4 class="md-title">$1</h4>')
+  html = html.replace(/## (.*)/g, '<h3 class="md-title">$1</h3>')
+  
+  // 2. 替换加粗文本 (**文字**) - 用醒目颜色突出
+  html = html.replace(/\*\*(.*?)\*\*/g, '<span class="md-bold">$1</span>')
+  
+  // 3. 替换列表项 (- 文字)
+  html = html.replace(/^- (.*)/gm, '<div class="md-list-item"><span class="md-dot">•</span> <span class="md-text">$1</span></div>')
+  
+  // 4. 处理多余的换行，保留正常的段落间隔
+  html = html.replace(/\n/g, '<br/>')
+  html = html.replace(/<\/h3><br\/>/g, '</h3>')
+  html = html.replace(/<\/h4><br\/>/g, '</h4>')
+  html = html.replace(/<\/div><br\/>/g, '</div>')
+  
+  return html
+})
+// =======================================================
+
+
+// ECharts 实例与 DOM Ref
 const pieChartRef = ref(null)
-let lineChart
-let pieChart
-let timer
+const lineChartRef = ref(null)
+const barChartRef = ref(null)
+let pieChart = null
+let lineChart = null
+let barChart = null
 
-const rankingBoardConfig = computed(() => ({
-  rowNum: 5,
-  waitTime: 3500,
+// DataV 翻牌器配置
+const flopIncomeConfig = reactive({
+  number: [0],
+  content: '¥ {nt}',
+  style: { fontSize: 36, fill: '#00f2fe', fontWeight: 'bold' }
+})
+
+const flopUserConfig = reactive({
+  number: [0],
+  style: { fontSize: 36, fill: '#00f2fe', fontWeight: 'bold' } // 修改为统一的蓝色
+})
+
+// DataV 轮播排行配置
+const rankingBoardConfig = reactive({
+  data: [],
+  rowNum: 6,
+  waitTime: 3000,
   carousel: 'single',
-  unit: '分',
-  data: leaderboard.value.map((item) => ({
-    name: buildRankName(item),
-    value: item.points || 0
-  }))
-}))
+  unit: '分'
+})
 
-function formatAmount(value) {
-  return Number(value || 0).toFixed(2)
-}
+// 初始化与拉取数据
+const fetchAllData = async () => {
+  try {
+    const [dashboardRes, leaderboardRes] = await Promise.all([
+      getDashboardStats(),
+      getGreenPointsLeaderboard({ limit: 15 })
+    ])
+    
+    stats.value = dashboardRes || {}
+    
+    // 更新翻牌器数据 (触发深度监听)
+    flopIncomeConfig.number = [parseFloat(stats.value.monthIncome || 0)]
+    flopIncomeConfig.number = [...flopIncomeConfig.number]
+    
+    flopUserConfig.number = [stats.value.totalUsers || 0]
+    flopUserConfig.number = [...flopUserConfig.number]
 
-function escapeHtml(text) {
-  return String(text || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+    // 更新排行榜数据
+    if (leaderboardRes && leaderboardRes.list) {
+      leaderboardList.value = leaderboardRes.list
+      rankingBoardConfig.data = leaderboardRes.list.map(item => ({
+        name: item.nickname || item.username || `用户${item.user_id}`,
+        value: item.points || 0
+      }))
+    }
 
-function buildRankName(item) {
-  const nickname = escapeHtml(item.nickname || item.username || `用户${item.user_id}`)
-  const avatarUrl = escapeHtml(item.avatar || '')
+    // AI 诊断
+    if (isAdmin.value) {
+      aiReport.value = await getAIReport()
+    }
 
-  if (!avatarUrl) {
-    return `<span style="display:flex;align-items:center;gap:8px;"><span>${nickname}</span></span>`
+    await nextTick()
+    renderCharts()
+  } catch (error) {
+    console.error('获取大屏数据失败:', error)
   }
-  return `<span style="display:flex;align-items:center;gap:8px;"><img src="${avatarUrl}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" /><span>${nickname}</span></span>`
 }
 
-function renderCharts() {
-  if (lineChart) lineChart.dispose()
+// 渲染所有图表
+const renderCharts = () => {
+  // 1. 饼图：报修类型
   if (pieChart) pieChart.dispose()
-
-  lineChart = echarts.init(lineChartRef.value)
   pieChart = echarts.init(pieChartRef.value)
+  
+  // 巧妙处理饼图数据过多拥挤的问题：取前 4 名，剩下的归为"其他"
+  let rawPieData = (stats.value.repairStats && stats.value.repairStats.length > 0) 
+      ? JSON.parse(JSON.stringify(stats.value.repairStats)) 
+      : [{ name: '暂无数据', value: 0 }]
 
+  let pieData = rawPieData
+  if (rawPieData.length > 5 && rawPieData[0].name !== '暂无数据') {
+    rawPieData.sort((a, b) => b.value - a.value)
+    const topData = rawPieData.slice(0, 4)
+    const othersValue = rawPieData.slice(4).reduce((sum, item) => sum + item.value, 0)
+    pieData = [...topData, { name: '其他', value: othersValue }]
+  }
+      
+  pieChart.setOption({
+    // 使用暗色系蓝色调，避免刺眼
+    color: ['#85a5ff', '#0A82A4', '#3498db4c', '#2e86c1', '#3498db', '#5dade2'],
+    tooltip: { trigger: 'item', backgroundColor: 'rgba(0,0,0,0.7)', textStyle: { color: '#fff' } },
+    legend: { bottom: '0%', itemWidth: 10, itemHeight: 10, textStyle: { color: '#a0cfff' } },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '60%'],
+      center: ['50%', '42%'],
+      avoidLabelOverlap: false,
+      itemStyle: { borderColor: '#050a15', borderWidth: 2 },
+      label: { show: false },
+      data: pieData
+    }]
+  })
+
+  // 2. 折线图：营收趋势
+  if (lineChart) lineChart.dispose()
+  lineChart = echarts.init(lineChartRef.value)
   lineChart.setOption({
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.9)', borderColor: '#ebeef5', textStyle: { color: '#303133' } },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.7)', textStyle: { color: '#fff' } },
+    grid: { top: '15%', left: '3%', right: '4%', bottom: '5%', containLabel: true },
     xAxis: {
       type: 'category',
       boundaryGap: false,
       data: stats.value.incomeDates || [],
-      axisLine: { lineStyle: { color: '#dcdfe6' } },
-      axisLabel: { color: '#606266' }
+      axisLabel: { color: '#a0cfff' },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
     },
-    yAxis: { 
+    yAxis: {
       type: 'value',
-      splitLine: { lineStyle: { color: '#ebeef5', type: 'dashed' } },
-      axisLabel: { color: '#606266' }
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
+      axisLabel: { color: '#a0cfff' }
     },
     series: [{
       data: stats.value.incomeTrend || [],
       type: 'line',
       smooth: true,
-      symbol: 'circle',
-      symbolSize: 8,
-      itemStyle: { color: '#2d597b' },
-      lineStyle: { color: '#2d597b', width: 3 },
+      symbol: 'none',
+      itemStyle: { color: '#00f2fe' },
+      lineStyle: { width: 3, shadowColor: 'rgba(0, 242, 254, 0.5)', shadowBlur: 10 },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(45, 89, 123, 0.4)' },
-          { offset: 1, color: 'rgba(45, 89, 123, 0.05)' }
+          { offset: 0, color: 'rgba(0, 242, 254, 0.4)' },
+          { offset: 1, color: 'rgba(0, 242, 254, 0.0)' }
         ])
       }
     }]
   })
 
-  pieChart.setOption({
-    tooltip: { trigger: 'item', backgroundColor: 'rgba(255,255,255,0.9)', borderColor: '#ebeef5', textStyle: { color: '#303133' } },
-    legend: { bottom: '0%', left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { color: '#606266' } },
-    color: ['#2d597b', '#00b894', '#f39c12', '#e74c3c', '#8e44ad', '#0984e3'],
+  // 3. 柱状图：费用构成分析 (增加的视觉展示数据)
+  if (barChart) barChart.dispose()
+  barChart = echarts.init(barChartRef.value)
+  // 如果后台没传costStructure，使用Mock数据保证视觉效果
+  const barData = stats.value.costStructure || [3200, 1800, 4500, 1200]
+  barChart.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.7)', textStyle: { color: '#fff' } },
+    grid: { top: '15%', left: '3%', right: '4%', bottom: '5%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: ['物业费', '停车费', '商城消费', '场馆预约'],
+      axisLabel: { color: '#a0cfff' },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
+      axisLabel: { color: '#a0cfff' }
+    },
     series: [{
-      type: 'pie',
-      radius: ['45%', '70%'],
-      center: ['50%', '45%'],
-      avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false, position: 'center' },
-      emphasis: {
-        label: { show: true, fontSize: 18, fontWeight: 'bold' }
+      type: 'bar',
+      barWidth: '35%',
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#4facfe' },
+          { offset: 1, color: '#00f2fe' }
+        ]),
+        borderRadius: [4, 4, 0, 0]
       },
-      labelLine: { show: false },
-      data: stats.value.repairStats || []
+      data: barData
     }]
   })
 }
 
-async function refreshAll() {
-  try {
-    const [dashboardRes, leaderboardRes] = await Promise.all([
-      getDashboardStats(),
-      getGreenPointsLeaderboard({ limit: 10 })
-    ])
+// 工具函数
+const formatAmount = (val) => Number(val || 0).toFixed(2)
 
-    stats.value = dashboardRes || {}
-    leaderboard.value = leaderboardRes.list || []
-
-    if (isAdmin.value) {
-      aiReport.value = await getAIReport()
-    } else {
-      aiReport.value = null
-    }
-    renderCharts()
-  } catch (error) {
-    ElMessage.error(error.response?.data?.msg || error.message || '刷新数据失败')
-  }
-}
-
-function handleResize() {
-  lineChart?.resize()
+const handleResize = () => {
   pieChart?.resize()
+  lineChart?.resize()
+  barChart?.resize()
 }
 
-onMounted(async () => {
-  timer = setInterval(() => {
+const goBack = () => {
+  router.push('/home')
+}
+
+onMounted(() => {
+  clockTimer = setInterval(() => {
     currentTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
   }, 1000)
-  await refreshAll()
+  
+  fetchAllData()
   window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-  clearInterval(timer)
+  clearInterval(clockTimer)
   window.removeEventListener('resize', handleResize)
-  lineChart?.dispose()
   pieChart?.dispose()
+  lineChart?.dispose()
+  barChart?.dispose()
 })
 </script>
 
 <style scoped>
-/* 全局页面底色与容器 */
+/* ================== 根级布局 ================== */
 .data-screen {
-  min-height: 100vh;
-  background-color: #f4f7f9; /* 浅灰蓝色，衬托纯白卡片 */
-  padding-bottom: 80px;
+  width: 100vw;
+  height: 100vh;
+  background-color: #050a15; /* 极深蓝黑底色 */
+  color: #ffffff;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-.custom-container {
-  max-width: 1400px; /* 大屏视野需要更宽的容器 */
-  margin: 0 auto;
-}
-
-/* 头部信息区 */
+/* ================== 顶部 Header ================== */
 .screen-header {
+  height: 70px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  padding: 32px 0 24px;
-  margin-bottom: 12px;
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.highlight-title {
-  display: inline-block;
+  align-items: center;
+  padding: 0 20px;
   position: relative;
-  font-size: 32px;
-  color: #2c3e50;
-  font-weight: 800;
-  margin: 0;
-  z-index: 1;
-  letter-spacing: 1px;
+  z-index: 10;
 }
-
-.highlight-title::after {
-  content: '';
+.header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   position: absolute;
-  bottom: 4px;
-  left: -2%;
-  width: 104%;
-  height: 14px;
-  background-color: #2d597b; 
-  opacity: 0.15;
-  border-radius: 6px;
-  z-index: -1;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 5px;
 }
-
-.sub-title {
-  color: #8c939d;
-  font-size: 14px;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.title-text {
+  font-size: 32px;
+  font-weight: 900;
+  color: #00f2fe;
+  margin-top: -38px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 15px rgba(0, 242, 254, 0.6);
 }
-
-.header-actions {
-  display: flex;
-  gap: 16px;
+.time-text {
+  position: absolute;
+  right: 340px;
+  top: 20px;
+  color: #a0cfff;
+  font-size: 16px;
+  font-family: monospace;
 }
-
-/* 定制操作按钮 */
-.action-btn {
-  padding: 10px 24px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
+.back-btn {
+  position: absolute;
+  left: 340px;
+  top: 20px;
+  color: #00f2fe;
   cursor: pointer;
-  transition: all 0.3s;
-  border: 1px solid transparent;
-  display: inline-flex;
+  font-size: 16px;
+  display: flex;
   align-items: center;
   gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: 4px;
+  transition: all 0.3s;
+  background: rgba(0, 242, 254, 0.05);
+}
+.back-btn:hover {
+  background: rgba(0, 242, 254, 0.2);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
 }
 
-.btn-primary { background: #2d597b; color: #ffffff; box-shadow: 0 4px 12px rgba(45, 89, 123, 0.2); }
-.btn-primary:hover { background: #1f435d; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(45, 89, 123, 0.3); }
-
-.btn-outline { background: #ffffff; color: #2d597b; border-color: #2d597b; }
-.btn-outline:hover { background: #f0f7ff; transform: translateY(-2px); }
-
-
-/* ================= 指标卡片矩阵 ================= */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.metric-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
+/* ================== 主体 Body 栅格 ================== */
+.screen-body {
+  height: calc(100vh - 70px);
+  padding: 10px 20px 20px;
   display: flex;
-  align-items: center;
   gap: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+.column-side {
+  width: 26%;
+  display: flex;
+  flex-direction: column;
+}
+.column-center {
+  width: 48%;
+  display: flex;
+  flex-direction: column;
 }
 
-.metric-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 24px rgba(45, 89, 123, 0.08);
-  border-color: rgba(45, 89, 123, 0.1);
+/* ================== 卡片通用样式 ================== */
+.tech-card {
+  position: relative;
+  box-sizing: border-box;
+  padding: 20px 15px 15px; /* 避开 datav 边框遮挡 */
 }
+.mt-15 { margin-top: 15px; }
+/* 使用 calc 精确计算高度，减去边距误差，保证总和正好 100%，防止 Flexbox 互相挤压 */
+.box-h-30 { height: calc(30% - 10px); }
+.box-h-35 { height: calc(35% - 10px); }
 
-.metric-icon-wrap {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+.chart-title {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 32px;
+  z-index: 5;
 }
-
-/* 各模块独立颜色 */
-.icon-user { background: #f0f7ff; color: #409eff; }
-.icon-order { background: #fdf6f6; color: #e4393c; }
-.icon-income { background: #f0fdf4; color: #00b894; }
-.icon-parking { background: #fff7ed; color: #e6a23c; }
-
-.metric-content {
+.flex-between {
+  width: calc(100% - 40px);
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
+}
+.title-left {
+  display: flex;
+  align-items: center;
+}
+.indicator {
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background-color: #00f2fe;
+  margin-right: 8px;
+  box-shadow: 0 0 8px #00f2fe;
+}
+.chart-container {
+  width: 100%;
+  height: 100%;
+  padding-top: 25px;
+  box-sizing: border-box;
 }
 
-.metric-label {
-  color: #909399;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.metric-value {
-  font-size: 32px;
-  font-weight: 800;
-  color: #2c3e50;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  letter-spacing: -0.5px;
-}
-
-.highlight-income {
-  color: #e4393c;
-}
-.currency {
-  font-size: 20px;
-  margin-right: 4px;
-  font-weight: 600;
-}
-
-
-/* ================= 图表与列表区 ================= */
-.content-grid {
+/* ================== 左侧指标卡 ================== */
+.metrics-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px; /* 间距缩小 */
+  height: 100%;
+  padding-top: 30px;
 }
-
-.premium-card {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.02);
+.metric-item {
+  background: rgba(0, 242, 254, 0.03);
+  border: 1px solid rgba(0, 242, 254, 0.1);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  transition: transform 0.3s;
+}
+.metric-item:hover {
+  background: rgba(0, 242, 254, 0.1);
+  transform: translateY(-2px);
+}
+.m-icon {
+  font-size: 22px; 
+  padding: 6px; 
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+}
+.m-info {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+}
+.m-label {
+  font-size: 12px;
+  color: #a0cfff;
+  margin-bottom: 2px;
+}
+.m-value {
+  font-size: 18px; 
+  font-weight: 900;
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+}
+.num-small {
+  font-size: 16px;
+}
+
+/* ================== 中间全景图与翻牌器 ================== */
+.center-map-box {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  padding: 5px;
+}
+.map-bg {
+  position: absolute;
+  top: 10px; left: 10px; right: 10px; bottom: 10px;
+  background-image: url('@/assets/images/city.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.6; /* 调暗背景以便凸显数据 */
+  border-radius: 8px;
+}
+.map-mask {
+  position: absolute;
+  top: 10px; left: 10px; right: 10px; bottom: 10px;
+  background: radial-gradient(circle, rgba(5,10,21,0) 0%, rgba(5,10,21,0.8) 100%);
+  pointer-events: none;
+}
+.map-title-overlay {
+  position: absolute;
+  top: 40px;
+  width: 100%;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #e0f2fe;
+  letter-spacing: 4px;
+  text-shadow: 0 0 15px #00f2fe;
+  z-index: 2;
+}
+
+.center-data {
+  position: absolute;
+  bottom: 80px;
+  width: 100%;
+  display: flex;
+  justify-content: space-evenly;
+  z-index: 5;
+}
+.c-item {
+  background: rgba(0, 15, 30, 0.6);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.1) inset;
+  padding: 15px 30px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+.c-label {
+  font-size: 16px;
+  color: #a0cfff;
+  margin-bottom: 8px;
+}
+
+/* 模拟雷达扫描动画 */
+.radar-scan {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  margin-top: -200px;
+  margin-left: -200px;
+  border-radius: 50%;
+  border: 1px dashed rgba(0, 242, 254, 0.2);
+  background: conic-gradient(from 0deg, transparent 70%, rgba(0, 242, 254, 0.3) 100%);
+  animation: scan 4s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes scan {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ================== 右侧特有内容 ================== */
+.ranking-wrap {
+  position: absolute;
+  top: 55px; /* 固定位置，避开顶部的标题和单选按钮 */
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+  overflow: hidden;
+}
+.empty-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #606266;
+  font-size: 14px;
+}
+
+/* AI 诊断框 */
+.ai-report-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: 25px;
+  overflow: hidden; /* 保证内部文字绝不会撑开父盒子 */
+}
+.ai-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  color: #4facfe;
+  padding-top: 12px;
+  
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #4facfe;
+  border-radius: 50%;
+}
+.pulse {
+  box-shadow: 0 0 0 0 rgba(58, 67, 194, 0.7);
+  animation: pulsing 1.5s infinite;
+}
+@keyframes pulsing {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(103, 194, 58, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(103, 194, 58, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(103, 194, 58, 0); }
+}
+
+/* 展开按钮样式 */
+.expand-btn {
+  cursor: pointer;
+  color: #4facfe;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s;
+}
+.expand-btn:hover {
+  color: #00f2fe;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+}
+
+.report-content {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.ai-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #dcdfe6;
+  white-space: pre-wrap;
+  margin: 0 0 12px 0;
+}
+.line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.card-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #f0f2f5;
+.ai-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.tag.danger { color: #b2d6eb; border: 1px solid rgba(131, 108, 245, 0.3); }
+.tag.success { color: #b2d6eb; border: 1px solid rgba(131, 108, 245, 0.3); }
+
+/* ================== Element Plus 弹窗暗黑样式深度覆盖 ================== */
+/* 必须使用 :global 才能穿透到挂载于 body 的 el-dialog 上 */
+:global(.dark-theme-dialog) {
+  background-color: #0b172a !important; /* 深空蓝背景 */
+  border: 1px solid rgba(0, 242, 254, 0.4) !important;
+  box-shadow: 0 0 30px rgba(0, 242, 254, 0.15) !important;
+  border-radius: 8px !important;
+}
+:global(.dark-theme-dialog .el-dialog__header) {
+  border-bottom: 1px solid rgba(0, 242, 254, 0.2) !important;
+  margin-right: 0 !important;
+  padding-bottom: 15px !important;
+}
+:global(.dark-theme-dialog .el-dialog__title) {
+  color: #00f2fe !important;
+  font-weight: bold !important;
+  letter-spacing: 1px !important;
+  text-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+}
+:global(.dark-theme-dialog .el-dialog__body) {
+  color: #dcdfe6 !important;
+  padding: 20px 25px !important;
+}
+/* 对话框关闭按钮重置 */
+:global(.dark-theme-dialog .el-dialog__headerbtn .el-dialog__close) {
+  color: #00f2fe !important;
   font-size: 18px;
-  font-weight: 700;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
+}
+:global(.dark-theme-dialog .el-dialog__headerbtn:hover .el-dialog__close) {
+  color: #ffffff !important;
+  text-shadow: 0 0 8px #00f2fe;
 }
 
-.header-indicator {
-  display: inline-block;
-  width: 4px;
-  height: 18px;
-  background: #2d597b;
-  border-radius: 2px;
-  margin-right: 12px;
+/* 对话框内部容器 */
+.dialog-report-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  line-height: 1.8;
+  font-size: 15px;
+  padding: 20px;
+  background: rgba(0, 242, 254, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 242, 254, 0.1);
+  color: #e4e7ed;
 }
 
-.card-body {
-  padding: 24px;
-  flex: 1;
+/* ================== AI 报告内部 Markdown 解析样式 ================== */
+:global(.md-title) {
+  color: #00f2fe;
+  margin: 18px 0 10px 0;
+  font-size: 17px;
+  font-weight: bold;
+  border-bottom: 1px dashed rgba(0, 242, 254, 0.2);
+  padding-bottom: 6px;
+}
+:global(.md-title:first-child) {
+  margin-top: 0;
+}
+:global(.md-bold) {
+  color: #e6a23c; /* 醒目的橙黄色，凸显"立即行动"等词汇 */
+  font-weight: bold;
+}
+:global(.md-list-item) {
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+:global(.md-dot) {
+  position: absolute;
+  left: 5px;
+  color: #00f2fe;
+}
+:global(.md-text) {
+  color: #a0cfff;
 }
 
-.chart-box {
-  height: 340px;
-  width: 100%;
-}
+/* 滚动条暗黑优化 */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 242, 254, 0.3); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 242, 254, 0.6); }
 
-/* 积分排行榜定制 */
-.ranking-header {
-  justify-content: space-between;
-}
-.header-title {
-  display: flex;
-  align-items: center;
-}
+/* DataV 深色模式覆盖覆盖 */
+:deep(.dv-scroll-ranking-board .ranking-info .rank) { color: #00f2fe; }
+:deep(.dv-scroll-ranking-board .ranking-info .info-name) { color: #fff; }
 
-:deep(.custom-radio-group .el-radio-button__inner) {
-  border-radius: 6px !important;
+/* ================== 单选按钮组 暗黑样式 ================== */
+:deep(.dark-radio .el-radio-button__inner) {
+  background: rgba(0, 242, 254, 0.05);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  color: #a0cfff;
+  border-radius: 4px;
   margin: 0 4px;
-  border: 1px solid #dcdfe6;
   box-shadow: none !important;
+  padding: 4px 10px;
+  font-size: 12px;
 }
-:deep(.custom-radio-group .el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background-color: #2d597b;
-  border-color: #2d597b;
-  color: #ffffff;
-}
-
-.ranking-board {
-  height: 340px;
-  width: 100%;
+:deep(.dark-radio .el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: rgba(0, 242, 254, 0.2);
+  color: #00f2fe;
+  border-color: #00f2fe;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
 }
 
-/* 定制排行榜表格 */
-:deep(.custom-table) {
-  --el-table-header-bg-color: #fbfcfd;
-  --el-table-border-color: transparent;
+/* ================== 表格视图 暗黑样式 ================== */
+:deep(.dark-theme-table) {
+  background-color: transparent !important;
+  color: #dcdfe6;
+  --el-table-border-color: rgba(0, 242, 254, 0.1);
+  --el-table-header-bg-color: rgba(0, 242, 254, 0.05);
+  --el-table-header-text-color: #00f2fe;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: rgba(0, 242, 254, 0.1);
 }
-:deep(.custom-table th.el-table__cell) { font-weight: 600; padding: 12px 0; border-bottom: 1px solid #ebeef5; }
-:deep(.custom-table td.el-table__cell) { padding: 12px 0; border-bottom: 1px dashed #f0f2f5; }
-:deep(.custom-table::before) { display: none; }
+:deep(.dark-theme-table th.el-table__cell) {
+  background-color: rgba(0, 242, 254, 0.05) !important;
+  border-bottom: 1px solid rgba(0, 242, 254, 0.2);
+  font-weight: bold;
+}
+:deep(.dark-theme-table td.el-table__cell) {
+  border-bottom: 1px dashed rgba(0, 242, 254, 0.1);
+}
+:deep(.dark-theme-table::before) {
+  display: none;
+}
 
+/* 前三名徽章效果 */
 .rank-badge {
   display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: bold;
-  background: #f4f4f5;
-  color: #909399;
-}
-.rank-1 { background: #fffbe6; color: #e6a23c; font-size: 14px; }
-.rank-2 { background: #f0f9eb; color: #67c23a; font-size: 13px; }
-.rank-3 { background: #fdf6f6; color: #f56c6c; font-size: 13px; }
-
-.table-user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
   border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid #ebeef5;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
 }
-.user-name {
-  font-weight: 600;
-  color: #303133;
-}
-.points-text {
-  color: #497db7;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-/* AI 报表区域 */
-.report-summary {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.summary-item {
-  padding: 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #606266;
-  border: 1px solid transparent;
-}
-.summary-item strong { font-size: 18px; margin: 0 4px; }
-
-.summary-item.repair { background: #fdf6f6; border-color: #fbc4c4; color: #e4393c; }
-.summary-item.pending { background: #fff7ed; border-color: #fed7aa; color: #d97706; }
-.summary-item.visitor { background: #f0f7ff; border-color: #cce3f6; color: #2d597b; }
-.summary-item.income { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
-
-.report-content-wrap {
-  height: 240px;
-  overflow-y: auto;
-  background: #fafbfc;
-  border-radius: 12px;
-  border: 1px solid #ebeef5;
-  padding: 20px;
-}
-
-.report-text {
-  line-height: 1.8;
-  color: #475569;
-  font-size: 15px;
-  white-space: pre-wrap;
-}
-
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #dcdfe6; border-radius: 3px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c0c4cc; }
-
-/* 响应式 */
-@media (max-width: 1024px) {
-  .stats-grid, .content-grid { grid-template-columns: 1fr; }
-  .screen-header { flex-direction: column; align-items: flex-start; gap: 16px; }
-}
+.rank-1 { background: #e6a23c; color: #fff; box-shadow: 0 0 8px #e6a23c; }
+.rank-2 { background: #a0cfff; color: #fff; box-shadow: 0 0 8px #a0cfff; }
+.rank-3 { background: #e0a370; color: #fff; box-shadow: 0 0 8px #e0a370; }
 </style>
