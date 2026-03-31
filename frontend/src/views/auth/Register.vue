@@ -89,9 +89,9 @@ const loading = ref(false)
 
 // 轮播背景（和登录页一致）
 const bgImages = [
-  new URL("@/assets/images/bg1.png", import.meta.url).href,
-  new URL("@/assets/images/bg2.png", import.meta.url).href,
-  new URL("@/assets/images/bg3.png", import.meta.url).href,
+  "https://communitysvc.xyz/community/show/denglu.png",
+  "https://communitysvc.xyz/community/show/denglu2.png",
+  "https://communitysvc.xyz/community/show/denglu3.png",
 ];
 const currentBg = ref(0);
 let bgTimer = null;

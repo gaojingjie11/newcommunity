@@ -186,11 +186,14 @@ import { getNoticeList } from "@/api/service";
 import dayjs from "dayjs";
 import { ChatLineSquare, Close, Bell } from '@element-plus/icons-vue';
 
-// 轮播图图片
-import banner1 from "@/assets/images/首页1.png";
-import banner2 from "@/assets/images/首页2.png";
-import banner3 from "@/assets/images/首页3.png";
-import banner4 from "@/assets/images/首页4.png";
+
+// 轮播图
+const bannerImages = [
+  "https://communitysvc.xyz/community/show/lunbo1.png",
+  "https://communitysvc.xyz/community/show/lunbo2.png",
+  "https://communitysvc.xyz/community/show/lunbo3.png",
+  "https://communitysvc.xyz/community/show/lunbo4.png"
+];
 
 // 服务区图标
 import cartImg from "@/assets/images/购物车.png";
@@ -199,15 +202,15 @@ import repairImg from "@/assets/images/维修.png";
 import visitorImg from "@/assets/images/需求登记.png";
 import dataImg from "@/assets/images/数据大屏 (1).png";
 
-// 竖向长图图片
-import featureImg1 from "@/assets/images/长图1.png";
-import featureImg2 from "@/assets/images/长图2.png";
-import featureImg3 from "@/assets/images/长图3.png";
+// 竖向长图
+const featureImg1 = "https://communitysvc.xyz/community/show/shequ1.png";
+const featureImg2 = "https://communitysvc.xyz/community/show/shequ2.png";
+const featureImg3 = "https://communitysvc.xyz/community/show/shequ3.png";
 
 // 横向生活图片
-import lifeImg1 from "@/assets/images/生活1.png";
-import lifeImg2 from "@/assets/images/生活2.png";
-import garbageImg from "@/assets/images/垃圾分类.png";
+const lifeImg1 = "https://communitysvc.xyz/community/show/huodong.png";
+const lifeImg2 = "https://communitysvc.xyz/community/show/kongjian.png";
+const garbageImg = "https://communitysvc.xyz/community/show/jifen.png";
 
 const router = useRouter();
 const userStore = useUserStore(); 
@@ -309,7 +312,6 @@ const lifestyleCards = [
   { img: garbageImg, title: '环保分类赚积分', desc: 'AI 智能极速识别垃圾分类。您的每一次环保微行动都能转化为绿色积分，直接抵现购物与物业费！' }
 ];
 
-const bannerImages = [banner1, banner2, banner3, banner4];
 const currentBanner = ref(0);
 const notices = ref([]);
 let bannerTimer = null;

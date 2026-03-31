@@ -149,9 +149,9 @@ const codeForm = ref({ mobile: "", code: "" });
 
 // 轮播壁纸（预加载所有图片，无闪动）
 const bgImages = [
-  new URL("@/assets/images/bg1.png", import.meta.url).href,
-  new URL("@/assets/images/bg2.png", import.meta.url).href,
-  new URL("@/assets/images/bg3.png", import.meta.url).href,
+  "https://communitysvc.xyz/community/show/denglu.png",
+  "https://communitysvc.xyz/community/show/denglu2.png",
+  "https://communitysvc.xyz/community/show/denglu3.png",
 ];
 const currentBg = ref(0);
 let bgTimer = null;
