@@ -6,7 +6,11 @@
       <div class="chat-card">
         <div class="chat-header">
           <div class="header-left">
-            <span class="header-icon">🤖</span>
+            <img
+              class="header-icon"
+              src="https://communitysvc.xyz/community/show/ai.png"
+              alt="AI"
+            />
             <div class="header-title-box">
               <h2>智慧社区助手</h2>
               <p>支持通知总结、报修创建、商品下单与支付</p>
@@ -27,7 +31,12 @@
           >
             <div class="avatar">
               <span v-if="msg.role === 'user'">👤</span>
-              <span v-else-if="msg.role === 'assistant'">🤖</span>
+              <img
+                v-else-if="msg.role === 'assistant'"
+                class="avatar-img"
+                src="https://communitysvc.xyz/community/show/ai.png"
+                alt="AI"
+              />
               <span v-else>⚠️</span>
             </div>
             <div class="content">
@@ -39,7 +48,13 @@
           </div>
 
           <div v-if="loading" class="message-item assistant">
-            <div class="avatar">🤖</div>
+            <div class="avatar">
+              <img
+                class="avatar-img"
+                src="https://communitysvc.xyz/community/show/ai.png"
+                alt="AI"
+              />
+            </div>
             <div class="content">
               <div class="bubble-wrapper">
                 <div class="bubble loading-bubble">
@@ -67,11 +82,16 @@
             <span class="tip">快捷发送: <strong>Ctrl + Enter</strong></span>
             <button
               class="btn-send"
-              :class="{ 'is-loading': loading || paySubmitting, 'is-disabled': !inputContent.trim() && !loading }"
-              :disabled="(!inputContent.trim() && !loading) || loading || paySubmitting"
+              :class="{
+                'is-loading': loading || paySubmitting,
+                'is-disabled': !inputContent.trim() && !loading,
+              }"
+              :disabled="
+                (!inputContent.trim() && !loading) || loading || paySubmitting
+              "
               @click="handleSend"
             >
-              {{ loading || paySubmitting ? '发送中...' : '发送' }}
+              {{ loading || paySubmitting ? "发送中..." : "发送" }}
             </button>
           </div>
         </div>
@@ -89,148 +109,150 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
-import dayjs from 'dayjs'
-import { ElMessage } from 'element-plus'
-import Navbar from '@/components/layout/Navbar.vue'
-import PayAuthDialog from '@/components/payment/PayAuthDialog.vue'
-import { getChatHistory, sendChat } from '@/api/chat'
-import { useUserStore } from '@/stores/user'
+import { nextTick, onMounted, ref } from "vue";
+import dayjs from "dayjs";
+import { ElMessage } from "element-plus";
+import Navbar from "@/components/layout/Navbar.vue";
+import PayAuthDialog from "@/components/payment/PayAuthDialog.vue";
+import { getChatHistory, sendChat } from "@/api/chat";
+import { useUserStore } from "@/stores/user";
 
-const userStore = useUserStore()
+const userStore = useUserStore();
 
 const buildGreetingMessage = () => ({
-  role: 'assistant',
-  content: '您好，我是智慧社区助手。您可以让我帮您总结通知、创建报修、搜索商品、下单和支付。',
-  time: dayjs().format('HH:mm')
-})
+  role: "assistant",
+  content:
+    "您好，我是智慧社区助手。您可以让我帮您总结通知、创建报修、搜索商品、下单和支付。",
+  time: dayjs().format("HH:mm"),
+});
 
 const formatMessageTime = (value) => {
-  const parsed = dayjs(value)
-  return parsed.isValid() ? parsed.format('HH:mm') : dayjs().format('HH:mm')
-}
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format("HH:mm") : dayjs().format("HH:mm");
+};
 
-const messages = ref([buildGreetingMessage()])
-const inputContent = ref('')
-const loading = ref(false)
-const historyRef = ref(null)
+const messages = ref([buildGreetingMessage()]);
+const inputContent = ref("");
+const loading = ref(false);
+const historyRef = ref(null);
 
-const showPayAuth = ref(false)
-const paySubmitting = ref(false)
-const pendingPayContent = ref('')
+const showPayAuth = ref(false);
+const paySubmitting = ref(false);
+const pendingPayContent = ref("");
 
-const isPayIntent = (text) => ['支付', '付款', '结算', '确认支付'].some((kw) => text.includes(kw))
+const isPayIntent = (text) =>
+  ["支付", "付款", "结算", "确认支付"].some((kw) => text.includes(kw));
 
 const scrollToBottom = () => {
   nextTick(() => {
     if (historyRef.value) {
-      historyRef.value.scrollTop = historyRef.value.scrollHeight
+      historyRef.value.scrollTop = historyRef.value.scrollHeight;
     }
-  })
-}
+  });
+};
 
 const loadHistory = async () => {
   try {
-    const res = await getChatHistory({ limit: 100 })
-    const list = Array.isArray(res?.list) ? res.list : []
+    const res = await getChatHistory({ limit: 100 });
+    const list = Array.isArray(res?.list) ? res.list : [];
     if (list.length === 0) {
-      messages.value = [buildGreetingMessage()]
-      scrollToBottom()
-      return
+      messages.value = [buildGreetingMessage()];
+      scrollToBottom();
+      return;
     }
 
     messages.value = list.map((item) => ({
       role: item.role,
       content: item.content,
-      time: formatMessageTime(item.created_at)
-    }))
-    scrollToBottom()
+      time: formatMessageTime(item.created_at),
+    }));
+    scrollToBottom();
   } catch {
-    messages.value = [buildGreetingMessage()]
-    ElMessage.warning('聊天记录加载失败，已显示默认欢迎语')
-    scrollToBottom()
+    messages.value = [buildGreetingMessage()];
+    ElMessage.warning("聊天记录加载失败，已显示默认欢迎语");
+    scrollToBottom();
   }
-}
+};
 
 async function sendContentToAI(content, authPayload = {}) {
   messages.value.push({
-    role: 'user',
+    role: "user",
     content,
-    time: dayjs().format('HH:mm')
-  })
-  loading.value = true
-  scrollToBottom()
+    time: dayjs().format("HH:mm"),
+  });
+  loading.value = true;
+  scrollToBottom();
 
   try {
-    const req = { content }
-    if (authPayload?.pay_type === 'password') {
-      req.payment_password = authPayload.password || ''
-      req.pay_type = 'password'
-    } else if (authPayload?.pay_type === 'face') {
-      req.pay_type = 'face'
-      req.face_image_url = authPayload.face_image_url || ''
+    const req = { content };
+    if (authPayload?.pay_type === "password") {
+      req.payment_password = authPayload.password || "";
+      req.pay_type = "password";
+    } else if (authPayload?.pay_type === "face") {
+      req.pay_type = "face";
+      req.face_image_url = authPayload.face_image_url || "";
     }
 
-    const res = await sendChat(req)
-    const reply = (res?.reply || '').trim()
+    const res = await sendChat(req);
+    const reply = (res?.reply || "").trim();
     if (!reply) {
-      throw new Error('empty AI response')
+      throw new Error("empty AI response");
     }
     messages.value.push({
-      role: 'assistant',
+      role: "assistant",
       content: reply,
-      time: dayjs().format('HH:mm')
-    })
+      time: dayjs().format("HH:mm"),
+    });
   } catch (error) {
-    ElMessage.error('AI 响应失败，请稍后重试')
+    ElMessage.error("AI 响应失败，请稍后重试");
     messages.value.push({
-      role: 'system',
-      content: `生成失败: ${error?.message || '网络错误'}`,
-      time: dayjs().format('HH:mm')
-    })
+      role: "system",
+      content: `生成失败: ${error?.message || "网络错误"}`,
+      time: dayjs().format("HH:mm"),
+    });
   } finally {
-    loading.value = false
-    scrollToBottom()
+    loading.value = false;
+    scrollToBottom();
   }
 }
 
 const handleSend = async () => {
-  const content = inputContent.value.trim()
+  const content = inputContent.value.trim();
   if (!content || loading.value || paySubmitting.value) {
-    return
+    return;
   }
 
-  inputContent.value = ''
+  inputContent.value = "";
   if (isPayIntent(content)) {
-    pendingPayContent.value = content
-    showPayAuth.value = true
-    return
+    pendingPayContent.value = content;
+    showPayAuth.value = true;
+    return;
   }
 
-  await sendContentToAI(content)
-}
+  await sendContentToAI(content);
+};
 
 const submitAIPay = async (authPayload) => {
-  const content = pendingPayContent.value.trim()
+  const content = pendingPayContent.value.trim();
   if (!content) {
-    showPayAuth.value = false
-    return
+    showPayAuth.value = false;
+    return;
   }
 
-  paySubmitting.value = true
+  paySubmitting.value = true;
   try {
-    await sendContentToAI(content, authPayload || {})
-    pendingPayContent.value = ''
-    showPayAuth.value = false
+    await sendContentToAI(content, authPayload || {});
+    pendingPayContent.value = "";
+    showPayAuth.value = false;
   } finally {
-    paySubmitting.value = false
+    paySubmitting.value = false;
   }
-}
+};
 
 onMounted(async () => {
-  await userStore.fetchUserInfo().catch(() => {})
-  await loadHistory()
-})
+  await userStore.fetchUserInfo().catch(() => {});
+  await loadHistory();
+});
 </script>
 <style scoped>
 .chat-page {
@@ -365,6 +387,12 @@ onMounted(async () => {
   font-size: 20px;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .message-item.user .avatar {
@@ -539,7 +567,9 @@ onMounted(async () => {
 }
 
 @keyframes bounce {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0.5;
   }
