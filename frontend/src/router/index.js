@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user'
 const routes = [
   { path: '/', redirect: '/home' },
   { path: '/data', name: 'DataScreen', component: () => import('@/views/admin/DataScreen.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
+  { path: '/data/floor', name: 'FloorDetail', component: () => import('@/views/admin/FloorDetail.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
   { path: '/login', name: 'Login', component: () => import('@/views/auth/Login.vue'), meta: { hideNav: true } },
   { path: '/register', name: 'Register', component: () => import('@/views/auth/Register.vue'), meta: { hideNav: true } },
   { path: '/home', name: 'Home', component: () => import('@/views/home/Index.vue'), meta: { requiresAuth: false } },

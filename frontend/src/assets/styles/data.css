@@ -1,0 +1,520 @@
+
+/* ================== 根级布局 ================== */
+.data-screen {
+  width: 100vw;
+  height: 100vh;
+  background-color: #050a15; /* 极深蓝黑底色 */
+  color: #ffffff;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ================== 顶部 Header ================== */
+.screen-header {
+  height: 70px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+}
+.header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 5px;
+}
+.title-text {
+  font-size: 32px;
+  font-weight: 900;
+  color: #00f2fe;
+  margin-top: -38px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 15px rgba(0, 242, 254, 0.6);
+}
+.time-text {
+  position: absolute;
+  right: 340px;
+  top: 20px;
+  color: #a0cfff;
+  font-size: 16px;
+  font-family: monospace;
+}
+.back-btn {
+  position: absolute;
+  left: 340px;
+  top: 20px;
+  color: #00f2fe;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: 4px;
+  transition: all 0.3s;
+  background: rgba(0, 242, 254, 0.05);
+}
+.back-btn:hover {
+  background: rgba(0, 242, 254, 0.2);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+}
+
+/* ================== 主体 Body 栅格 ================== */
+.screen-body {
+  height: calc(100vh - 70px);
+  padding: 10px 20px 20px;
+  display: flex;
+  gap: 20px;
+  box-sizing: border-box;
+}
+.column-side {
+  width: 26%;
+  display: flex;
+  flex-direction: column;
+}
+.column-center {
+  width: 48%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ================== 卡片通用样式 ================== */
+.tech-card {
+  position: relative;
+  box-sizing: border-box;
+  padding: 20px 15px 15px; /* 避开 datav 边框遮挡 */
+}
+.mt-15 { margin-top: 15px; }
+/* 使用 calc 精确计算高度，减去边距误差，保证总和正好 100%，防止 Flexbox 互相挤压 */
+.box-h-30 { height: calc(30% - 10px); }
+.box-h-35 { height: calc(35% - 10px); }
+
+.chart-title {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  z-index: 5;
+}
+.flex-between {
+  width: calc(100% - 40px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.title-left {
+  display: flex;
+  align-items: center;
+}
+.indicator {
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background-color: #00f2fe;
+  margin-right: 8px;
+  box-shadow: 0 0 8px #00f2fe;
+}
+.chart-container {
+  width: 100%;
+  height: 100%;
+  padding-top: 25px;
+  box-sizing: border-box;
+}
+
+/* ================== 左侧指标卡 ================== */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px; /* 间距缩小 */
+  height: 100%;
+  padding-top: 30px;
+}
+.metric-item {
+  background: rgba(0, 242, 254, 0.03);
+  border: 1px solid rgba(0, 242, 254, 0.1);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  transition: transform 0.3s;
+}
+.metric-item:hover {
+  background: rgba(0, 242, 254, 0.1);
+  transform: translateY(-2px);
+}
+.m-icon {
+  font-size: 22px; 
+  padding: 6px; 
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+}
+.m-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.m-label {
+  font-size: 12px;
+  color: #a0cfff;
+  margin-bottom: 2px;
+}
+.m-value {
+  font-size: 18px; 
+  font-weight: 900;
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+}
+.num-small {
+  font-size: 16px;
+}
+
+/* ================== 中间全景图与翻牌器 ================== */
+.center-map-box {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  padding: 5px;
+}
+/* Three.js 容器：绝对定位，充满中间区域，z-index 在 dv-border-box-10 之下 */
+.three-canvas-container {
+  position: absolute;
+  top: 10px; left: 10px; right: 10px; bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+   z-index: 1;          /* 提高层级 */
+  pointer-events: auto;/* 允许鼠标事件 */
+}
+.three-canvas-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+.map-mask {
+  position: absolute;
+  top: 10px; left: 10px; right: 10px; bottom: 10px;
+  background: radial-gradient(circle, rgba(5,10,21,0) 0%, rgba(5,10,21,0.8) 100%);
+  pointer-events: none;
+}
+.map-title-overlay {
+  position: absolute;
+  top: 40px;
+  width: 100%;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #e0f2fe;
+  letter-spacing: 4px;
+  text-shadow: 0 0 15px #00f2fe;
+  z-index: 2;
+  pointer-events: none;/* 关键：鼠标穿透 */
+}
+
+.center-data {
+  position: absolute;
+  bottom: 80px;
+  width: 100%;
+  display: flex;
+  justify-content: space-evenly;
+  z-index: 5;
+   pointer-events: none; /* 鼠标穿透 */
+}
+.c-item {
+  background: rgba(0, 15, 30, 0.6);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.1) inset;
+  padding: 15px 30px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+.c-label {
+  font-size: 16px;
+  color: #a0cfff;
+  margin-bottom: 8px;
+}
+
+/* 模拟雷达扫描动画 */
+.radar-scan {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  margin-top: -200px;
+  margin-left: -200px;
+  border-radius: 50%;
+  border: 1px dashed rgba(0, 242, 254, 0.2);
+  background: conic-gradient(from 0deg, transparent 70%, rgba(0, 242, 254, 0.3) 100%);
+  animation: scan 4s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes scan {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ================== 右侧特有内容 ================== */
+.ranking-wrap {
+  position: absolute;
+  top: 55px; /* 固定位置，避开顶部的标题和单选按钮 */
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+  overflow: hidden;
+}
+.empty-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #606266;
+  font-size: 14px;
+}
+
+/* AI 诊断框 */
+.ai-report-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: 25px;
+  overflow: hidden; /* 保证内部文字绝不会撑开父盒子 */
+}
+.ai-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  color: #4facfe;
+  padding-top: 12px;
+  
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #4facfe;
+  border-radius: 50%;
+}
+.pulse {
+  box-shadow: 0 0 0 0 rgba(58, 67, 194, 0.7);
+  animation: pulsing 1.5s infinite;
+}
+@keyframes pulsing {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(103, 194, 58, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(103, 194, 58, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(103, 194, 58, 0); }
+}
+
+/* 展开按钮样式 */
+.expand-btn {
+  cursor: pointer;
+  color: #4facfe;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s;
+}
+.expand-btn:hover {
+  color: #00f2fe;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+}
+
+.report-content {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.ai-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #dcdfe6;
+  white-space: pre-wrap;
+  margin: 0 0 12px 0;
+}
+.line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ai-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.tag.danger { color: #b2d6eb; border: 1px solid rgba(131, 108, 245, 0.3); }
+.tag.success { color: #b2d6eb; border: 1px solid rgba(131, 108, 245, 0.3); }
+
+/* ================== Element Plus 弹窗暗黑样式深度覆盖 ================== */
+/* 必须使用 :global 才能穿透到挂载于 body 的 el-dialog 上 */
+:global(.dark-theme-dialog) {
+  background-color: #0b172a !important; /* 深空蓝背景 */
+  border: 1px solid rgba(0, 242, 254, 0.4) !important;
+  box-shadow: 0 0 30px rgba(0, 242, 254, 0.15) !important;
+  border-radius: 8px !important;
+}
+:global(.dark-theme-dialog .el-dialog__header) {
+  border-bottom: 1px solid rgba(0, 242, 254, 0.2) !important;
+  margin-right: 0 !important;
+  padding-bottom: 15px !important;
+}
+:global(.dark-theme-dialog .el-dialog__title) {
+  color: #00f2fe !important;
+  font-weight: bold !important;
+  letter-spacing: 1px !important;
+  text-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+}
+:global(.dark-theme-dialog .el-dialog__body) {
+  color: #dcdfe6 !important;
+  padding: 20px 25px !important;
+}
+/* 对话框关闭按钮重置 */
+:global(.dark-theme-dialog .el-dialog__headerbtn .el-dialog__close) {
+  color: #00f2fe !important;
+  font-size: 18px;
+}
+:global(.dark-theme-dialog .el-dialog__headerbtn:hover .el-dialog__close) {
+  color: #ffffff !important;
+  text-shadow: 0 0 8px #00f2fe;
+}
+
+/* 对话框内部容器 */
+.dialog-report-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  line-height: 1.8;
+  font-size: 15px;
+  padding: 20px;
+  background: rgba(0, 242, 254, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 242, 254, 0.1);
+  color: #e4e7ed;
+}
+
+/* ================== AI 报告内部 Markdown 解析样式 ================== */
+:global(.md-title) {
+  color: #00f2fe;
+  margin: 18px 0 10px 0;
+  font-size: 17px;
+  font-weight: bold;
+  border-bottom: 1px dashed rgba(0, 242, 254, 0.2);
+  padding-bottom: 6px;
+}
+:global(.md-title:first-child) {
+  margin-top: 0;
+}
+:global(.md-bold) {
+  color: #e6a23c; /* 醒目的橙黄色，凸显"立即行动"等词汇 */
+  font-weight: bold;
+}
+:global(.md-list-item) {
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+:global(.md-dot) {
+  position: absolute;
+  left: 5px;
+  color: #00f2fe;
+}
+:global(.md-text) {
+  color: #a0cfff;
+}
+
+/* 滚动条暗黑优化 */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 242, 254, 0.3); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 242, 254, 0.6); }
+
+/* DataV 深色模式覆盖覆盖 */
+:deep(.dv-scroll-ranking-board .ranking-info .rank) { color: #00f2fe; }
+:deep(.dv-scroll-ranking-board .ranking-info .info-name) { color: #fff; }
+
+/* ================== 单选按钮组 暗黑样式 ================== */
+:deep(.dark-radio .el-radio-button__inner) {
+  background: rgba(0, 242, 254, 0.05);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  color: #a0cfff;
+  border-radius: 4px;
+  margin: 0 4px;
+  box-shadow: none !important;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+:deep(.dark-radio .el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: rgba(0, 242, 254, 0.2);
+  color: #00f2fe;
+  border-color: #00f2fe;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+}
+
+/* ================== 表格视图 暗黑样式 ================== */
+:deep(.dark-theme-table) {
+  background-color: transparent !important;
+  color: #dcdfe6;
+  --el-table-border-color: rgba(0, 242, 254, 0.1);
+  --el-table-header-bg-color: rgba(0, 242, 254, 0.05);
+  --el-table-header-text-color: #00f2fe;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: rgba(0, 242, 254, 0.1);
+}
+:deep(.dark-theme-table th.el-table__cell) {
+  background-color: rgba(0, 242, 254, 0.05) !important;
+  border-bottom: 1px solid rgba(0, 242, 254, 0.2);
+  font-weight: bold;
+}
+:deep(.dark-theme-table td.el-table__cell) {
+  border-bottom: 1px dashed rgba(0, 242, 254, 0.1);
+}
+:deep(.dark-theme-table::before) {
+  display: none;
+}
+
+/* 前三名徽章效果 */
+.rank-badge {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+}
+.rank-1 { background: #e6a23c; color: #fff; box-shadow: 0 0 8px #e6a23c; }
+.rank-2 { background: #a0cfff; color: #fff; box-shadow: 0 0 8px #a0cfff; }
+.rank-3 { background: #e0a370; color: #fff; box-shadow: 0 0 8px #e0a370; }
