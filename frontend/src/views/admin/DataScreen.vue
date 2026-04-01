@@ -369,7 +369,7 @@ const initThreeJS = () => {
   const loader = new GLTFLoader()
 
   // 加载建筑总览模型
-  loader.load('/建模.glb', (gltf) => {
+  loader.load('/高层住宅大楼公寓.glb', (gltf) => {
     const model = gltf.scene
     const box = new THREE.Box3().setFromObject(model)
     const center = box.getCenter(new THREE.Vector3())
