@@ -21,7 +21,6 @@
 
           <div class="actions">
             <button class="btn-primary" @click="handleDownload">立即下载</button>
-            <a class="btn-link" :href="downloadUrl" target="_blank" rel="noopener">直链打开</a>
           </div>
 
           <p class="meta">当前下载地址：{{ downloadUrl }}</p>
@@ -32,7 +31,7 @@
             <span>积分抵扣</span>
             <span>商城购物</span>
             <span>订单管理</span>
-            <span>社区消息</span>
+            <span>AI 助手</span>
           </div>
         </div>
       </div>
@@ -57,6 +56,10 @@
           <h3>消息互动</h3>
           <p>支持社区消息沟通，及时获取通知并参与日常交流。</p>
         </article>
+        <article class="feature-card">
+          <h3>AI 智能助手</h3>
+          <p>提供智能问答与建议推荐，帮助用户更快完成常见业务操作。</p>
+        </article>
       </div>
     </section>
 
@@ -68,7 +71,6 @@
         <li>如下载失败，请切换网络后重试或联系管理员</li>
         <li>后续版本升级可复用同一下载页与链接进行发布</li>
       </ul>
-      <p class="tip">提示：你可以通过环境变量 <code>VITE_APP_DOWNLOAD_URL</code> 随时切换下载文件地址。</p>
     </section>
 
     <section class="footer-note">
@@ -91,7 +93,7 @@ function onLogoError() {
 
 function handleDownload() {
   if (!downloadUrl || downloadUrl === '#') {
-    ElMessage.warning('下载地址未配置，请先设置 VITE_APP_DOWNLOAD_URL')
+    ElMessage.warning('下载地址未配置，请联系管理员')
     return
   }
   window.open(downloadUrl, '_blank', 'noopener')
@@ -195,8 +197,7 @@ h1 {
   flex-wrap: wrap;
 }
 
-.btn-primary,
-.btn-link {
+.btn-primary {
   border-radius: 12px;
   padding: 10px 18px;
   font-size: 14px;
@@ -208,12 +209,6 @@ h1 {
   border: 0;
   color: #fff;
   background: linear-gradient(135deg, #1677ff, #00b578);
-}
-
-.btn-link {
-  border: 1px solid #c7d2fe;
-  color: #334155;
-  background: #f8fafc;
 }
 
 .meta {
@@ -276,19 +271,6 @@ ul {
   color: #475569;
   line-height: 1.7;
   font-size: 14px;
-}
-
-.tip {
-  margin: 10px 0 0;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.tip code {
-  color: #1d4ed8;
-  background: #eef2ff;
-  border-radius: 6px;
-  padding: 2px 6px;
 }
 
 .footer-note {
