@@ -7,6 +7,7 @@ const routes = [
   { path: '/data/floor', name: 'FloorDetail', component: () => import('@/views/admin/FloorDetail.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
   { path: '/login', name: 'Login', component: () => import('@/views/auth/Login.vue'), meta: { hideNav: true } },
   { path: '/register', name: 'Register', component: () => import('@/views/auth/Register.vue'), meta: { hideNav: true } },
+  { path: '/app-download', name: 'AppDownload', component: () => import('@/views/public/Download.vue'), meta: { hideNav: true, requiresAuth: false } },
   { path: '/home', name: 'Home', component: () => import('@/views/home/Index.vue'), meta: { requiresAuth: false } },
   { path: '/mall', name: 'Mall', component: () => import('@/views/mall/Index.vue'), meta: { requiresAuth: false } },
   { path: '/product/:id', name: 'ProductDetail', component: () => import('@/views/mall/ProductDetail.vue'), meta: { requiresAuth: false } },
