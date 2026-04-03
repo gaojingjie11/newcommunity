@@ -83,7 +83,7 @@
 import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 
-const downloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || 'https://communitysvc.xyz/community/app/base.apk(1).1'
+const downloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || 'https://communitysvc.xyz/community/app/base.apk'
 const logoUrl = '/images/logo.png'
 const showLogo = ref(true)
 
