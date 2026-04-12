@@ -17,7 +17,7 @@ minio:
 ai:
   api_key: "sk-3afaa00674244df6b483dcf36272997f"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-  model: "qwen-plus"
+  model: "qwen3.6-plus-2026-04-02"
 
 facebody:
   access_key_id: ""

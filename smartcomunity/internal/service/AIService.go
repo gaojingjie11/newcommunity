@@ -19,8 +19,6 @@ import (
 )
 
 const (
-	qwenVisionModel = "qwen-vl-plus"
-
 	chatContextWindowSize = 10
 	maxChatHistoryLimit   = 200
 	maxAgentToolRounds    = 5
@@ -1260,7 +1258,7 @@ func (s *AIService) RecognizeGarbage(imageURL string) (*GarbageRecognitionResult
 	}
 	var lastErr error
 	for idx, prompt := range prompts {
-		content, err := s.callTextModel(qwenVisionModel, buildMessages(prompt), map[string]string{"type": "json_object"})
+		content, err := s.callTextModel(config.Conf.AI.Model, buildMessages(prompt), map[string]string{"type": "json_object"})
 		if err != nil {
 			return nil, err
 		}
