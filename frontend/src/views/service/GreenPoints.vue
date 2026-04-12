@@ -1,27 +1,27 @@
-<template>
+﻿<template>
   <div class="green-points-page">
     <Navbar />
 
     <div class="container custom-container">
       <div class="page-header">
-        <h1 class="page-title highlight-title">绿色积分中心</h1>
+        <h1 class="page-title highlight-title">缁胯壊绉垎涓績</h1>
       </div>
 
       <div class="hero-banner">
         <div class="hero-left">
-          <h2>AI 智能分类，环保赚积分</h2>
+          <h2>AI 鏅鸿兘鍒嗙被锛岀幆淇濊禋绉垎</h2>
           <p class="hero-desc">
-            上传垃圾分类图片，AI 自动识别并发放积分。积分按 <strong>{{ GREEN_POINTS_PER_YUAN }} 积分 = 1 元</strong> 比例，可在支付商城订单和物业费时优先抵扣。
+            涓婁紶鍨冨溇鍒嗙被鍥剧墖锛孉I 鑷姩璇嗗埆骞跺彂鏀剧Н鍒嗐€傜Н鍒嗘寜 <strong>{{ GREEN_POINTS_PER_YUAN }} 绉垎 = 1 鍏?/strong> 姣斾緥锛屽彲鍦ㄦ敮浠樺晢鍩庤鍗曞拰鐗╀笟璐规椂浼樺厛鎶垫墸銆?
           </p>
         </div>
         <div class="hero-stats">
           <div class="stat-box">
-            <span class="stat-label">当前积分余额</span>
+            <span class="stat-label">褰撳墠绉垎浣欓</span>
             <span class="stat-value text-green">{{ userStore.userInfo.green_points || 0 }}</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">账户余额</span>
-            <span class="stat-value">¥{{ formatAmount(userStore.userInfo.balance || 0) }}</span>
+            <span class="stat-label">璐︽埛浣欓</span>
+            <span class="stat-value">楼{{ formatAmount(userStore.userInfo.balance || 0) }}</span>
           </div>
         </div>
       </div>
@@ -29,7 +29,7 @@
       <div class="content-grid">
         <div class="card premium-card">
           <div class="card-header">
-            <span class="header-indicator"></span> AI 垃圾分类识别
+            <span class="header-indicator"></span> AI 鍨冨溇鍒嗙被璇嗗埆
           </div>
           
           <div class="upload-wrapper">
@@ -42,9 +42,9 @@
               class="custom-upload"
             >
               <el-icon class="upload-icon"><UploadFilled /></el-icon>
-              <div class="el-upload__text">拖拽图片到此处，或 <em>点击选择文件</em></div>
+              <div class="el-upload__text">鎷栨嫿鍥剧墖鍒版澶勶紝鎴?<em>鐐瑰嚮閫夋嫨鏂囦欢</em></div>
               <template #tip>
-                <div class="upload-tip">建议上传清晰的垃圾分类照片，支持 jpg/png/webp</div>
+                <div class="upload-tip">寤鸿涓婁紶娓呮櫚鐨勫瀮鍦惧垎绫荤収鐗囷紝鏀寔 jpg/png/webp</div>
               </template>
             </el-upload>
           </div>
@@ -55,35 +55,35 @@
 
           <div class="actions">
             <button class="btn-action btn-success" :disabled="!selectedFile || uploading" @click="submitGarbageImage">
-              {{ uploading ? 'AI识别中...' : '开始识别并领取积分' }}
+              {{ uploading ? 'AI璇嗗埆涓?..' : '寮€濮嬭瘑鍒苟棰嗗彇绉垎' }}
             </button>
           </div>
 
           <el-result
             v-if="recognitionResult"
             icon="success"
-            :title="`本次奖励 ${recognitionResult.points} 积分`"
+            :title="`鏈濂栧姳 ${recognitionResult.points} 绉垎`"
             :sub-title="recognitionResult.reason"
             class="custom-result"
           >
             <template #extra>
-              <div class="result-extra">当前积分余额：<strong>{{ recognitionResult.green_points }}</strong></div>
+              <div class="result-extra">褰撳墠绉垎浣欓锛?strong>{{ recognitionResult.green_points }}</strong></div>
             </template>
           </el-result>
         </div>
 
         <div class="card premium-card">
           <div class="card-header">
-            <span class="header-indicator"></span> 累计积分排行榜
+            <span class="header-indicator"></span> 绱绉垎鎺掕姒?
           </div>
           
           <el-table :data="leaderboard" style="width: 100%" class="custom-table" :header-cell-style="{background:'#f8f9fa', color:'#606266'}">
-            <el-table-column label="排名" width="80" align="center">
+            <el-table-column label="鎺掑悕" width="80" align="center">
               <template #default="{ row }">
                 <span class="rank-badge" :class="`rank-${row.rank}`">#{{ row.rank }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="环保卫士">
+            <el-table-column label="鐜繚鍗＋">
               <template #default="{ row }">
                 <div class="user-cell">
                   <img :src="row.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" class="table-avatar" />
@@ -91,7 +91,7 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="points" label="总积分" width="100" align="right">
+            <el-table-column prop="points" label="鎬荤Н鍒? width="100" align="right">
               <template #default="{ row }">
                 <strong class="points-text">{{ row.points }}</strong>
               </template>
@@ -133,7 +133,7 @@ function handleFileChange(file) {
 
 async function submitGarbageImage() {
   if (!selectedFile.value) {
-    ElMessage.warning('请先选择图片')
+    ElMessage.warning('璇峰厛閫夋嫨鍥剧墖')
     return
   }
 
@@ -144,10 +144,15 @@ async function submitGarbageImage() {
   try {
     const res = await uploadGarbageImage(formData)
     recognitionResult.value = res
-    ElMessage.success(`识别成功，奖励 ${res.points} 积分`)
+    ElMessage.success(`璇嗗埆鎴愬姛锛屽鍔?${res.points} 绉垎`)
     await Promise.all([fetchLeaderboard(), userStore.fetchUserInfo()])
   } catch (error) {
-    ElMessage.error(error.response?.data?.msg || error.message || '识别失败')
+    const isTimeout = String(error?.code || '') === 'ECONNABORTED' || /timeout/i.test(String(error?.message || ''))
+    if (isTimeout) {
+      ElMessage.error('垃圾识别超时，请重试（建议上传更清晰、体积更小的图片）')
+    } else {
+      ElMessage.error(error.response?.data?.msg || error.message || '识别失败')
+    }
   } finally {
     uploading.value = false
   }

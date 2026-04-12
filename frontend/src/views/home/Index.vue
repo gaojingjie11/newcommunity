@@ -262,11 +262,15 @@ const playWave = () => {
   }
 
   let maxTime = 0;
+  const noticeCount = originalNotices.value.length;
+  // 公告越多，入场间隔越大，避免“扎堆冲屏”
+  const entryGap = noticeCount >= 12 ? 1.3 : noticeCount >= 8 ? 1.0 : noticeCount >= 5 ? 0.8 : 0.6;
   
   // 把源数据包装为这一波要飞的弹幕
   currentBarrages.value = originalNotices.value.map((n, index) => {
-    const delay = Math.random() * 3; // 随机 0 ~ 3 秒内起飞
-    const duration = 12 + Math.random() * 15; // 随机 12 ~ 18 秒飞完
+    // 按序号分批进入：基础间隔 + 小抖动
+    const delay = index * entryGap + Math.random() * 0.35;
+    const duration = 14 + Math.random() * 4; // 单条飞行时长控制在 14~18 秒
     const top = 12 + Math.random() * 30; // 高度分布在 12% ~ 42% 之间
     
     // 记录这波弹幕需要飞多久才能彻底清空屏幕
@@ -286,7 +290,7 @@ const playWave = () => {
   // 等这一波全部飞完，额外静默休息 4 秒钟，再发下一波
   waveTimer = setTimeout(() => {
     currentBarrages.value = []; // 清空 DOM 释放资源
-    setTimeout(playWave, 500);  // 等 0.5 秒重新组装下一波
+    setTimeout(playWave, 1200);  // 额外放慢换波节奏
   }, (maxTime + 4) * 1000);
 };
 
