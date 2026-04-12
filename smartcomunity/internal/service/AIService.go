@@ -1229,6 +1229,11 @@ func (s *AIService) GenerateCommunityReport(prompt string) (string, error) {
 }
 
 func (s *AIService) RecognizeGarbage(imageURL string) (*GarbageRecognitionResult, error) {
+	model := strings.TrimSpace(config.Conf.AI.GarbageModel)
+	if model == "" {
+		model = config.Conf.AI.Model
+	}
+
 	basePrompt := `请识别图片中的垃圾是否已正确分类，并返回 1 到 50 的整数奖励积分。
 只返回 JSON，例如：{"points": 20, "reason": "分类准确"}。`
 
@@ -1258,7 +1263,7 @@ func (s *AIService) RecognizeGarbage(imageURL string) (*GarbageRecognitionResult
 	}
 	var lastErr error
 	for idx, prompt := range prompts {
-		content, err := s.callTextModel(config.Conf.AI.Model, buildMessages(prompt), map[string]string{"type": "json_object"})
+		content, err := s.callTextModel(model, buildMessages(prompt), map[string]string{"type": "json_object"})
 		if err != nil {
 			return nil, err
 		}
@@ -1317,7 +1322,9 @@ func (s *AIService) callModel(model string, messages []dashScopeMessage, respons
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	// Garbage recognition may take noticeably longer than normal text requests
+	// when the model has to fetch and analyze an uploaded image.
+	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return dashScopeMessage{}, err

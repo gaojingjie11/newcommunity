@@ -38,9 +38,10 @@ type MinIOConfig struct {
 }
 
 type AIConfig struct {
-	APIKey  string `mapstructure:"api_key"`
-	BaseURL string `mapstructure:"base_url"`
-	Model   string `mapstructure:"model"`
+	APIKey       string `mapstructure:"api_key"`
+	BaseURL      string `mapstructure:"base_url"`
+	Model        string `mapstructure:"model"`
+	GarbageModel string `mapstructure:"garbage_model"`
 }
 
 type FaceBodyConfig struct {
