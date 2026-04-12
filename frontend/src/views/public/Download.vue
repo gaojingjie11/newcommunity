@@ -31,7 +31,7 @@
             <span>积分抵扣</span>
             <span>商城购物</span>
             <span>订单管理</span>
-            <span>AI 助手</span>
+            <span>智能管家</span>
           </div>
         </div>
       </div>

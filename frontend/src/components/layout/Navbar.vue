@@ -12,7 +12,7 @@
           <router-link to="/mall" class="nav-link">商城</router-link>
           <router-link to="/service" class="nav-link">社区服务</router-link>
           <router-link to="/chat" class="nav-link" v-if="userStore.isLoggedIn"
-            >AI助手</router-link
+            >智能管家</router-link
           >
           <router-link
             v-if="userStore.isLoggedIn && !hasAdminAccess"

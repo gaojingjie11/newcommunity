@@ -11,7 +11,7 @@
         <div class="hero-left">
           <h2>AI 鏅鸿兘鍒嗙被锛岀幆淇濊禋绉垎</h2>
           <p class="hero-desc">
-            涓婁紶鍨冨溇鍒嗙被鍥剧墖锛孉I 鑷姩璇嗗埆骞跺彂鏀剧Н鍒嗐€傜Н鍒嗘寜 <strong>{{ GREEN_POINTS_PER_YUAN }} 绉垎 = 1 鍏?/strong> 姣斾緥锛屽彲鍦ㄦ敮浠樺晢鍩庤鍗曞拰鐗╀笟璐规椂浼樺厛鎶垫墸銆?
+            上传垃圾分类图片后，AI 会自动识别并发放积分。积分按 <strong>{{ GREEN_POINTS_PER_YUAN }} 积分 = 1 元</strong> 比例，可在商城订单和物业费支付时优先抵扣。
           </p>
         </div>
         <div class="hero-stats">
@@ -67,7 +67,7 @@
             class="custom-result"
           >
             <template #extra>
-              <div class="result-extra">褰撳墠绉垎浣欓锛?strong>{{ recognitionResult.green_points }}</strong></div>
+              <div class="result-extra">当前积分余额：<strong>{{ recognitionResult.green_points }}</strong></div>
             </template>
           </el-result>
         </div>
@@ -91,7 +91,7 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="points" label="鎬荤Н鍒? width="100" align="right">
+            <el-table-column prop="points" label="总积分" width="100" align="right">
               <template #default="{ row }">
                 <strong class="points-text">{{ row.points }}</strong>
               </template>
