@@ -158,7 +158,7 @@ const searchUserId = ref('')
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
 const getStatusText = (status) => {
-  const map = { 0: '待支付', 1: '待发货', 2: '已发货', 3: '已完成', 40: '已取消' }
+  const map = { 0: '待支付', 1: '待发货', 2: '待收货', 3: '已完成', 40: '已取消' }
   return map[status] || status
 }
 
@@ -189,7 +189,7 @@ const handleShip = async (order) => {
   loadingMap[order.id] = true
   
   try {
-    await shipOrder({ id: order.id })
+    await shipOrder(order.id)
     ElMessage.success('发货指令已下达，更新状态成功')
     fetchOrders()
   } catch (error) {
@@ -256,7 +256,7 @@ onMounted(() => {
 .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
 .status-0 { background: #fef0f0; color: #f56c6c; } /* 待支付 */
 .status-1 { background: #fff7ed; color: #d97706; } /* 待发货 - 橘黄提示 */
-.status-2 { background: #f0f7ff; color: #2d597b; } /* 已发货 - 品牌蓝 */
+.status-2 { background: #f0f7ff; color: #2d597b; } /* 待收货 - 品牌蓝 */
 .status-3 { background: #f0fdf4; color: #00b894; } /* 已完成 */
 .status-40 { background: #f4f4f5; color: #909399; } /* 已取消 */
 

@@ -2,30 +2,30 @@ import request from '@/utils/request'
 
 export function getUserInfo() {
     return request({
-        url: '/user/info',
+        url: '/users/me',
         method: 'get'
     })
 }
 
 export function updateUserInfo(data) {
     return request({
-        url: '/user/update',
-        method: 'post',
+        url: '/users/me',
+        method: 'put',
         data
     })
 }
 
 export function changePassword(data) {
     return request({
-        url: '/user/change_password',
-        method: 'post',
+        url: '/users/me/password',
+        method: 'put',
         data
     })
 }
 
 export function registerFace(data) {
     return request({
-        url: '/user/face/register',
+        url: '/users/me/face',
         method: 'post',
         data
     })

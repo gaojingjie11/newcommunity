@@ -3,7 +3,7 @@ import request from '@/utils/request'
 // 获取商品列表
 export function getProductList(params) {
     return request({
-        url: '/products',
+        url: '/mall/products',
         method: 'get',
         params
     })
@@ -12,7 +12,7 @@ export function getProductList(params) {
 // 获取商品详情
 export function getProductDetail(id) {
     return request({
-        url: `/product/${id}`,
+        url: `/mall/products/${id}`,
         method: 'get'
     })
 }
@@ -20,7 +20,7 @@ export function getProductDetail(id) {
 // 创建商品（管理员）
 export function createProduct(data) {
     return request({
-        url: '/product/create',
+        url: '/admin/mall/products',
         method: 'post',
         data
     })
@@ -29,8 +29,8 @@ export function createProduct(data) {
 // 更新商品（管理员）
 export function updateProduct(data) {
     return request({
-        url: '/product/update',
-        method: 'post',
+        url: `/admin/mall/products/${data.id}`,
+        method: 'put',
         data
     })
 }
@@ -38,7 +38,7 @@ export function updateProduct(data) {
 // 删除商品（管理员）
 export function deleteProduct(id) {
     return request({
-        url: `/product/${id}`,
+        url: `/admin/mall/products/${id}`,
         method: 'delete'
     })
 }
@@ -46,7 +46,7 @@ export function deleteProduct(id) {
 // 商品收藏/取消收藏
 export function toggleFavorite(productId) {
     return request({
-        url: '/product/favorite',
+        url: '/mall/favorites',
         method: 'post',
         data: { product_id: productId }
     })
@@ -55,7 +55,7 @@ export function toggleFavorite(productId) {
 // 获取收藏列表
 export function getFavoriteList() {
     return request({
-        url: '/product/favorites',
+        url: '/mall/favorites',
         method: 'get'
     })
 }
@@ -63,7 +63,7 @@ export function getFavoriteList() {
 // 获取销量排行
 export function getProductRank() {
     return request({
-        url: '/product/rank',
+        url: '/statistics/products/sales-rank',
         method: 'get'
     })
 }
@@ -71,7 +71,7 @@ export function getProductRank() {
 // 获取分类列表
 export function getCategories() {
     return request({
-        url: '/categories',
+        url: '/mall/categories',
         method: 'get'
     })
 }

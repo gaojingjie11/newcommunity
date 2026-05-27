@@ -15,6 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o smartserver ./cmd
 
 # 运行阶段：轻量镜像运行
 FROM alpine:latest
+RUN apk add --no-cache tzdata
 WORKDIR /app
 # 复制编译产物
 COPY --from=builder /app/smartserver .

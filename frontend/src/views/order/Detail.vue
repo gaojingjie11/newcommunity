@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="order-detail-page">
     <Navbar />
 
@@ -26,6 +26,9 @@
                 <span class="order-time"
                   >创建时间：{{ formatDate(order.created_at) }}</span
                 >
+                <span v-if="order.status === 0" class="countdown-text">
+                  剩余支付时间：{{ countdownText }}
+                </span>
               </div>
             </div>
             <div class="status-right">
@@ -108,15 +111,15 @@
                   }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="row-label">联系人</span>
+                  <span class="row-label">联系地址</span>
                   <span class="row-value">{{
-                    order.sys_user?.real_name || order.sys_user?.username || "-"
+                    order.store?.address || "-"
                   }}</span>
                 </div>
                 <div class="info-row">
                   <span class="row-label">联系电话</span>
                   <span class="row-value">{{
-                    order.sys_user?.mobile || "-"
+                    order.store?.phone || "-"
                   }}</span>
                 </div>
               </div>
@@ -139,7 +142,7 @@
                   <img
                     :src="
                       item.product?.image_url ||
-                      'https://via.placeholder.com/80'
+                      DEFAULT_PRODUCT_IMAGE
                     "
                     class="thumb"
                   />
@@ -188,7 +191,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import dayjs from "dayjs";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -202,6 +205,7 @@ import {
 } from "@/api/order";
 import { useUserStore } from "@/stores/user";
 import { GREEN_POINTS_PER_YUAN, getMixedPaymentPreview } from "@/utils/payment";
+import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constants";
 // 引入图标
 import { ArrowLeft, Wallet, User, Goods } from "@element-plus/icons-vue";
 
@@ -212,6 +216,8 @@ const order = ref(null);
 const loading = ref(false);
 const showPayAuth = ref(false);
 const paySubmitting = ref(false);
+const remainingSeconds = ref(0);
+let countdownTimer = null;
 
 function formatAmount(value) {
   return Number(value || 0).toFixed(2);
@@ -221,12 +227,48 @@ function formatDate(date) {
   return dayjs(date).format("YYYY-MM-DD HH:mm:ss");
 }
 
+const countdownText = computed(() => {
+  const seconds = Math.max(0, Number(remainingSeconds.value || 0));
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(restSeconds).padStart(2, "0")}`;
+});
+
+function startCountdown() {
+  stopCountdown();
+  if (!order.value || order.value.status !== 0) {
+    remainingSeconds.value = 0;
+    return;
+  }
+  if (Number(order.value.expires_in_seconds || 0) > 0) {
+    remainingSeconds.value = Number(order.value.expires_in_seconds);
+  } else if (order.value.expire_at) {
+    remainingSeconds.value = Math.max(0, dayjs(order.value.expire_at).diff(dayjs(), "second"));
+  } else {
+    remainingSeconds.value = 0;
+  }
+  countdownTimer = window.setInterval(async () => {
+    remainingSeconds.value = Math.max(0, remainingSeconds.value - 1);
+    if (remainingSeconds.value === 0) {
+      stopCountdown();
+      await fetchDetail();
+    }
+  }, 1000);
+}
+
+function stopCountdown() {
+  if (countdownTimer) {
+    window.clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+}
+
 function getStatusText(status) {
   return (
     {
       0: "待支付",
-      1: "已支付",
-      2: "已发货",
+      1: "待发货",
+      2: "待收货",
       3: "已完成",
       40: "已取消",
     }[status] || "未知"
@@ -241,6 +283,7 @@ async function fetchDetail() {
   loading.value = true;
   try {
     order.value = await getOrderDetail(route.params.id);
+    startCountdown();
   } catch (error) {
     ElMessage.error(
       error.response?.data?.msg || error.message || "获取订单详情失败",
@@ -276,9 +319,7 @@ async function submitOrderPay(authPayload) {
 
   paySubmitting.value = true;
   try {
-    const res = await payOrder({
-      order_id: order.value.id,
-      business_type: 1,
+    const res = await payOrder(order.value.id, {
       ...authPayload,
     });
     const paymentResult = res?.payment_result || res;
@@ -334,6 +375,10 @@ async function confirmReceipt() {
 
 onMounted(async () => {
   await Promise.all([fetchDetail(), userStore.fetchUserInfo()]);
+});
+
+onUnmounted(() => {
+  stopCountdown();
 });
 </script>
 
@@ -443,10 +488,10 @@ onMounted(async () => {
 } /* 待支付 - 橙色 */
 .status-1 {
   color: #2d597b;
-} /* 已支付 - 商务蓝 */
+} /* 待发货 - 商务蓝 */
 .status-2 {
   color: #409eff;
-} /* 已发货 - 浅蓝 */
+} /* 待收货 - 浅蓝 */
 .status-3 {
   color: #00b894;
 } /* 已完成 - 绿色 */
@@ -460,6 +505,16 @@ onMounted(async () => {
   gap: 6px;
   color: #909399;
   font-size: 14px;
+}
+
+.countdown-text {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #d48806;
+  font-weight: 700;
 }
 
 .status-right {

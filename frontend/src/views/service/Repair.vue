@@ -97,7 +97,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
-import { createRepair, getRepairList } from '@/api/service'
+import { createWorkorder, getWorkorderList } from '@/api/service'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 
@@ -130,12 +130,17 @@ const getStatusClass = (status) => {
 const submitRepair = async () => {
   loading.value = true
   try {
-    await createRepair(form.value)
+    const payload = {
+      type: form.value.type === 1 ? 'repair' : 'complaint',
+      category: form.value.category,
+      description: form.value.content
+    }
+    await createWorkorder(payload)
     ElMessage.success('提交成功！')
     form.value = { type: 1, category: '', content: '' }
     await fetchRepairs()
   } catch (error) {
-    ElMessage.error('提交失败')
+    ElMessage.error(error.response?.data?.msg || error.message || '提交失败')
   } finally {
     loading.value = false
   }
@@ -143,12 +148,18 @@ const submitRepair = async () => {
 
 const fetchRepairs = async () => {
   try {
-    const res = await getRepairList({
+    const params = {
         page: currentPage.value,
         size: pageSize.value
-    })
-    repairs.value = res.list
-    total.value = res.total
+    }
+    const res = await getWorkorderList(params)
+    repairs.value = (res.list || []).map(item => ({
+      ...item,
+      type: item.type === 'complaint' ? 2 : 1,
+      category: item.category,
+      content: item.description
+    }))
+    total.value = res.total || 0
   } catch (error) {
     console.error('获取记录失败:', error)
   }

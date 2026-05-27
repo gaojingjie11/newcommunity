@@ -1,18 +1,22 @@
-import request from '@/utils/request'
+import axios from 'axios'
 
 export function sendChat(data) {
-  return request({
-    url: '/chat/send',
+  return axios({
+    baseURL: '',
+    url: '/agent/chat',
     method: 'post',
-    data,
+    data: {
+      user_id: data.user_id,
+      message: data.content || data.message || ''
+    },
+    headers: {
+      Authorization: localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+    },
     timeout: 60000
-  })
+  }).then((res) => res.data?.data || res.data)
 }
 
 export function getChatHistory(params) {
-  return request({
-    url: '/chat/history',
-    method: 'get',
-    params
-  })
+  void params
+  return Promise.resolve({ list: [] })
 }

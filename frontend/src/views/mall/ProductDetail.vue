@@ -17,7 +17,7 @@
         
         <!-- 左侧主图橱窗 -->
         <div class="detail-image-showcase">
-          <img :src="product.image_url || 'https://via.placeholder.com/400'" :alt="product.name" />
+          <img :src="product.image_url || DEFAULT_PRODUCT_IMAGE" :alt="product.name" />
         </div>
         
         <!-- 中间信息面板 (★ 重点修改：锁定宽度，防止被挤压 ★) -->
@@ -154,6 +154,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
+import { DEFAULT_PRODUCT_IMAGE } from '@/utils/constants'
 import { getProductDetail } from '@/api/product'
 import { addToCart as addToCartApi } from '@/api/order'
 import { addFavorite, deleteFavorite, checkFavorite } from '@/api/favorite'
@@ -169,6 +170,10 @@ const isFavorite = ref(false)
 
 const showComments = ref(false) 
 
+const goToLogin = () => {
+  router.push({ path: '/login', query: { redirect: route.fullPath } })
+}
+
 const addToCart = async (silent) => {
   if (typeof silent !== 'boolean') silent = false
   try {
@@ -183,7 +188,7 @@ const addToCart = async (silent) => {
   } catch (error) {
     if (error.response?.status === 401) {
        ElMessage.warning('请先登录后再进行操作')
-       router.push('/login')
+       goToLogin()
     } else {
        ElMessage.error('添加失败: ' + error.message)
     }
@@ -193,17 +198,17 @@ const addToCart = async (silent) => {
 const toggleFavorite = async () => {
     try {
         if (isFavorite.value) {
-            await deleteFavorite({ product_id: product.value.id })
+            await deleteFavorite(product.value.id)
             isFavorite.value = false
             ElMessage.success('已取消收藏')
         } else {
-            await addFavorite({ product_id: product.value.id })
+            await addFavorite(product.value.id)
             isFavorite.value = true
             ElMessage.success('收藏成功')
         }
     } catch (e) {
         if (e.response?.status === 401) {
-            router.push('/login')
+            goToLogin()
         } else {
             ElMessage.error('操作失败')
         }
@@ -261,7 +266,7 @@ const submitComment = async () => {
         showComments.value = true
     } catch (e) {
          if (e.response?.status === 401) {
-            router.push('/login')
+            goToLogin()
          } else {
              ElMessage.error(e.response?.data?.msg || '评价失败')
          }

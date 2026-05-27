@@ -334,7 +334,8 @@ onMounted(async () => {
   startBannerLoop();
   
   try {
-    const list = await getNoticeList();
+    const res = await getNoticeList();
+    const list = Array.isArray(res) ? res : (Array.isArray(res?.list) ? res.list : []);
     // 底部卡片区只保留最新3条
     notices.value = list.slice(0, 3);
     

@@ -16,6 +16,7 @@
               placeholder="输入商品名称探索好物..."
               class="custom-input"
               @keyup.enter="searchProducts"
+              @clear="searchProducts"
               clearable
             >
               <template #prefix
@@ -62,7 +63,7 @@
             <div class="product-card" @click="goToDetail(product.id)">
               <div class="product-image">
                 <img
-                  :src="product.image_url || 'https://via.placeholder.com/200'"
+                  :src="product.image_url || DEFAULT_PRODUCT_IMAGE"
                   :alt="product.name"
                 />
                 <div class="product-badge" v-if="product.is_promotion">
@@ -128,8 +129,9 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import Navbar from "@/components/layout/Navbar.vue";
+import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constants";
 import { getProductList, getCategories } from "@/api/product";
 import { addToCart as addToCartApi } from "@/api/order";
 import { useCartStore } from "@/stores/cart";
@@ -137,6 +139,7 @@ import { ElMessage } from "element-plus";
 import { Search, ShoppingCart } from "@element-plus/icons-vue";
 
 const router = useRouter();
+const route = useRoute();
 const cartStore = useCartStore();
 
 const products = ref([]);
@@ -149,6 +152,7 @@ const total = ref(0);
 const loading = ref(false);
 
 const handleSearch = () => {
+  page.value = 1;
   fetchData();
 };
 
@@ -180,7 +184,7 @@ const fetchData = async () => {
 const fetchCategories = async () => {
   try {
     const res = await getCategories();
-    categories.value = res || [];
+    categories.value = res?.list || res || [];
   } catch (e) {
     console.error(e);
   }
@@ -188,6 +192,10 @@ const fetchCategories = async () => {
 
 const goToDetail = (id) => {
   router.push(`/product/${id}`);
+};
+
+const goToLogin = () => {
+  router.push({ path: "/login", query: { redirect: route.fullPath } });
 };
 
 const addToCart = async (product) => {
@@ -201,7 +209,7 @@ const addToCart = async (product) => {
   } catch (error) {
     if (error.response?.status === 401) {
       ElMessage.warning("请先登录后再进行操作");
-      router.push("/login");
+      goToLogin();
     } else {
       ElMessage.error("添加失败，请稍后重试");
     }

@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function addToCart(data) {
   return request({
-    url: '/cart/add',
+    url: '/mall/cart/items',
     method: 'post',
     data
   })
@@ -10,77 +10,85 @@ export function addToCart(data) {
 
 export function getCartList() {
   return request({
-    url: '/cart/list',
+    url: '/mall/cart/items',
     method: 'get'
-  })
+  }).then((res) => res?.list || res || [])
 }
 
 export function deleteCartItem(id) {
   return request({
-    url: `/cart/${id}`,
+    url: `/mall/cart/items/${id}`,
     method: 'delete'
   })
 }
 
 export function updateCartQuantity(id, quantity) {
   return request({
-    url: `/cart/${id}`,
-    method: 'post',
+    url: `/mall/cart/items/${id}`,
+    method: 'put',
     data: { quantity }
   })
 }
 
 export function createOrder(data) {
   return request({
-    url: '/order/create',
+    url: '/mall/orders',
     method: 'post',
     data
   })
 }
 
+export function getAvailableStores(cartIds) {
+  return request({
+    url: '/mall/orders/available-stores',
+    method: 'get',
+    params: {
+      cart_ids: (cartIds || []).join(',')
+    }
+  })
+}
+
 export function getOrderList(params) {
   return request({
-    url: '/order/list',
+    url: '/mall/orders',
     method: 'get',
     params
   })
 }
 
-export function payOrder(data) {
-  const businessId = data.business_id || data.order_id || data.id
+export function payOrder(orderId, data = {}) {
+  const idempotencyKey = data.idempotency_key || data.idempotencyKey ||
+    `order-pay-${orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
   return request({
-    url: '/finance/pay',
+    url: `/mall/orders/${orderId}/pay`,
     method: 'post',
     data: {
-      business_id: businessId,
-      business_type: data.business_type || 1,
       pay_type: data.pay_type || 'password',
       password: data.password || '',
-      face_image_url: data.face_image_url || ''
+      face_image_url: data.face_image_url || '',
+      idempotency_key: idempotencyKey
     }
   })
 }
 
 export function cancelOrder(orderId) {
   return request({
-    url: '/order/cancel',
-    method: 'post',
-    data: { id: orderId }
+    url: `/mall/orders/${orderId}/cancel`,
+    method: 'post'
   })
 }
 
-export function receiveOrder(id) {
+export function receiveOrder(orderId) {
   return request({
-    url: '/order/receive',
-    method: 'post',
-    data: { id }
+    url: `/mall/orders/${orderId}/receive`,
+    method: 'post'
   })
 }
 
 export function getOrderDetail(id) {
   return request({
-    url: '/order/detail',
-    method: 'get',
-    params: { id }
+    url: `/mall/orders/${id}`,
+    method: 'get'
   })
 }

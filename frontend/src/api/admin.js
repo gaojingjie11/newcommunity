@@ -2,22 +2,21 @@ import request from '@/utils/request'
 
 export function getDashboardStats() {
   return request({
-    url: '/dashboard/stats',
+    url: '/statistics/community/overview',
     method: 'get'
   })
 }
 
-export function getAIReport(params) {
+export function getAIReport() {
   return request({
-    url: '/admin/ai-report',
-    method: 'get',
-    params
+    url: '/statistics/ai-report/latest',
+    method: 'get'
   })
 }
 
 export function generateAIReport() {
   return request({
-    url: '/admin/ai-report/generate',
+    url: '/statistics/ai-report/generate',
     method: 'post',
     timeout: 120000
   })
@@ -25,7 +24,7 @@ export function generateAIReport() {
 
 export function getAIReportList(params) {
   return request({
-    url: '/admin/ai-report/list',
+    url: '/statistics/ai-report/list',
     method: 'get',
     params
   })
@@ -33,14 +32,14 @@ export function getAIReportList(params) {
 
 export function getAIReportDetail(id) {
   return request({
-    url: `/admin/ai-report/${id}`,
+    url: `/statistics/ai-report/${id}`,
     method: 'get'
   })
 }
 
 export function getUserList(params) {
   return request({
-    url: '/admin/user/list',
+    url: '/admin/users',
     method: 'get',
     params
   })
@@ -48,7 +47,7 @@ export function getUserList(params) {
 
 export function freezeUser(data) {
   return request({
-    url: '/admin/user/freeze',
+    url: '/admin/users/freeze',
     method: 'post',
     data
   })
@@ -56,14 +55,14 @@ export function freezeUser(data) {
 
 export function getRoleList() {
   return request({
-    url: '/admin/role/list',
+    url: '/admin/roles',
     method: 'get'
   })
 }
 
 export function createRole(data) {
   return request({
-    url: '/admin/role/create',
+    url: '/admin/roles',
     method: 'post',
     data
   })
@@ -71,46 +70,54 @@ export function createRole(data) {
 
 export function getMenuList() {
   return request({
-    url: '/admin/menu/list',
+    url: '/admin/menus',
     method: 'get'
   })
 }
 
 export function getAdminVisitorList(params) {
   return request({
-    url: '/visitor/admin/list',
+    url: '/admin/community/visitors',
     method: 'get',
     params
   })
 }
 
-export function auditVisitor(data) {
+export function auditVisitor(visitorId, data) {
   return request({
-    url: '/visitor/audit',
+    url: `/admin/community/visitors/${visitorId}/audit`,
     method: 'post',
     data
   })
 }
 
-export function getAdminRepairList(params) {
+export function getAdminWorkorderList(params) {
   return request({
-    url: '/repair/admin/list',
+    url: '/admin/workorders',
     method: 'get',
     params
   })
 }
 
-export function processRepair(data) {
+export function processWorkorder(workorderId, data) {
   return request({
-    url: '/repair/process',
+    url: `/admin/workorders/${workorderId}/process`,
     method: 'post',
     data
+  })
+}
+
+export function getAdminProductList(params) {
+  return request({
+    url: '/admin/mall/products',
+    method: 'get',
+    params
   })
 }
 
 export function createProduct(data) {
   return request({
-    url: '/product/create',
+    url: '/admin/mall/products',
     method: 'post',
     data
   })
@@ -118,30 +125,30 @@ export function createProduct(data) {
 
 export function updateProduct(data) {
   return request({
-    url: '/product/update',
-    method: 'post',
+    url: `/admin/mall/products/${data.id}`,
+    method: 'put',
     data
   })
 }
 
 export function deleteProduct(id) {
   return request({
-    url: `/product/${id}`,
+    url: `/admin/mall/products/${id}`,
     method: 'delete'
   })
 }
 
 export function getAdminOrderList(params) {
   return request({
-    url: '/order/admin/list',
+    url: '/admin/mall/orders',
     method: 'get',
     params
   })
 }
 
-export function shipOrder(data) {
+export function shipOrder(orderId, data) {
   return request({
-    url: '/order/ship',
+    url: `/admin/mall/orders/${orderId}/ship`,
     method: 'post',
     data
   })
@@ -149,7 +156,7 @@ export function shipOrder(data) {
 
 export function createStore(data) {
   return request({
-    url: '/store/create',
+    url: '/admin/mall/stores',
     method: 'post',
     data
   })
@@ -157,22 +164,22 @@ export function createStore(data) {
 
 export function updateStore(data) {
   return request({
-    url: '/store/update',
-    method: 'post',
+    url: `/admin/mall/stores/${data.id}`,
+    method: 'put',
     data
   })
 }
 
 export function deleteStore(id) {
   return request({
-    url: `/store/${id}`,
+    url: `/admin/mall/stores/${id}`,
     method: 'delete'
   })
 }
 
 export function createNotice(data) {
   return request({
-    url: '/notice/create',
+    url: '/admin/community/notices',
     method: 'post',
     data
   })
@@ -180,14 +187,14 @@ export function createNotice(data) {
 
 export function deleteNotice(id) {
   return request({
-    url: `/notice/${id}`,
+    url: `/admin/community/notices/${id}`,
     method: 'delete'
   })
 }
 
 export function assignRole(data) {
   return request({
-    url: '/admin/user/assign_role',
+    url: '/admin/users/assign-role',
     method: 'post',
     data
   })
@@ -195,7 +202,7 @@ export function assignRole(data) {
 
 export function updateUserBalance(data) {
   return request({
-    url: '/admin/user/update_balance',
+    url: '/admin/users/update-balance',
     method: 'post',
     data
   })
@@ -203,7 +210,7 @@ export function updateUserBalance(data) {
 
 export function getAdminParkingList(params) {
   return request({
-    url: '/parking/admin/list',
+    url: '/admin/community/parking-spaces',
     method: 'get',
     params
   })
@@ -211,14 +218,14 @@ export function getAdminParkingList(params) {
 
 export function getParkingStats() {
   return request({
-    url: '/parking/admin/stats',
+    url: '/admin/community/parking-spaces/statistics',
     method: 'get'
   })
 }
 
-export function assignParking(data) {
+export function assignParking(parkingId, data) {
   return request({
-    url: '/parking/admin/assign',
+    url: `/admin/community/parking-spaces/${parkingId}/assign`,
     method: 'post',
     data
   })
@@ -226,7 +233,7 @@ export function assignParking(data) {
 
 export function createParking(data) {
   return request({
-    url: '/parking/admin/create',
+    url: '/admin/community/parking-spaces',
     method: 'post',
     data
   })
@@ -234,7 +241,7 @@ export function createParking(data) {
 
 export function createPropertyFee(data) {
   return request({
-    url: '/property/admin/create',
+    url: '/admin/community/property-fees',
     method: 'post',
     data
   })
@@ -242,8 +249,47 @@ export function createPropertyFee(data) {
 
 export function getAdminPropertyFeeList(params) {
   return request({
-    url: '/property/admin/list',
+    url: '/admin/community/property-fees',
     method: 'get',
     params
+  })
+}
+
+export function getStoreProducts(storeId) {
+  return request({
+    url: `/admin/mall/store-products/${storeId}`,
+    method: 'get'
+  })
+}
+
+export function bindStoreProduct(data) {
+  return request({
+    url: '/admin/mall/store-products',
+    method: 'post',
+    data
+  })
+}
+
+export function unbindStoreProduct(data) {
+  return request({
+    url: '/admin/mall/store-products',
+    method: 'delete',
+    data
+  })
+}
+
+export function updateStoreProductStatus(data) {
+  return request({
+    url: '/admin/mall/store-products/status',
+    method: 'put',
+    data
+  })
+}
+
+export function updateStoreProductStock(data) {
+  return request({
+    url: '/admin/mall/store-products/stock',
+    method: 'put',
+    data
   })
 }

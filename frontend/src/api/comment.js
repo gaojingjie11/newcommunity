@@ -3,7 +3,7 @@ import request from '@/utils/request'
 
 export function getCommentList(params) {
     return request({
-        url: '/comments',
+        url: '/mall/comments',
         method: 'get',
         params
     })
@@ -11,7 +11,7 @@ export function getCommentList(params) {
 
 export function createComment(data) {
     return request({
-        url: '/comment/create',
+        url: '/mall/comments',
         method: 'post',
         data
     })

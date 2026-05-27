@@ -90,8 +90,8 @@ const cards = [
   },
   {
     path: '/admin/repairs',
-    name: '报修管理',
-    desc: '处理工单并跟踪完结情况',
+    name: '报修投诉管理',
+    desc: '处理报修和投诉工单并跟踪完结情况',
     icon: Tools,
     roles: ['admin', 'property']
   },

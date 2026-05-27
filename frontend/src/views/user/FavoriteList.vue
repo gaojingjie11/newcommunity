@@ -17,7 +17,7 @@
           
           <!-- 商品图橱窗 -->
           <div class="card-img-wrapper">
-            <img :src="item.product.image_url || 'https://via.placeholder.com/200'" :alt="item.product.name" class="product-img" />
+            <img :src="item.product.image_url || DEFAULT_PRODUCT_IMAGE" :alt="item.product.name" class="product-img" />
           </div>
           
           <!-- 商品信息 -->
@@ -57,6 +57,7 @@ import Navbar from '@/components/layout/Navbar.vue'
 import { getFavoriteList, deleteFavorite } from '@/api/favorite'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Delete } from '@element-plus/icons-vue'
+import { DEFAULT_PRODUCT_IMAGE } from '@/utils/constants'
 
 const router = useRouter()
 const list = ref([])
@@ -72,7 +73,7 @@ const fetchList = async () => {
 
 const removeFavorite = async (pid) => {
     try {
-        await deleteFavorite({ product_id: pid })
+        await deleteFavorite(pid)
         ElMessage.success('已取消收藏')
         fetchList() // 刷新列表
     } catch (e) {

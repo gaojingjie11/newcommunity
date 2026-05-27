@@ -1,32 +1,30 @@
 import request from '@/utils/request'
 
-export function addFavorite(data) {
+export function addFavorite(productId) {
     return request({
-        url: '/favorite/add',
+        url: '/mall/favorites',
         method: 'post',
-        data
+        data: { product_id: productId }
     })
 }
 
-export function deleteFavorite(data) {
+export function deleteFavorite(productId) {
     return request({
-        url: '/favorite/delete',
-        method: 'post',
-        data
+        url: `/mall/favorites/${productId}`,
+        method: 'delete'
     })
 }
 
 export function getFavoriteList() {
     return request({
-        url: '/favorites',
+        url: '/mall/favorites',
         method: 'get'
     })
 }
 
 export function checkFavorite(productId) {
     return request({
-        url: '/favorite/check',
-        method: 'get',
-        params: { product_id: productId }
+        url: `/mall/favorites/check/${productId}`,
+        method: 'get'
     })
 }

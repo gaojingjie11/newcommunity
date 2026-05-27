@@ -16,17 +16,35 @@
         <el-table :data="list" style="width: 100%" stripe border>
           <el-table-column label="提交人" min-width="120">
             <template #default="{ row }">
-              {{ row.user ? (row.user.real_name || row.user.username) : row.user_id }}
+              {{ displayUser(row) }}
             </template>
           </el-table-column>
           
           <el-table-column label="电话" width="120">
             <template #default="{ row }">
-              {{ row.user ? row.user.mobile : '--' }}
+              {{ row.user_mobile || row.user?.mobile || '--' }}
             </template>
           </el-table-column>
           
-          <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
+          <el-table-column label="类型" width="120">
+            <template #default="{ row }">
+              <span class="type-tag" :class="row.type === 'complaint' ? 'is-complaint' : 'is-repair'">
+                {{ row.type === 'complaint' ? '投诉' : '报修' }}
+              </span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="事项类型" width="120">
+            <template #default="{ row }">
+              {{ row.category || '--' }}
+            </template>
+          </el-table-column>
+
+          <el-table-column label="内容" min-width="200" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ row.description || row.content || '--' }}
+            </template>
+          </el-table-column>
           
           <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
@@ -76,8 +94,8 @@
 
       <div class="modal-overlay" v-if="showModal">
         <div class="modal card">
-          <h3>处理报修</h3>
-          <p class="mb-4">报修内容: {{ currentItem?.content }}</p>
+          <h3>处理{{ currentItem?.type === 'complaint' ? '投诉' : '报修' }}</h3>
+          <p class="mb-4">工单内容: {{ currentItem?.description || currentItem?.content || '--' }}</p>
           <form @submit.prevent="handleSubmit">
             <div class="form-group">
                 <label>更新状态</label>
@@ -110,7 +128,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
-import { getAdminRepairList, processRepair } from '@/api/admin'
+import { getAdminWorkorderList, processWorkorder } from '@/api/admin'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 
@@ -133,17 +151,21 @@ const getStatusClass = (s) => {
     if(s === 1) return 'tag-primary' // processing color
     return 'tag-success'
 }
-
+const displayUser = (row) => {
+    return row.user_name || row.user?.real_name || row.user?.username || `用户 #${row.user_id}`
+}
 const fetchList = async () => {
     try {
-        const res = await getAdminRepairList({
+        const params = {
             page: currentPage.value,
             size: pageSize.value
-        })
-        list.value = res.list
-        total.value = res.total
+        }
+        const res = await getAdminWorkorderList(params)
+        list.value = res.list || []
+        total.value = res.total || 0
     } catch (e) {
         console.error(e)
+        ElMessage.error(e.response?.data?.msg || e.message || '获取工单失败')
     }
 }
 
@@ -168,16 +190,16 @@ const closeModal = () => showModal.value = false
 
 const handleSubmit = async () => {
     try {
-        await processRepair({
-            id: currentItem.value.id,
-            feedback: processForm.value.result,
-            status: processForm.value.status 
-        })
+        const payload = {
+            result: processForm.value.result,
+            status: processForm.value.status
+        }
+        await processWorkorder(currentItem.value.id, payload)
         ElMessage.success('处理成功')
         closeModal()
         fetchList()
     } catch(e) {
-        ElMessage.error('提交失败: ' + (e.response?.data?.msg || '未知错误'))
+        ElMessage.error('提交失败: ' + (e.response?.data?.msg || e.message || '未知错误'))
     }
 }
 
@@ -205,5 +227,8 @@ onMounted(fetchList)
 .textarea { height: 100px; resize: vertical; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 .pagination-container { display: flex; justify-content: flex-end; padding-top: 20px; }
+.type-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+.type-tag.is-repair { background: #f0f7ff; color: #2d597b; border: 1px solid #cce3f6; }
+.type-tag.is-complaint { background: #fdf6f6; color: #e4393c; border: 1px solid #fbc4c4; }
 
 </style>

@@ -10,7 +10,7 @@ const routes = [
   { path: '/app-download', name: 'AppDownload', component: () => import('@/views/public/Download.vue'), meta: { hideNav: true, requiresAuth: false } },
   { path: '/home', name: 'Home', component: () => import('@/views/home/Index.vue'), meta: { requiresAuth: false } },
   { path: '/mall', name: 'Mall', component: () => import('@/views/mall/Index.vue'), meta: { requiresAuth: false } },
-  { path: '/product/:id', name: 'ProductDetail', component: () => import('@/views/mall/ProductDetail.vue'), meta: { requiresAuth: false } },
+  { path: '/product/:id', name: 'ProductDetail', component: () => import('@/views/mall/ProductDetail.vue'), meta: { requiresAuth: true } },
   { path: '/cart', name: 'Cart', component: () => import('@/views/mall/Cart.vue'), meta: { requiresAuth: true } },
   { path: '/order', name: 'Order', component: () => import('@/views/order/Index.vue'), meta: { requiresAuth: true } },
   { path: '/order/:id', name: 'OrderDetail', component: () => import('@/views/order/Detail.vue'), meta: { requiresAuth: true } },
@@ -23,6 +23,7 @@ const routes = [
   { path: '/service/property', name: 'PropertyFee', component: () => import('@/views/service/PropertyFee.vue'), meta: { requiresAuth: true } },
   { path: '/service/green-points', name: 'GreenPoints', component: () => import('@/views/service/GreenPoints.vue'), meta: { requiresAuth: true } },
   { path: '/service/community-chat', name: 'CommunityChat', component: () => import('@/views/service/CommunityChat.vue'), meta: { requiresAuth: true } },
+  { path: '/agent', name: 'AgentService', component: () => import('@/views/agent/Index.vue'), meta: { requiresAuth: false } },
   { path: '/profile', name: 'Profile', component: () => import('@/views/profile/Index.vue'), meta: { requiresAuth: true } },
   { path: '/admin', name: 'Admin', component: () => import('@/views/admin/Index.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'store', 'property'] } },
   { path: '/user/favorites', name: 'FavoriteList', component: () => import('@/views/user/FavoriteList.vue'), meta: { requiresAuth: true } },
@@ -49,7 +50,7 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
 
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    next('/login')
+    next({ path: '/login', query: { redirect: to.fullPath } })
     return
   }
 

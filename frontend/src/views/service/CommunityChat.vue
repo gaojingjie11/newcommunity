@@ -88,17 +88,21 @@ function scrollToBottom() {
   })
 }
 
-async function fetchMessages() {
-  loading.value = true
+async function fetchMessages(silent = false) {
+  if (!silent) loading.value = true
   try {
     const res = await getCommunityMessages({ page: 1, size: 100 })
     const list = Array.isArray(res?.list) ? res.list.slice().reverse() : []
+    const oldLen = messages.value.length
     messages.value = list
-    scrollToBottom()
+    // Only auto-scroll when new messages arrive or initial load
+    if (!silent || list.length !== oldLen) {
+      scrollToBottom()
+    }
   } catch (error) {
-    ElMessage.error(error.response?.data?.msg || error.message || '加载消息失败')
+    if (!silent) ElMessage.error(error.response?.data?.msg || error.message || '加载消息失败')
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -123,7 +127,7 @@ onMounted(async () => {
     await userStore.fetchUserInfo()
   }
   await fetchMessages()
-  pollTimer = setInterval(fetchMessages, 5000)
+  pollTimer = setInterval(() => fetchMessages(true), 5000)
 })
 
 onUnmounted(() => {

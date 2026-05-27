@@ -60,7 +60,7 @@
           <el-table-column prop="related_id" label="单号 / 备注" min-width="220" show-overflow-tooltip>
             <template #default="scope">
               <div class="memo-content">
-                <span class="memo-main">相关ID: {{ scope.row.related_id }}</span>
+                <span class="memo-main">{{ scope.row.remark || scope.row.biz_id || `相关ID: ${scope.row.related_id}` }}</span>
                 <span v-if="scope.row.id" class="memo-sub">流水号: {{ scope.row.id }}</span>
               </div>
             </template>
@@ -94,8 +94,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
-import { getTransactionList } from '@/api/finance'
-import { getUserInfo } from '@/api/user'
+import { getTransactionList, getWalletBalance } from '@/api/finance'
 import dayjs from 'dayjs'
 // 引入必需的图标
 import { ArrowLeft, Wallet } from '@element-plus/icons-vue'
@@ -128,8 +127,8 @@ const fetchTransactions = async () => {
 
 const fetchUser = async () => {
     try {
-        const res = await getUserInfo()
-        userInfo.value = res
+        const res = await getWalletBalance()
+        userInfo.value = { balance: Number(res?.balance || 0) }
     } catch (e) {}
 }
 
@@ -141,9 +140,10 @@ const formatDate = (dateStr) => {
 const getTypeLabel = (type) => {
     const map = {
         1: '商城订单',
-        2: '物业费',
+        2: '用户转账',
         3: '账户充值',
-        4: '系统转账'
+        4: '订单退款',
+        5: '物业费'
     }
     return map[type] || '其他交易'
 }
@@ -326,10 +326,11 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
 }
-.type-1 { background: #fff7ed; color: #d97706; } /* 商城订单 - 橙色 */
-.type-2 { background: #f0f7ff; color: #0984e3; } /* 物业费 - 蓝色 */
-.type-3 { background: #f0fdf4; color: #166534; } /* 充值 - 绿色 */
-.type-4 { background: #fdf6f6; color: #e4393c; } /* 转账 - 红色 */
+.type-1 { background: #fff7ed; color: #d97706; } /* 商城订单 */
+.type-2 { background: #eef6ff; color: #2563eb; } /* 用户转账 */
+.type-3 { background: #f0fdf4; color: #166534; } /* 账户充值 */
+.type-4 { background: #fdf6f6; color: #e4393c; } /* 订单退款 */
+.type-5 { background: #f3f4ff; color: #4f46e5; } /* 物业费 */
 
 /* 交易金额字体与颜色 */
 .amount-text {

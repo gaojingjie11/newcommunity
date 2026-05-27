@@ -74,6 +74,12 @@ const serviceCards = [
     name: '社区群聊',
     desc: '全社区用户公共讨论区',
     icon: ChatDotRound
+  },
+  {
+    path: '/agent',
+    name: 'Agent 智能服务',
+    desc: '预留智能客服、派单、投诉风险与推荐能力',
+    icon: ChatDotRound
   }
 ]
 </script>

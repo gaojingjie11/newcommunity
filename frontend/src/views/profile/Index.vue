@@ -62,10 +62,10 @@
             <div class="stat-value">
               <span
                 class="status-indicator"
-                :class="userInfo.status === 1 ? 'is-active' : 'is-frozen'"
+                :class="userInfo.status === 0 ? 'is-frozen' : 'is-active'"
               ></span>
               <span class="status-text">{{
-                userInfo.status === 1 ? "账号正常" : "账号冻结"
+                userInfo.status === 0 ? "账号冻结" : "账号正常"
               }}</span>
             </div>
           </div>
@@ -435,6 +435,7 @@ async function handleUpload(event) {
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("dir", "image");
 
   try {
     const res = await request({
@@ -577,6 +578,7 @@ async function saveFace() {
   try {
     const formData = new FormData();
     formData.append("file", faceBlob.value, `face-register-${Date.now()}.jpg`);
+    formData.append("dir", "face");
 
     const uploadRes = await request({
       url: "/upload",

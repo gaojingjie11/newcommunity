@@ -71,9 +71,15 @@
              </template>
           </el-table-column>
           
-          <el-table-column prop="user_id" label="绑定用户ID" width="120" align="center">
+          <el-table-column prop="user_mobile" label="绑定手机号" width="150" align="center">
              <template #default="scope">
-               <span class="text-secondary">{{ scope.row.user_id || '-' }}</span>
+               <span class="text-secondary">{{ scope.row.user_mobile || '-' }}</span>
+             </template>
+          </el-table-column>
+
+          <el-table-column prop="user_name" label="绑定用户" width="140" align="center">
+             <template #default="scope">
+               <span class="text-secondary">{{ scope.row.user_name || (scope.row.user_id ? `用户 #${scope.row.user_id}` : '-') }}</span>
              </template>
           </el-table-column>
           
@@ -122,12 +128,12 @@
       >
         <div class="premium-alert is-info">
           <el-icon class="alert-icon"><InfoFilled /></el-icon>
-          <div class="alert-content">请输入用户 ID 和车牌号进行绑定。<strong>输入 ID 为 0 则解除绑定。</strong></div>
+          <div class="alert-content">请输入用户手机号和车牌号进行绑定。<strong>手机号留空则解除绑定。</strong></div>
         </div>
         
         <el-form label-position="top" class="premium-form">
-          <el-form-item label="用户 ID (User ID)">
-            <el-input v-model.number="form.user_id" type="number" placeholder="输入绑定的用户 ID" class="custom-input" />
+          <el-form-item label="用户手机号">
+            <el-input v-model.trim="form.mobile" placeholder="输入绑定用户的手机号" class="custom-input" />
           </el-form-item>
           <el-form-item label="车牌号 (Car Plate)">
             <el-input v-model="form.car_plate" placeholder="例如: 辽A66666" class="custom-input" />
@@ -206,14 +212,14 @@ const fetchData = async () => {
 const showModal = ref(false)
 const currentItem = ref({})
 const form = reactive({
-  user_id: '',
+  mobile: '',
   car_plate: ''
 })
 const loading = ref(false)
 
 const openAssignModal = (item) => {
   currentItem.value = item
-  form.user_id = item.user_id || ''
+  form.mobile = item.user_mobile || ''
   form.car_plate = item.car_plate || ''
   showModal.value = true
 }
@@ -221,16 +227,15 @@ const openAssignModal = (item) => {
 const saveAssign = async () => {
   loading.value = true
   try {
-    await assignParking({
-      id: currentItem.value.id,
-      user_id: Number(form.user_id),
-      car_plate: form.car_plate
+    await assignParking(currentItem.value.id, {
+      mobile: form.mobile.trim(),
+      car_plate: form.car_plate.trim()
     })
     ElMessage.success('分配/解绑操作成功')
     showModal.value = false
     fetchData()
   } catch (error) {
-    ElMessage.error('操作失败: ' + (error.response?.data?.message || '未知错误'))
+    ElMessage.error('操作失败: ' + (error.response?.data?.msg || error.message || '未知错误'))
   } finally {
     loading.value = false
   }
@@ -253,12 +258,12 @@ const saveCreate = async () => {
     }
     creating.value = true
     try {
-        await createParking({ parking_no: createForm.parking_no })
+        await createParking({ parking_no: createForm.parking_no.trim() })
         ElMessage.success('新增车位成功')
         showCreateModal.value = false
         fetchData()
     } catch (e) {
-        ElMessage.error(e.response?.data?.msg || '创建失败')
+        ElMessage.error(e.response?.data?.msg || e.message || '创建失败')
     } finally {
         creating.value = false
     }

@@ -131,12 +131,13 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
-import { sendCode, loginByCode } from "@/api/auth";
+import { sendCode } from "@/api/auth";
 import { ElMessage } from "element-plus";
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 
 const loginType = ref("password");
@@ -156,7 +157,22 @@ const bgImages = [
 const currentBg = ref(0);
 let bgTimer = null;
 
+const getSafeRedirect = () => {
+  const raw = Array.isArray(route.query.redirect)
+    ? route.query.redirect[0]
+    : route.query.redirect;
+  const redirect = typeof raw === "string" ? raw : "";
+  if (!redirect || redirect === "/login" || redirect.startsWith("/login?")) {
+    return "/home";
+  }
+  return redirect.startsWith("/") ? redirect : "/home";
+};
+
 onMounted(() => {
+  if (userStore.isLoggedIn) {
+    router.replace(getSafeRedirect());
+    return;
+  }
   // 自动轮播
   bgTimer = setInterval(() => {
     currentBg.value = (currentBg.value + 1) % bgImages.length;
@@ -182,7 +198,7 @@ const handleLogin = async () => {
   try {
     await userStore.login(form.value);
     ElMessage.success("登录成功！");
-    router.push("/home");
+    router.replace(getSafeRedirect());
   } catch (error) {
     ElMessage.error(error.response?.data?.message || "登录失败");
   } finally {
@@ -201,8 +217,9 @@ const sendSms = async () => {
     return;
   }
   try {
-    await sendCode({ mobile: codeForm.value.mobile });
-    ElMessage.success("验证码已发送");
+    const res = await sendCode({ mobile: codeForm.value.mobile });
+    const debugCode = res?.debug_code;
+    ElMessage.success("验证码已发送，请注意查收");
     timer.value = 60;
     const interval = setInterval(() => {
       timer.value--;
@@ -226,9 +243,9 @@ const handleCodeLogin = async () => {
 
   loading.value = true;
   try {
-    await userStore.loginByCode(codeForm.value);
-    ElMessage.success("登录成功");
-    router.push("/home");
+    const res = await userStore.loginByCode(codeForm.value);
+    ElMessage.success(res?.is_new_user ? "已为你自动注册并登录" : "登录成功");
+    router.replace(getSafeRedirect());
   } catch (e) {
     ElMessage.error(e.message || e.response?.data?.msg || "登录失败");
   } finally {

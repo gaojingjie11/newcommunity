@@ -1,0 +1,54 @@
+service:
+  name: gateway-service
+  host: 0.0.0.0
+  port: 8000
+  register_ip: YOUR_SERVICE_REGISTER_IP
+
+mysql:
+  host: YOUR_INFRA_SERVER_IP
+  port: 3306
+  database: smart_community
+  username: root
+  password: YOUR_MYSQL_PASSWORD
+
+redis:
+  host: YOUR_INFRA_SERVER_IP
+  port: 6379
+  password: YOUR_REDIS_PASSWORD
+
+nacos:
+  enabled: true
+  host: YOUR_INFRA_SERVER_IP
+  port: 8848
+  namespace: public
+  group: DEFAULT_GROUP
+
+rabbitmq:
+  host: YOUR_INFRA_SERVER_IP
+  port: 5672
+  username: guest
+  password: guest
+
+minio:
+  endpoint: YOUR_INFRA_SERVER_IP:9000
+  access_key: minioadmin
+  secret_key: YOUR_MINIO_PASSWORD
+  bucket: smart-community
+
+agent:
+  base_url: http://agent-service:9000
+  llm_api_key: ""
+  llm_base_url: ""
+  llm_model: ""
+
+jwt:
+  secret: "dev-secret-change-me"
+  ttl: "24h"
+
+gateway:
+  internal_token: "dev-internal-token-change-me"
+  services:
+    user-service: http://user-service:8001
+    mall-service: http://mall-service:8002
+    community-service: http://community-service:8003
+    agent-service: http://agent-service:9000

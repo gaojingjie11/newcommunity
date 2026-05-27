@@ -131,10 +131,11 @@ const submitVisitor = async () => {
   loading.value = true
   try {
     const submitData = {
-      ...form.value,
       visitor_name: form.value.name,
       visitor_phone: form.value.mobile,
-      visit_time: dayjs(form.value.visit_time).format('YYYY-MM-DD HH:mm:ss')
+      visit_purpose: form.value.reason,
+      release_time: dayjs(form.value.visit_time).format('YYYY-MM-DD HH:mm:ss'),
+      valid_date: dayjs(form.value.visit_time).format('YYYY-MM-DD')
     }
     
     await createVisitor(submitData)
@@ -154,7 +155,13 @@ const fetchVisitors = async () => {
         page: currentPage.value,
         size: pageSize.value
     })
-    visitors.value = res.list
+    visitors.value = (res.list || []).map(item => ({
+      ...item,
+      name: item.visitor_name,
+      mobile: item.visitor_phone,
+      reason: item.visit_purpose,
+      visit_time: item.release_time
+    }))
     total.value = res.total
   } catch (error) {
     console.error('获取访客记录失败:', error)

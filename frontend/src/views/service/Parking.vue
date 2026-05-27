@@ -61,13 +61,14 @@ const loading = ref(false)
 const fetchParking = async () => {
   try {
     const data = await getMyParking()
-    if (Array.isArray(data)) {
-        parkingList.value = data.map(p => ({
+    const list = Array.isArray(data) ? data : (data?.list || [])
+    if (list.length > 0) {
+        parkingList.value = list.map(p => ({
             ...p,
-            editCarPlate: p.car_plate 
+            parking_no: p.parking_no || p.parking_space?.parking_no,
+            status: p.parking_space?.status ?? p.status,
+            editCarPlate: p.car_plate
         }))
-    } else if (data) {
-        parkingList.value = [{...data, editCarPlate: data.car_plate}]
     } else {
         parkingList.value = []
     }
@@ -84,9 +85,8 @@ const handleBindCar = async (item) => {
   
   loading.value = true
   try {
-    await bindCar({ 
-        parking_id: item.id, 
-        car_plate: item.editCarPlate 
+    await bindCar(item.id, {
+        car_plate: item.editCarPlate
     })
     ElMessage.success('更新成功！')
     await fetchParking()

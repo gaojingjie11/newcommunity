@@ -106,6 +106,16 @@ const size = ref(10)
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
+const normalizeVisitor = (item) => ({
+    ...item,
+    name: item.name || item.visitor_name || '--',
+    mobile: item.mobile || item.visitor_phone || '--',
+    reason: item.reason || item.visit_purpose || '--',
+    visit_time: item.visit_time || item.release_time,
+    submitter_name: item.user_name || `用户 #${item.user_id}`,
+    submitter_mobile: item.user_mobile || ''
+})
+
 const getStatusText = (s) => {
     const map = { 0: '待审核', 1: '已通过', 2: '已驳回' }
     return map[s] || s
@@ -121,10 +131,10 @@ const fetchList = async () => {
   try {
     const res = await getAdminVisitorList({ page: page.value, size: size.value })
     if (res.list) {
-        visitors.value = res.list
+        visitors.value = res.list.map(normalizeVisitor)
         total.value = res.total
     } else {
-        visitors.value = res // Fallback
+        visitors.value = res.map(normalizeVisitor) // Fallback
         total.value = res.length
     }
   } catch (error) {
@@ -138,10 +148,9 @@ const handleAudit = async (item, status) => {
     if (status === 1) {
         // Approve
          try {
-             await auditVisitor({
-                id: item.id,
+             await auditVisitor(item.id, {
                 status: 1,
-                audit_remark: '同意通行'
+                remark: '同意通行'
             })
             ElMessage.success('访客申请已通过')
             fetchList()
@@ -158,10 +167,9 @@ const handleAudit = async (item, status) => {
             customClass: 'premium-msg-box' // 方便如果你之后全局覆盖弹窗样式
         }).then(async ({ value }) => {
             try {
-                await auditVisitor({
-                    id: item.id,
+                await auditVisitor(item.id, {
                     status: 2,
-                    audit_remark: value
+                    remark: value
                 })
                 ElMessage.success('已驳回该访客申请')
                 fetchList()

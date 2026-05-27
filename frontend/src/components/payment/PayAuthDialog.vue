@@ -181,6 +181,7 @@ async function uploadCapturedFace() {
   }
   const formData = new FormData()
   formData.append('file', faceBlob.value, `face-pay-${Date.now()}.jpg`)
+  formData.append('dir', 'face/temp-pay')
 
   const res = await request({
     url: '/upload',

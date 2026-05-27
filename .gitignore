@@ -1,21 +1,61 @@
-mysql_data/
-.idea/
-database
+# macOS
+.DS_Store
+._*
 
-frontend/node_modules/
-frontend/dist/
-frontend/.env.local
-frontend/.npmrc
-docker-compose.yml
+# Editors / IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files
 .env
 .env.*
 !.env.example
-.gocache
-# 后端
+
+# Frontend dependencies and build output
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+dist-ssr/
+coverage/
+.vite/
+frontend/.vite/
+*.local
+
+# Go build/test output
+bin/
 *.exe
 *.dll
-bin/
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+.gocache/
 vendor/
-.idea/
-*.log
-smartcomunity/*.log
+
+# Python cache / virtualenvs
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local data / runtime directories
+mysql_data/
+database/
+tmp/
+temp/

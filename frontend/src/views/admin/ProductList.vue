@@ -32,6 +32,7 @@
               placeholder="输入名称搜索"
               clearable
               @keyup.enter="handleSearch"
+              @clear="handleSearch"
               class="custom-input search-input"
             >
               <template #prefix
@@ -47,6 +48,7 @@
               clearable
               class="custom-select"
               style="width: 160px"
+              @change="handleSearch"
             >
               <el-option label="全部类目" :value="0" />
               <el-option
@@ -63,6 +65,7 @@
               v-model="filters.is_promotion"
               label="仅看促销"
               class="custom-checkbox"
+              @change="handleSearch"
             />
           </el-form-item>
 
@@ -144,6 +147,15 @@
               <span v-if="scope.row.original_price" class="original-price-text">
                 ¥{{ Number(scope.row.original_price).toFixed(2) }}
               </span>
+              <span v-else class="text-secondary">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="促销" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="isPromotion(row)" type="danger" effect="light" round>
+                促销
+              </el-tag>
               <span v-else class="text-secondary">-</span>
             </template>
           </el-table-column>
@@ -396,8 +408,8 @@
 <script setup>
 import { ref, onMounted, reactive } from "vue";
 import Navbar from "@/components/layout/Navbar.vue";
-import { getProductList, getCategories } from "@/api/product";
-import { createProduct, updateProduct, deleteProduct } from "@/api/admin";
+import { getCategories } from "@/api/product";
+import { createProduct, updateProduct, deleteProduct, getAdminProductList } from "@/api/admin";
 import request from "@/utils/request";
 import { ElMessage } from "element-plus";
 import {
@@ -449,6 +461,7 @@ const handleUpload = async (event) => {
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("dir", "image");
 
   uploading.value = true;
   try {
@@ -484,7 +497,7 @@ const fetchProducts = async () => {
       page: page.value,
       size: size.value,
     };
-    const res = await getProductList(params);
+    const res = await getAdminProductList(params);
     products.value = res.list || [];
     total.value = res.total || 0;
   } catch (error) {
@@ -504,10 +517,16 @@ const resetFilters = () => {
 const fetchCategories = async () => {
   try {
     const res = await getCategories();
-    categories.value = res || [];
+    categories.value = Array.isArray(res) ? res : (res?.list || []);
   } catch (e) {
     console.error(e);
   }
+};
+
+const isPromotion = (product) => {
+  const price = Number(product?.price || 0);
+  const originalPrice = Number(product?.original_price || 0);
+  return price > 0 && originalPrice > price;
 };
 
 const openModal = (product = null) => {

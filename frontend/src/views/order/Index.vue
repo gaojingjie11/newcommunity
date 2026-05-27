@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="order-page">
     <Navbar />
 
@@ -18,9 +18,10 @@
         <el-tabs v-model="currentTab" @tab-click="handleTabClick" class="custom-tabs">
           <el-tab-pane label="全部订单" name="all" />
           <el-tab-pane label="待支付" name="0" />
-          <el-tab-pane label="已支付" name="1" />
-          <el-tab-pane label="已发货" name="2" />
+          <el-tab-pane label="待发货" name="1" />
+          <el-tab-pane label="待收货" name="2" />
           <el-tab-pane label="已完成" name="3" />
+          <el-tab-pane label="已取消" name="40" />
         </el-tabs>
       </div>
 
@@ -45,7 +46,7 @@
             <div class="order-products">
               <div class="product-item" v-for="item in order.items" :key="item.id">
                 <div class="thumb-wrapper">
-                  <img :src="item.product?.image_url || 'https://via.placeholder.com/80'" class="thumb" />
+                  <img :src="item.product?.image_url || DEFAULT_PRODUCT_IMAGE" class="thumb" />
                 </div>
                 <div class="product-info">
                   <div class="product-name">{{ item.product?.name || '未知商品' }}</div>
@@ -63,6 +64,7 @@
                 <div class="payment-details">
                   <span v-if="order.used_points" class="detail-item point-item">积分抵扣: -{{ order.used_points }}</span>
                   <span v-if="order.used_balance" class="detail-item balance-item">余额支付: ￥{{ formatAmount(order.used_balance) }}</span>
+                  <span v-if="order.status === 0" class="detail-item countdown-item">剩余支付: {{ formatOrderCountdown(order) }}</span>
                 </div>
                 <div class="total-amount">
                   共 {{ order.items?.length || 0 }} 件商品，总额：<span class="highlight-price"><span class="currency">￥</span>{{ formatAmount(order.total_amount) }}</span>
@@ -89,7 +91,7 @@
                   </button>
                 </template>
                 
-                <!-- 已发货状态操作 -->
+                <!-- 待收货状态操作 -->
                 <template v-if="order.status === 2">
                   <button
                     class="action-btn btn-success"
@@ -158,6 +160,7 @@ import PayAuthDialog from '@/components/payment/PayAuthDialog.vue'
 import { getOrderList, payOrder, cancelOrder, receiveOrder } from '@/api/order'
 import { useUserStore } from '@/stores/user'
 import { GREEN_POINTS_PER_YUAN, getMixedPaymentPreview } from '@/utils/payment'
+import { DEFAULT_PRODUCT_IMAGE } from '@/utils/constants'
 import { InfoFilled } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
@@ -182,11 +185,18 @@ function formatDate(date) {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
 }
 
+function formatOrderCountdown(order) {
+  const seconds = Math.max(0, Number(order?.expires_in_seconds || 0))
+  const minutes = Math.floor(seconds / 60)
+  const restSeconds = seconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(restSeconds).padStart(2, '0')}`
+}
+
 function getStatusText(status) {
   return {
     0: '待支付',
-    1: '已支付',
-    2: '已发货',
+    1: '待发货',
+    2: '待收货',
     3: '已完成',
     40: '已取消'
   }[status] || '未知'
@@ -251,9 +261,7 @@ async function submitOrderPay(authPayload) {
   paySubmitting.value = true
   try {
     await withLoading(current.id, async () => {
-      const res = await payOrder({
-        order_id: current.id,
-        business_type: 1,
+      const res = await payOrder(current.id, {
         ...authPayload
       })
 
@@ -598,6 +606,14 @@ watch(currentTab, () => {
 
 .balance-item {
   color: #606266;
+}
+
+.countdown-item {
+  color: #d48806;
+  background: #fff7e6;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 700;
 }
 
 .total-amount {

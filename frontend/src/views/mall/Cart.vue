@@ -11,6 +11,15 @@
         <!-- 购物车商品列表 -->
         <div class="cart-list">
           <div class="cart-item" v-for="item in cartItems" :key="item.id">
+            <label class="item-check" :title="isSelected(item.id) ? '取消选择' : '选择结算'">
+              <input
+                type="checkbox"
+                :checked="isSelected(item.id)"
+                @change="toggleItem(item.id)"
+              />
+              <span></span>
+            </label>
+
             <!-- 1. 商品图 -->
             <div
               class="item-image-wrapper"
@@ -18,7 +27,7 @@
             >
               <img
                 :src="
-                  item.product.image_url || 'https://via.placeholder.com/100'
+                  item.product.image_url || DEFAULT_PRODUCT_IMAGE
                 "
                 class="item-image"
               />
@@ -84,11 +93,13 @@
         <div class="cart-footer">
           <div class="cart-footer-inner">
             <div class="footer-left">
-              <span class="total-count"
-                >共
-                <span class="highlight-count">{{ cartItems.length }}</span>
-                件商品</span
-              >
+              <label class="select-all">
+                <input type="checkbox" :checked="isAllSelected" @change="toggleAll" />
+                <span>全选</span>
+              </label>
+              <span class="total-count">
+                已选 <span class="highlight-count">{{ selectedItems.length }}</span> / {{ cartItems.length }} 件商品
+              </span>
             </div>
             <div class="footer-right">
               <div class="total">
@@ -97,7 +108,7 @@
                   <span class="price-currency">¥</span>{{ totalPrice }}
                 </span>
               </div>
-              <button class="btn-checkout" @click="checkout">去结算</button>
+              <button class="btn-checkout" :disabled="selectedItems.length === 0" @click="checkout">去结算</button>
             </div>
           </div>
         </div>
@@ -122,6 +133,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import Navbar from "@/components/layout/Navbar.vue";
+import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constants";
 import { getCartList, deleteCartItem, updateCartQuantity } from "@/api/order";
 import { useCartStore } from "@/stores/cart";
 import { ElMessage } from "element-plus";
@@ -131,9 +143,19 @@ import { Minus, Plus, Delete } from "@element-plus/icons-vue";
 const router = useRouter();
 const cartStore = useCartStore();
 const cartItems = ref([]);
+const selectedIds = ref([]);
+
+const selectedItems = computed(() => {
+  const selected = new Set(selectedIds.value);
+  return cartItems.value.filter((item) => selected.has(item.id));
+});
+
+const isAllSelected = computed(() => {
+  return cartItems.value.length > 0 && selectedItems.value.length === cartItems.value.length;
+});
 
 const totalPrice = computed(() => {
-  return cartItems.value
+  return selectedItems.value
     .reduce((sum, item) => {
       return sum + item.product.price * item.quantity;
     }, 0)
@@ -143,10 +165,29 @@ const totalPrice = computed(() => {
 const fetchCart = async () => {
   try {
     cartItems.value = await getCartList();
+    const validIds = new Set(cartItems.value.map((item) => item.id));
+    selectedIds.value = selectedIds.value.filter((id) => validIds.has(id));
+    if (selectedIds.value.length === 0) {
+      selectedIds.value = cartItems.value.map((item) => item.id);
+    }
     cartStore.fetchCart(); // 同步 store 数量
   } catch (error) {
     console.error("获取购物车失败:", error);
   }
+};
+
+const isSelected = (id) => selectedIds.value.includes(id);
+
+const toggleItem = (id) => {
+  if (isSelected(id)) {
+    selectedIds.value = selectedIds.value.filter((itemId) => itemId !== id);
+  } else {
+    selectedIds.value = [...selectedIds.value, id];
+  }
+};
+
+const toggleAll = () => {
+  selectedIds.value = isAllSelected.value ? [] : cartItems.value.map((item) => item.id);
 };
 
 const changeQuantity = async (item, delta) => {
@@ -183,7 +224,14 @@ const removeItem = async (id) => {
 };
 
 const checkout = () => {
-  router.push("/order/create");
+  if (selectedItems.value.length === 0) {
+    ElMessage.warning("请先选择要结算的商品");
+    return;
+  }
+  router.push({
+    path: "/order/create",
+    query: { cart_ids: selectedIds.value.join(",") },
+  });
 };
 
 onMounted(() => {
@@ -241,7 +289,7 @@ onMounted(() => {
   gap: 24px;
 }
 
-..cart-list {
+.cart-list {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -262,6 +310,37 @@ onMounted(() => {
 .cart-item:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   border-color: rgba(45, 89, 123, 0.1);
+}
+
+.item-check {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-right: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.item-check input,
+.select-all input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.item-check span {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: all 0.2s;
+}
+
+.item-check input:checked + span {
+  border-color: #2d597b;
+  background: #2d597b;
+  box-shadow: inset 0 0 0 4px #ffffff;
 }
 
 .item-image-wrapper {
@@ -442,6 +521,43 @@ onMounted(() => {
 .footer-left {
   color: #606266;
   font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.select-all {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.select-all::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid #dcdfe6;
+  background: #ffffff;
+}
+
+.select-all:has(input:checked)::before {
+  border-color: #2d597b;
+  background: #2d597b;
+}
+
+.select-all:has(input:checked)::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 5px;
+  height: 9px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-60%) rotate(45deg);
 }
 
 .highlight-count {
@@ -493,6 +609,13 @@ onMounted(() => {
   background: #1f435d;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(45, 89, 123, 0.4);
+}
+
+.btn-checkout:disabled {
+  background: #a4b0be;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* 空状态 */

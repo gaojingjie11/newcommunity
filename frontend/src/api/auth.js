@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function register(data) {
   return request({
-    url: '/register',
+    url: '/users/register',
     method: 'post',
     data
   })
@@ -10,7 +10,7 @@ export function register(data) {
 
 export function login(data) {
   return request({
-    url: '/login',
+    url: '/users/login',
     method: 'post',
     data
   })
@@ -18,14 +18,14 @@ export function login(data) {
 
 export function logout() {
   return request({
-    url: '/logout',
+    url: '/users/logout',
     method: 'post'
   })
 }
 
 export function sendCode(data) {
   return request({
-    url: '/send_code',
+    url: '/users/sms-code',
     method: 'post',
     data
   })
@@ -33,7 +33,15 @@ export function sendCode(data) {
 
 export function loginByCode(data) {
   return request({
-    url: '/login_code',
+    url: '/users/login-code',
+    method: 'post',
+    data
+  })
+}
+
+export function sendPasswordResetCode(data) {
+  return request({
+    url: '/users/password-reset/code',
     method: 'post',
     data
   })
@@ -41,7 +49,7 @@ export function loginByCode(data) {
 
 export function forgetPassword(data) {
   return request({
-    url: '/forget_password',
+    url: '/users/password-reset',
     method: 'post',
     data
   })
@@ -49,23 +57,23 @@ export function forgetPassword(data) {
 
 export function getUserInfo() {
   return request({
-    url: '/user/info',
+    url: '/users/me',
     method: 'get'
   })
 }
 
 export function updateUserInfo(data) {
   return request({
-    url: '/user/update',
-    method: 'post',
+    url: '/users/me',
+    method: 'put',
     data
   })
 }
 
 export function changePassword(data) {
   return request({
-    url: '/user/change_password',
-    method: 'post',
+    url: '/users/me/password',
+    method: 'put',
     data
   })
 }

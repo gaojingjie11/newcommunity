@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function getNoticeList(params) {
   return request({
-    url: '/notices',
+    url: '/community/notices',
     method: 'get',
     params
   })
@@ -10,29 +10,29 @@ export function getNoticeList(params) {
 
 export function getNoticeDetail(id) {
   return request({
-    url: `/notice/${id}`,
+    url: `/community/notices/${id}`,
     method: 'get'
   })
 }
 
 export function readNotice(id) {
   return request({
-    url: `/notice/read/${id}`,
+    url: `/community/notices/${id}/read`,
     method: 'post'
   })
 }
 
-export function createRepair(data) {
+export function createWorkorder(data) {
   return request({
-    url: '/repair/create',
+    url: '/workorders',
     method: 'post',
     data
   })
 }
 
-export function getRepairList(params) {
+export function getWorkorderList(params) {
   return request({
-    url: '/repair/list',
+    url: '/workorders',
     method: 'get',
     params
   })
@@ -40,7 +40,7 @@ export function getRepairList(params) {
 
 export function createVisitor(data) {
   return request({
-    url: '/visitor/create',
+    url: '/community/visitors',
     method: 'post',
     data
   })
@@ -48,7 +48,7 @@ export function createVisitor(data) {
 
 export function getVisitorList(params) {
   return request({
-    url: '/visitor/list',
+    url: '/community/visitors',
     method: 'get',
     params
   })
@@ -56,44 +56,46 @@ export function getVisitorList(params) {
 
 export function getMyParking() {
   return request({
-    url: '/parking/my',
+    url: '/community/parking-spaces/my',
     method: 'get'
   })
 }
 
-export function bindCar(data) {
+export function bindCar(parkingId, data) {
   return request({
-    url: '/parking/bind',
-    method: 'post',
+    url: `/community/parking-spaces/${parkingId}/plate`,
+    method: 'put',
     data
   })
 }
 
 export function getPropertyFeeList(params) {
   return request({
-    url: '/property/list',
+    url: '/community/property-fees',
     method: 'get',
     params
   })
 }
 
 export function payPropertyFee(feeId, payload = {}) {
+  const idempotencyKey = payload.idempotency_key || payload.idempotencyKey ||
+    `property-fee-${feeId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
   return request({
-    url: '/finance/pay',
+    url: `/community/property-fees/${feeId}/pay`,
     method: 'post',
     data: {
-      business_id: feeId,
-      business_type: 2,
       pay_type: payload.pay_type || 'password',
       password: payload.password || '',
-      face_image_url: payload.face_image_url || ''
+      face_image_url: payload.face_image_url || '',
+      idempotency_key: idempotencyKey
     }
   })
 }
 
 export function getStoreList() {
   return request({
-    url: '/stores',
+    url: '/mall/stores',
     method: 'get'
   })
 }

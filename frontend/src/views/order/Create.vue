@@ -34,17 +34,28 @@
           <div class="store-selector">
             <el-select 
               v-model="selectedStoreId" 
-              placeholder="请选择提货/服务门店" 
+              :placeholder="storeList.length ? '请选择提货/服务门店' : '暂无可同时供应这些商品的门店'" 
               class="custom-select"
               size="large"
+              :disabled="storeList.length === 0"
             >
               <el-option 
                 v-for="store in storeList" 
                 :key="store.id" 
-                :label="`${store.name} (${store.address})`" 
+                :label="`${store.name} (${store.address})`"
                 :value="store.id" 
               />
             </el-select>
+            <div v-if="selectedStore" class="store-stock-panel">
+              <div class="stock-title">该门店可用库存</div>
+              <div v-for="product in selectedStore.products || []" :key="product.product_id" class="stock-row">
+                <span class="stock-name">{{ product.product_name }}</span>
+                <span class="stock-count">需 {{ product.need_qty }} / 库存 {{ product.stock }}</span>
+              </div>
+            </div>
+            <div v-if="storeList.length === 0 && cartItems.length > 0" class="store-empty-tip">
+              当前购物车中的商品没有共同可用门店，请调整商品或联系管理员补充门店库存。
+            </div>
           </div>
         </div>
 
@@ -111,7 +122,7 @@
           <button 
             class="btn-submit" 
             :class="{ 'is-loading': submitting }" 
-            :disabled="submitting" 
+            :disabled="submitting || storeList.length === 0" 
             @click="submitOrder"
           >
             {{ submitting ? '提交中...' : '提交订单' }}
@@ -125,17 +136,17 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import Navbar from '@/components/layout/Navbar.vue'
 import { useUserStore } from '@/stores/user'
-import { getCartList, createOrder } from '@/api/order'
-import { getStoreList } from '@/api/service'
+import { getCartList, createOrder, getAvailableStores } from '@/api/order'
 import { GREEN_POINTS_PER_YUAN, getMixedPaymentPreview } from '@/utils/payment'
 // 引入图标
 import { ArrowLeft, InfoFilled, Location, Goods, Wallet } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const cartItems = ref([])
 const storeList = ref([])
@@ -146,22 +157,41 @@ const totalCount = computed(() => cartItems.value.reduce((sum, item) => sum + it
 const totalPriceNumber = computed(() => cartItems.value.reduce((sum, item) => sum + item.product.price * item.quantity, 0))
 const totalPrice = computed(() => formatAmount(totalPriceNumber.value))
 const paymentPreview = computed(() => getMixedPaymentPreview(totalPriceNumber.value, userStore.userInfo.green_points))
+const selectedStore = computed(() => storeList.value.find((store) => store.id === selectedStoreId.value))
 
 function formatAmount(value) {
   return Number(value || 0).toFixed(2)
 }
 
 async function loadData() {
-  const [cartRes, storeRes] = await Promise.all([getCartList(), getStoreList(), userStore.fetchUserInfo()])
-  cartItems.value = cartRes || []
-  storeList.value = storeRes || []
+  const [cartRes] = await Promise.all([getCartList(), userStore.fetchUserInfo()])
+  const allCartItems = cartRes || []
+  const selectedCartIds = parseCartIds(route.query.cart_ids)
+  cartItems.value = selectedCartIds.length > 0
+    ? allCartItems.filter((item) => selectedCartIds.includes(item.id))
+    : allCartItems
+
+  if (cartItems.value.length === 0) {
+    ElMessage.warning(selectedCartIds.length > 0 ? '所选购物车商品不存在或已结算' : '购物车为空')
+    router.push('/mall')
+    return
+  }
+
+  const storeRes = await getAvailableStores(cartItems.value.map((item) => item.id))
+  storeList.value = Array.isArray(storeRes) ? storeRes : (storeRes?.list || [])
   if (storeList.value.length > 0) {
     selectedStoreId.value = storeList.value[0].id
+  } else {
+    selectedStoreId.value = undefined
   }
-  if (cartItems.value.length === 0) {
-    ElMessage.warning('购物车为空')
-    router.push('/mall')
-  }
+}
+
+function parseCartIds(raw) {
+  if (!raw) return []
+  return String(raw)
+    .split(',')
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0)
 }
 
 async function submitOrder() {
@@ -172,17 +202,12 @@ async function submitOrder() {
 
   submitting.value = true
   try {
-    const items = cartItems.value.map((item) => ({
-      cart_id: item.id,
-      quantity: item.quantity
-    }))
-
-    await createOrder({
+    const order = await createOrder({
       store_id: selectedStoreId.value,
-      items
+      cart_ids: cartItems.value.map((item) => item.id)
     })
     ElMessage.success('订单创建成功')
-    router.push('/order')
+    router.push(`/order/${order.order_id}`)
   } catch (error) {
     ElMessage.error(error.response?.data?.msg || error.message || '创建订单失败')
   } finally {
@@ -324,6 +349,42 @@ onMounted(loadData)
 /* 门店选择器深度调整 */
 .store-selector {
   width: 100%;
+}
+.store-empty-tip {
+  margin-top: 10px;
+  color: #e6a23c;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.store-stock-panel {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #ebeef5;
+}
+.stock-title {
+  color: #606266;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.stock-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: #303133;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.stock-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stock-count {
+  flex-shrink: 0;
+  color: #2d597b;
+  font-weight: 600;
 }
 :deep(.custom-select) {
   width: 100%;
