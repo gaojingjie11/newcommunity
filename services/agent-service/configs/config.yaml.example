@@ -1,0 +1,14 @@
+service:
+  name: agent-service
+  host: 0.0.0.0
+  port: 9000
+
+agent:
+  llm_api_key: ""
+  llm_base_url: ""
+  llm_model: ""
+  user_service_url: http://user-service:8001
+  mall_service_url: http://mall-service:8002
+  community_service_url: http://community-service:8003
+  workorder_service_url: http://workorder-service:8004
+  statistics_service_url: http://statistics-service:8005
