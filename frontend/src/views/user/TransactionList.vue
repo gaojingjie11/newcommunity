@@ -84,8 +84,8 @@
           
           <el-table-column prop="type" label="交易类型" min-width="120">
             <template #default="scope">
-              <span class="type-tag" :class="`type-${scope.row.type}`">
-                {{ getTypeLabel(scope.row.type) }}
+              <span class="type-tag" :class="getTypeClass(scope.row)">
+                {{ getTypeLabel(scope.row) }}
               </span>
             </template>
           </el-table-column>
@@ -98,11 +98,14 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="related_id" label="单号 / 备注" min-width="220" show-overflow-tooltip>
+          <el-table-column prop="remark" label="支付方式 / 关联单号" min-width="220" show-overflow-tooltip>
             <template #default="scope">
               <div class="memo-content">
-                <span class="memo-main">{{ scope.row.remark || scope.row.biz_id || `相关ID: ${scope.row.related_id}` }}</span>
-                <span v-if="scope.row.id" class="memo-sub">流水号: {{ scope.row.id }}</span>
+                <span class="memo-main" style="font-weight: 600; color: #2c3e50;">
+                  {{ getPaymentMethodLabel(scope.row) }}
+                </span>
+                <span v-if="scope.row.biz_id" class="memo-sub">单号: {{ scope.row.biz_id }}</span>
+                <span v-else-if="scope.row.id" class="memo-sub">流水号: {{ scope.row.id }}</span>
               </div>
             </template>
           </el-table-column>
@@ -133,7 +136,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { getTransactionList, getWalletBalance, recharge } from '@/api/finance'
 import dayjs from 'dayjs'
@@ -142,6 +145,7 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, Wallet, Plus } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const transactions = ref([])
 const userInfo = ref({ balance: 0 })
 const loading = ref(false)
@@ -221,20 +225,54 @@ const formatDate = (dateStr) => {
     return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss')
 }
 
-const getTypeLabel = (type) => {
+const getTypeLabel = (row) => {
     const map = {
-        1: '商城订单',
-        2: '用户转账',
-        3: '账户充值',
-        4: '订单退款',
-        5: '物业费'
+        'order_pay': '商城购买',
+        'transfer': '用户转账',
+        'recharge': '个人充值',
+        'order_refund': '订单退款',
+        'property_fee': '物业缴费'
     }
-    return map[type] || '其他交易'
+    return map[row.biz_type] || map[row.type] || '其他交易'
+}
+
+const getTypeClass = (row) => {
+    const map = {
+        'order_pay': 'type-1',
+        'transfer': 'type-2',
+        'recharge': 'type-3',
+        'order_refund': 'type-4',
+        'property_fee': 'type-5'
+    }
+    return map[row.biz_type] || 'type-default'
+}
+
+const getPaymentMethodLabel = (row) => {
+    const remark = row.remark || ''
+    if (remark.includes('支付宝') || (row.biz_id && row.biz_id.startsWith('RECH_') && !row.biz_id.includes('mock'))) {
+        return '支付宝支付'
+    }
+    if (remark.includes('模拟充值') || (row.biz_id && row.biz_id.includes('mock'))) {
+        return '系统模拟充值'
+    }
+    if (remark.includes('积分支付')) {
+        return '积分支付'
+    }
+    if (remark.includes('积分+钱包')) {
+        return '积分+钱包支付'
+    }
+    if (remark.includes('钱包支付') || row.biz_type === 'property_fee' || remark.includes('订单支付') || remark.includes('转账')) {
+        return '钱包支付'
+    }
+    return remark || '钱包支付'
 }
 
 onMounted(() => {
     fetchTransactions()
     fetchUser()
+    if (route.query.recharge === 'true') {
+        showRechargeDialog.value = true
+    }
 })
 </script>
 
@@ -471,6 +509,7 @@ onMounted(() => {
 .type-3 { background: #f0fdf4; color: #166534; } /* 账户充值 */
 .type-4 { background: #fdf6f6; color: #e4393c; } /* 订单退款 */
 .type-5 { background: #f3f4ff; color: #4f46e5; } /* 物业费 */
+.type-default { background: #f3f4f6; color: #4b5563; }
 
 /* 交易金额字体与颜色 */
 .amount-text {

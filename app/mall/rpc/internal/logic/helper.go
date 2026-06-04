@@ -46,20 +46,6 @@ func toProtoStore(s *model.Store) *mall.StoreInfo {
 	}
 }
 
-func toProtoPromotion(pr *model.Promotion) *mall.PromotionInfo {
-	if pr == nil {
-		return nil
-	}
-	return &mall.PromotionInfo{
-		Id:        pr.ID,
-		Title:     pr.Title,
-		Type:      int32(pr.Type),
-		StartDate: pr.StartDate.Format("2006-01-02 15:04:05"),
-		EndDate:   pr.EndDate.Format("2006-01-02 15:04:05"),
-		Status:    int32(pr.Status),
-	}
-}
-
 func toProtoCategory(c *model.ProductCategory) *mall.CategoryInfo {
 	if c == nil {
 		return nil

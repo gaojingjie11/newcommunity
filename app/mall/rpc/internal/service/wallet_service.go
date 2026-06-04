@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"smartcommunity-microservices/app/mall/rpc/internal/consts"
 	"smartcommunity-microservices/app/mall/rpc/internal/model"
@@ -52,6 +53,15 @@ func (s *WalletService) Recharge(userID int64, amount int64, idempotencyKey stri
 			return err
 		}
 
+		remark := "个人充值"
+		if idempotencyKey != "" {
+			if strings.Contains(idempotencyKey, "mock") {
+				remark = "系统模拟充值"
+			} else if strings.HasPrefix(idempotencyKey, "RECH_") || strings.Contains(idempotencyKey, "alipay") {
+				remark = "支付宝支付"
+			}
+		}
+
 		return walletRepo.CreateTransaction(tx, &model.WalletTransaction{
 			UserID:         userID,
 			Type:           consts.WalletTxTypeRecharge,
@@ -61,7 +71,7 @@ func (s *WalletService) Recharge(userID int64, amount int64, idempotencyKey stri
 			BizType:        consts.BizTypeRecharge,
 			BizID:          idempotencyKey,
 			IdempotencyKey: &idempotencyKey,
-			Remark:         "充值",
+			Remark:         remark,
 		})
 	})
 }

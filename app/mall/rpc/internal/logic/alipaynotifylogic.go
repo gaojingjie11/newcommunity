@@ -188,7 +188,7 @@ func (l *AlipayNotifyLogic) AlipayNotify(in *mall.AlipayNotifyReq) (*mall.Alipay
 				BizType:        consts.BizTypeOrderPay,
 				BizID:          order.OrderNo,
 				IdempotencyKey: strPtr(fmt.Sprintf("pay:alipay:tx:%s", order.OrderNo)),
-				Remark:         fmt.Sprintf("支付宝支付订单 #%s (交易号: %s)", order.OrderNo, tradeNo),
+				Remark:         "支付宝支付",
 			})
 		}
 

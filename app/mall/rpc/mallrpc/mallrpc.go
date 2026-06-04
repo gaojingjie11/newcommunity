@@ -22,7 +22,6 @@ type (
 	AlipayNotifyReq             = mall.AlipayNotifyReq
 	AlipayNotifyResp            = mall.AlipayNotifyResp
 	BaseResp                    = mall.BaseResp
-	BindPromotionProductsReq    = mall.BindPromotionProductsReq
 	BindStoreProductReq         = mall.BindStoreProductReq
 	CancelOrderReq              = mall.CancelOrderReq
 	CartItem                    = mall.CartItem
@@ -39,7 +38,6 @@ type (
 	CreateCommentReq            = mall.CreateCommentReq
 	CreateOrderReq              = mall.CreateOrderReq
 	CreateProductReq            = mall.CreateProductReq
-	CreatePromotionReq          = mall.CreatePromotionReq
 	CreateServiceAreaReq        = mall.CreateServiceAreaReq
 	CreateStoreReq              = mall.CreateStoreReq
 	DebitWalletReq              = mall.DebitWalletReq
@@ -52,7 +50,6 @@ type (
 	ListFavoritesReq            = mall.ListFavoritesReq
 	ListOrdersReq               = mall.ListOrdersReq
 	ListProductsReq             = mall.ListProductsReq
-	ListPromotionsReq           = mall.ListPromotionsReq
 	ListServiceAreasReq         = mall.ListServiceAreasReq
 	ListStoreProductsReq        = mall.ListStoreProductsReq
 	ListStoresReq               = mall.ListStoresReq
@@ -68,10 +65,6 @@ type (
 	ProductIDReq                = mall.ProductIDReq
 	ProductInfo                 = mall.ProductInfo
 	ProductListResp             = mall.ProductListResp
-	PromotionDetailResp         = mall.PromotionDetailResp
-	PromotionIDReq              = mall.PromotionIDReq
-	PromotionInfo               = mall.PromotionInfo
-	PromotionListResp           = mall.PromotionListResp
 	RechargeWalletReq           = mall.RechargeWalletReq
 	RechargeWalletResp          = mall.RechargeWalletResp
 	RemoveCartItemReq           = mall.RemoveCartItemReq
@@ -91,7 +84,6 @@ type (
 	UpdateCartItemQtyReq        = mall.UpdateCartItemQtyReq
 	UpdateCategoryReq           = mall.UpdateCategoryReq
 	UpdateProductReq            = mall.UpdateProductReq
-	UpdatePromotionReq          = mall.UpdatePromotionReq
 	UpdateServiceAreaReq        = mall.UpdateServiceAreaReq
 	UpdateStoreProductStatusReq = mall.UpdateStoreProductStatusReq
 	UpdateStoreProductStockReq  = mall.UpdateStoreProductStockReq
@@ -108,8 +100,6 @@ type (
 		GetPromotions(ctx context.Context, in *ListProductsReq, opts ...grpc.CallOption) (*ProductListResp, error)
 		ListStores(ctx context.Context, in *ListStoresReq, opts ...grpc.CallOption) (*StoreListResp, error)
 		GetStoreDetail(ctx context.Context, in *StoreIDReq, opts ...grpc.CallOption) (*StoreDetailResp, error)
-		ListPromotions(ctx context.Context, in *ListPromotionsReq, opts ...grpc.CallOption) (*PromotionListResp, error)
-		GetPromotionDetail(ctx context.Context, in *PromotionIDReq, opts ...grpc.CallOption) (*PromotionDetailResp, error)
 		ListCategories(ctx context.Context, in *ListCategoriesReq, opts ...grpc.CallOption) (*CategoryListResp, error)
 		GetCategoryDetail(ctx context.Context, in *CategoryIDReq, opts ...grpc.CallOption) (*CategoryDetailResp, error)
 		ListServiceAreas(ctx context.Context, in *ListServiceAreasReq, opts ...grpc.CallOption) (*ServiceAreaListResp, error)
@@ -142,10 +132,6 @@ type (
 		CreateProduct(ctx context.Context, in *CreateProductReq, opts ...grpc.CallOption) (*BaseResp, error)
 		UpdateProduct(ctx context.Context, in *UpdateProductReq, opts ...grpc.CallOption) (*BaseResp, error)
 		DeleteProduct(ctx context.Context, in *ProductIDReq, opts ...grpc.CallOption) (*BaseResp, error)
-		CreatePromotion(ctx context.Context, in *CreatePromotionReq, opts ...grpc.CallOption) (*BaseResp, error)
-		UpdatePromotion(ctx context.Context, in *UpdatePromotionReq, opts ...grpc.CallOption) (*BaseResp, error)
-		DeletePromotion(ctx context.Context, in *PromotionIDReq, opts ...grpc.CallOption) (*BaseResp, error)
-		BindPromotionProducts(ctx context.Context, in *BindPromotionProductsReq, opts ...grpc.CallOption) (*BaseResp, error)
 		CreateServiceArea(ctx context.Context, in *CreateServiceAreaReq, opts ...grpc.CallOption) (*BaseResp, error)
 		UpdateServiceArea(ctx context.Context, in *UpdateServiceAreaReq, opts ...grpc.CallOption) (*BaseResp, error)
 		DeleteServiceArea(ctx context.Context, in *CategoryIDReq, opts ...grpc.CallOption) (*BaseResp, error)
@@ -205,16 +191,6 @@ func (m *defaultMallRpc) ListStores(ctx context.Context, in *ListStoresReq, opts
 func (m *defaultMallRpc) GetStoreDetail(ctx context.Context, in *StoreIDReq, opts ...grpc.CallOption) (*StoreDetailResp, error) {
 	client := mall.NewMallRpcClient(m.cli.Conn())
 	return client.GetStoreDetail(ctx, in, opts...)
-}
-
-func (m *defaultMallRpc) ListPromotions(ctx context.Context, in *ListPromotionsReq, opts ...grpc.CallOption) (*PromotionListResp, error) {
-	client := mall.NewMallRpcClient(m.cli.Conn())
-	return client.ListPromotions(ctx, in, opts...)
-}
-
-func (m *defaultMallRpc) GetPromotionDetail(ctx context.Context, in *PromotionIDReq, opts ...grpc.CallOption) (*PromotionDetailResp, error) {
-	client := mall.NewMallRpcClient(m.cli.Conn())
-	return client.GetPromotionDetail(ctx, in, opts...)
 }
 
 func (m *defaultMallRpc) ListCategories(ctx context.Context, in *ListCategoriesReq, opts ...grpc.CallOption) (*CategoryListResp, error) {
@@ -375,26 +351,6 @@ func (m *defaultMallRpc) UpdateProduct(ctx context.Context, in *UpdateProductReq
 func (m *defaultMallRpc) DeleteProduct(ctx context.Context, in *ProductIDReq, opts ...grpc.CallOption) (*BaseResp, error) {
 	client := mall.NewMallRpcClient(m.cli.Conn())
 	return client.DeleteProduct(ctx, in, opts...)
-}
-
-func (m *defaultMallRpc) CreatePromotion(ctx context.Context, in *CreatePromotionReq, opts ...grpc.CallOption) (*BaseResp, error) {
-	client := mall.NewMallRpcClient(m.cli.Conn())
-	return client.CreatePromotion(ctx, in, opts...)
-}
-
-func (m *defaultMallRpc) UpdatePromotion(ctx context.Context, in *UpdatePromotionReq, opts ...grpc.CallOption) (*BaseResp, error) {
-	client := mall.NewMallRpcClient(m.cli.Conn())
-	return client.UpdatePromotion(ctx, in, opts...)
-}
-
-func (m *defaultMallRpc) DeletePromotion(ctx context.Context, in *PromotionIDReq, opts ...grpc.CallOption) (*BaseResp, error) {
-	client := mall.NewMallRpcClient(m.cli.Conn())
-	return client.DeletePromotion(ctx, in, opts...)
-}
-
-func (m *defaultMallRpc) BindPromotionProducts(ctx context.Context, in *BindPromotionProductsReq, opts ...grpc.CallOption) (*BaseResp, error) {
-	client := mall.NewMallRpcClient(m.cli.Conn())
-	return client.BindPromotionProducts(ctx, in, opts...)
 }
 
 func (m *defaultMallRpc) CreateServiceArea(ctx context.Context, in *CreateServiceAreaReq, opts ...grpc.CallOption) (*BaseResp, error) {

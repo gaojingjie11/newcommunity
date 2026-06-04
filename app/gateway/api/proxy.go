@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,6 +69,9 @@ func proxyMiddleware(svcCtx *svc.ServiceContext) func(next http.Handler) http.Ha
 }
 
 func serveProxy(w http.ResponseWriter, r *http.Request, svcCtx *svc.ServiceContext) {
+	if handleUserAdminLocal(w, r, svcCtx) {
+		return
+	}
 	serviceName := resolveServiceName(r.URL.Path)
 	if serviceName == "" {
 		writeJSONError(w, 404, fmt.Sprintf("no upstream service for path: %s", r.URL.Path))
@@ -217,4 +221,243 @@ func writeJSONError(w http.ResponseWriter, code int, message string) {
 		"message": message,
 		"data":    nil,
 	})
+}
+
+func handleUserAdminLocal(w http.ResponseWriter, r *http.Request, svcCtx *svc.ServiceContext) bool {
+	if !strings.HasPrefix(r.URL.Path, "/api/admin/users") {
+		return false
+	}
+
+	// 1. Authenticate admin user
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		writeJSONError(w, 401, "请先登录")
+		return true
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		writeJSONError(w, 401, "Token格式错误")
+		return true
+	}
+
+	tokenStr := parts[1]
+	claims, err := auth.ParseToken(svcCtx.Config.Auth.AccessSecret, tokenStr)
+	if err != nil {
+		writeJSONError(w, 401, "Token无效或已过期")
+		return true
+	}
+
+	redisKey := fmt.Sprintf("login:token:%d", claims.UserID)
+	cachedToken, err := svcCtx.RedisClient.Get(r.Context(), redisKey).Result()
+	if err != nil || cachedToken != tokenStr {
+		writeJSONError(w, 401, "登录已失效，请重新登录")
+		return true
+	}
+
+	if claims.Role != "admin" {
+		writeJSONError(w, 403, "无权限访问此资源")
+		return true
+	}
+
+	// 2. Dispatch routes
+	if r.Method == http.MethodGet && r.URL.Path == "/api/admin/users" {
+		// Get query parameters
+		q := r.URL.Query()
+		page, _ := strconv.Atoi(q.Get("page"))
+		size, _ := strconv.Atoi(q.Get("size"))
+		keyword := q.Get("keyword")
+
+		if page < 1 {
+			page = 1
+		}
+		if size < 1 {
+			size = 20
+		}
+
+		// Call gRPC UserRpc.ListAdminUsers (large page size to enable memory filtering)
+		rpcResp, err := svcCtx.UserRpc.ListAdminUsers(r.Context(), &user.ListAdminUsersReq{
+			Page: 1,
+			Size: 10000,
+		})
+		if err != nil {
+			writeJSONError(w, 500, fmt.Sprintf("gRPC error: %v", err))
+			return true
+		}
+
+		// Filter users in memory
+		var filtered []*user.UserInfo
+		keyword = strings.TrimSpace(strings.ToLower(keyword))
+		for _, u := range rpcResp.List {
+			if keyword == "" {
+				filtered = append(filtered, u)
+			} else {
+				match := strings.Contains(strings.ToLower(u.Username), keyword) ||
+					strings.Contains(strings.ToLower(u.RealName), keyword) ||
+					strings.Contains(strings.ToLower(u.Mobile), keyword)
+				if match {
+					filtered = append(filtered, u)
+				}
+			}
+		}
+
+		total := int64(len(filtered))
+
+		// Paginate
+		start := (page - 1) * size
+		if start > len(filtered) {
+			start = len(filtered)
+		}
+		end := start + size
+		if end > len(filtered) {
+			end = len(filtered)
+		}
+
+		var paginated []*user.UserInfo
+		if start < end {
+			paginated = filtered[start:end]
+		} else {
+			paginated = make([]*user.UserInfo, 0)
+		}
+
+		var paginatedMaps []map[string]interface{}
+		for _, u := range paginated {
+			m := map[string]interface{}{
+				"id":              u.Id,
+				"username":        u.Username,
+				"real_name":       u.RealName,
+				"mobile":          u.Mobile,
+				"avatar":          u.Avatar,
+				"green_points":    u.GreenPoints,
+				"role":            u.Role,
+				"status":          u.Status,
+				"face_registered": u.FaceRegistered,
+				"face_image_url":  u.FaceImageUrl,
+				"balance":         u.Balance,
+			}
+			paginatedMaps = append(paginatedMaps, m)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"code":    0,
+			"message": "success",
+			"data": map[string]interface{}{
+				"list":  paginatedMaps,
+				"total": total,
+			},
+		})
+		return true
+	}
+
+	if r.Method == http.MethodPost && r.URL.Path == "/api/admin/users/freeze" {
+		var req struct {
+			Id     int64 `json:"id"`
+			Status int   `json:"status"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSONError(w, 400, "invalid body parameter format")
+			return true
+		}
+
+		_, err := svcCtx.UserRpc.FreezeUser(r.Context(), &user.FreezeUserReq{
+			UserId: req.Id,
+			Status: int32(req.Status),
+		})
+		if err != nil {
+			writeJSONError(w, 500, fmt.Sprintf("gRPC error: %v", err))
+			return true
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"code":    0,
+			"message": "success",
+			"data":    nil,
+		})
+		return true
+	}
+
+	if r.Method == http.MethodPost && r.URL.Path == "/api/admin/users/assign-role" {
+		var req struct {
+			UserId   int64  `json:"user_id"`
+			RoleCode string `json:"role_code"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSONError(w, 400, "invalid body parameter format")
+			return true
+		}
+
+		// Query all roles to match role code to ID
+		rolesResp, err := svcCtx.UserRpc.ListRoles(r.Context(), &user.EmptyReq{})
+		if err != nil {
+			writeJSONError(w, 500, fmt.Sprintf("gRPC error listing roles: %v", err))
+			return true
+		}
+
+		var targetRoleId int64 = 0
+		for _, rl := range rolesResp.Roles {
+			if rl.Code == req.RoleCode {
+				targetRoleId = rl.Id
+				break
+			}
+		}
+
+		if targetRoleId == 0 {
+			writeJSONError(w, 400, fmt.Sprintf("role code '%s' not found", req.RoleCode))
+			return true
+		}
+
+		_, err = svcCtx.UserRpc.AssignRole(r.Context(), &user.AssignRoleReq{
+			UserId: req.UserId,
+			RoleId: targetRoleId,
+		})
+		if err != nil {
+			writeJSONError(w, 500, fmt.Sprintf("gRPC error: %v", err))
+			return true
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"code":    0,
+			"message": "success",
+			"data":    nil,
+		})
+		return true
+	}
+
+	if r.Method == http.MethodPost && r.URL.Path == "/api/admin/users/update-balance" {
+		var req struct {
+			UserId int64   `json:"user_id"`
+			Amount float64 `json:"amount"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSONError(w, 400, "invalid body parameter format")
+			return true
+		}
+
+		_, err := svcCtx.UserRpc.UpdateUserBalance(r.Context(), &user.UpdateUserBalanceReq{
+			UserId: req.UserId,
+			Amount: req.Amount,
+		})
+		if err != nil {
+			writeJSONError(w, 500, fmt.Sprintf("gRPC error: %v", err))
+			return true
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"code":    0,
+			"message": "success",
+			"data":    nil,
+		})
+		return true
+	}
+
+	writeJSONError(w, 404, "admin subroute not found")
+	return true
 }

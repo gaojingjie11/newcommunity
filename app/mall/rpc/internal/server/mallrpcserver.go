@@ -53,16 +53,6 @@ func (s *MallRpcServer) GetStoreDetail(ctx context.Context, in *mall.StoreIDReq)
 	return l.GetStoreDetail(in)
 }
 
-func (s *MallRpcServer) ListPromotions(ctx context.Context, in *mall.ListPromotionsReq) (*mall.PromotionListResp, error) {
-	l := logic.NewListPromotionsLogic(ctx, s.svcCtx)
-	return l.ListPromotions(in)
-}
-
-func (s *MallRpcServer) GetPromotionDetail(ctx context.Context, in *mall.PromotionIDReq) (*mall.PromotionDetailResp, error) {
-	l := logic.NewGetPromotionDetailLogic(ctx, s.svcCtx)
-	return l.GetPromotionDetail(in)
-}
-
 func (s *MallRpcServer) ListCategories(ctx context.Context, in *mall.ListCategoriesReq) (*mall.CategoryListResp, error) {
 	l := logic.NewListCategoriesLogic(ctx, s.svcCtx)
 	return l.ListCategories(in)
@@ -221,26 +211,6 @@ func (s *MallRpcServer) UpdateProduct(ctx context.Context, in *mall.UpdateProduc
 func (s *MallRpcServer) DeleteProduct(ctx context.Context, in *mall.ProductIDReq) (*mall.BaseResp, error) {
 	l := logic.NewDeleteProductLogic(ctx, s.svcCtx)
 	return l.DeleteProduct(in)
-}
-
-func (s *MallRpcServer) CreatePromotion(ctx context.Context, in *mall.CreatePromotionReq) (*mall.BaseResp, error) {
-	l := logic.NewCreatePromotionLogic(ctx, s.svcCtx)
-	return l.CreatePromotion(in)
-}
-
-func (s *MallRpcServer) UpdatePromotion(ctx context.Context, in *mall.UpdatePromotionReq) (*mall.BaseResp, error) {
-	l := logic.NewUpdatePromotionLogic(ctx, s.svcCtx)
-	return l.UpdatePromotion(in)
-}
-
-func (s *MallRpcServer) DeletePromotion(ctx context.Context, in *mall.PromotionIDReq) (*mall.BaseResp, error) {
-	l := logic.NewDeletePromotionLogic(ctx, s.svcCtx)
-	return l.DeletePromotion(in)
-}
-
-func (s *MallRpcServer) BindPromotionProducts(ctx context.Context, in *mall.BindPromotionProductsReq) (*mall.BaseResp, error) {
-	l := logic.NewBindPromotionProductsLogic(ctx, s.svcCtx)
-	return l.BindPromotionProducts(in)
 }
 
 func (s *MallRpcServer) CreateServiceArea(ctx context.Context, in *mall.CreateServiceAreaReq) (*mall.BaseResp, error) {

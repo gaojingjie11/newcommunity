@@ -3,16 +3,13 @@
     <Navbar />
     <div class="container custom-container">
       
-      <div class="page-nav">
+      <!-- 极简顶部区：只保留返回导航与搜索框，去除了大标题 -->
+      <div class="top-bar">
         <div class="back-btn" @click="$router.push('/admin')">
           <el-icon class="back-icon"><ArrowLeft /></el-icon> 
           <span>返回管理后台</span>
         </div>
-      </div>
-
-      <div class="page-header">
-        
-        <div class="header-actions" style="margin-left: 900px;">
+        <div class="header-actions">
           <el-input 
             v-model="searchUserId" 
             placeholder="按用户ID搜索订单..." 
@@ -78,7 +75,11 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="user_id" label="买家ID" width="100" align="center" />
+          <el-table-column prop="user_mobile" label="买家手机号" min-width="140" align="center">
+            <template #default="{ row }">
+              <span class="mobile-text">{{ row.user_mobile || '-' }}</span>
+            </template>
+          </el-table-column>
 
           <el-table-column label="实付金额" width="140" align="right">
             <template #default="{ row }">
@@ -214,26 +215,28 @@ onMounted(() => {
 .admin-child-page { min-height: 100vh; background-color: #f8f9fa; padding-bottom: 80px; }
 .custom-container { max-width: 1200px; margin: 0 auto; }
 
-/* 顶部返回导航 */
-.page-nav { padding: 24px 0 16px; }
+/* 极简顶部区：只保留返回和搜索框 */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px 0 24px;
+}
+
 .back-btn {
-  display: inline-flex; align-items: center; color: #606266; font-size: 15px;
+  display: inline-flex; align-items: center; color: #606266; font-size: 16px; font-weight: 600;
   cursor: pointer; transition: color 0.3s; padding: 8px 16px 8px 0;
 }
 .back-btn:hover { color: #2d597b; }
-.back-icon { margin-right: 6px; font-size: 16px; }
-
-/* 统一的高光标题与顶部动作区 */
-.page-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 32px; }
-.page-title { display: inline-block; position: relative; font-size: 32px; color: #2c3e50; font-weight: 700; margin: 0; z-index: 1; }
-.page-title::after { content: ''; position: absolute; bottom: 4px; left: -5%; width: 110%; height: 14px; background-color: #2d597b; opacity: 0.15; border-radius: 6px; z-index: -1; transition: all 0.3s ease; }
+.back-icon { margin-right: 6px; font-size: 18px; }
 
 /* 搜索框深度美化 */
+.header-actions { width: 360px; }
 :deep(.search-input .el-input__wrapper) {
   border-radius: 20px 0 0 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); background: #ffffff;
 }
 :deep(.search-input .el-input-group__append) {
-  border-radius: 0 20px 20px 0; background: #2d597b; color: white; border: none;
+  border-radius: 0 20px 20px 0; background: #2d597b; color: white; border: none; box-shadow: 0 2px 10px rgba(45,89,123,0.1);
 }
 
 /* 核心表格容器 */
@@ -246,6 +249,7 @@ onMounted(() => {
 :deep(.custom-table::before) { display: none; }
 
 /* 单元格排版 */
+.mobile-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; color: #606266; }
 .order-no-code { font-family: monospace; background: #f4f4f5; padding: 2px 6px; border-radius: 4px; color: #606266; }
 .store-text { font-weight: 600; color: #2d597b; }
 .amount-text { font-size: 18px; font-weight: 800; color: #e4393c; font-family: sans-serif; }

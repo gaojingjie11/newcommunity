@@ -60,9 +60,10 @@ database/
 tmp/
 temp/
 
-# Ignore legacy monolith and services
+# Ignore legacy monolith, services, pkg and deploy
 smartcomunity/
-services/
+pkg/
+deploy/
 
 # Ignore docs
 docs/

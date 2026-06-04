@@ -185,7 +185,22 @@ func (r *ProductRepo) UpdateFields(id int64, fields map[string]interface{}) erro
 }
 
 func (r *ProductRepo) Delete(id int64) error {
-	return r.db.Delete(&model.Product{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Delete bindings in pms_store_product
+		if err := tx.Where("product_id = ?", id).Delete(&model.StoreProduct{}).Error; err != nil {
+			return err
+		}
+		// 2. Delete cart items in oms_cart
+		if err := tx.Where("product_id = ?", id).Delete(&model.Cart{}).Error; err != nil {
+			return err
+		}
+		// 3. Delete favorites in pms_favorite
+		if err := tx.Where("product_id = ?", id).Delete(&model.Favorite{}).Error; err != nil {
+			return err
+		}
+		// 4. Delete the product itself
+		return tx.Delete(&model.Product{}, id).Error
+	})
 }
 
 // DeductStock atomically decrements stock and increments sales.

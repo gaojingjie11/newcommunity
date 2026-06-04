@@ -178,6 +178,14 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 		}
 
 		// Record wallet transaction
+		remark := "钱包支付"
+		if order.UsedPoints > 0 {
+			if order.UsedBalance == 0 {
+				remark = "积分支付"
+			} else {
+				remark = "积分+钱包支付"
+			}
+		}
 		if err := walletRepo.CreateTransaction(tx, &model.WalletTransaction{
 			UserID:         userID,
 			Type:           consts.WalletTxTypeOrderPay,
@@ -188,7 +196,7 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 			BizType:        consts.BizTypeOrderPay,
 			BizID:          order.OrderNo,
 			IdempotencyKey: strPtr("pay:" + order.OrderNo),
-			Remark:         fmt.Sprintf("订单支付 #%s", order.OrderNo),
+			Remark:         remark,
 		}); err != nil {
 			return err
 		}

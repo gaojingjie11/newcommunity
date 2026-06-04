@@ -218,6 +218,7 @@ const showPayAuth = ref(false);
 const paySubmitting = ref(false);
 const remainingSeconds = ref(0);
 let countdownTimer = null;
+let retryTimer = null;
 
 function formatAmount(value) {
   return Number(value || 0).toFixed(2);
@@ -247,6 +248,18 @@ function startCountdown() {
   } else {
     remainingSeconds.value = 0;
   }
+
+  if (remainingSeconds.value <= 0) {
+    // Expired but still pending (waiting for backend timeout routine to tick status).
+    // Schedule a one-time check in 3 seconds instead of spinning in a rapid loop.
+    retryTimer = window.setTimeout(() => {
+      if (order.value && order.value.status === 0) {
+        fetchDetail();
+      }
+    }, 3000);
+    return;
+  }
+
   countdownTimer = window.setInterval(async () => {
     remainingSeconds.value = Math.max(0, remainingSeconds.value - 1);
     if (remainingSeconds.value === 0) {
@@ -260,6 +273,10 @@ function stopCountdown() {
   if (countdownTimer) {
     window.clearInterval(countdownTimer);
     countdownTimer = null;
+  }
+  if (retryTimer) {
+    window.clearTimeout(retryTimer);
+    retryTimer = null;
   }
 }
 
@@ -280,6 +297,7 @@ function getPaymentPreview(amount) {
 }
 
 async function fetchDetail() {
+  if (!route.params.id) return;
   loading.value = true;
   try {
     order.value = await getOrderDetail(route.params.id);
@@ -332,9 +350,9 @@ async function submitOrderPay(authPayload) {
       return;
     }
 
-    const paymentResult = res?.payment_result || res;
+    const preview = getPaymentPreview(order.value.total_amount);
     ElMessage.success(
-      `支付成功，使用积分 ${paymentResult.used_points}，余额 ￥${formatAmount(paymentResult.used_balance)}`,
+      `支付成功，使用积分 ${preview.points}，余额 ￥${formatAmount(preview.balance)}`,
     );
     showPayAuth.value = false;
     await Promise.all([fetchDetail(), userStore.fetchUserInfo()]);

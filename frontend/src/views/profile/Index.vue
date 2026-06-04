@@ -49,8 +49,8 @@
 
         <!-- 资产与状态统计 -->
         <div class="profile-stats">
-          <div class="stat-item stat-balance">
-            <div class="stat-label">账户余额 (元)</div>
+          <div class="stat-item stat-balance" @click="goToRecharge" style="cursor: pointer;">
+            <div class="stat-label">账户余额 (元) <span class="recharge-link">充值</span></div>
             <div class="stat-value">￥{{ formatAmount(userInfo.balance) }}</div>
           </div>
           <div class="stat-item stat-points">
@@ -329,6 +329,9 @@ import { useUserStore } from "@/stores/user";
 import { updateUserInfo, changePassword, registerFace } from "@/api/user";
 
 const router = useRouter();
+const goToRecharge = () => {
+  router.push('/user/transactions?recharge=true')
+}
 const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo || {});
 const defaultAvatar =
@@ -838,6 +841,18 @@ onMounted(() => {
 .stat-balance {
   background: #fdf6f6;
   border-color: #fbc4c4;
+  transition: all 0.3s ease;
+}
+.stat-balance:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(228, 57, 60, 0.1);
+}
+.recharge-link {
+  font-size: 12px;
+  color: #2d597b;
+  margin-left: 6px;
+  text-decoration: underline;
+  font-weight: 600;
 }
 .stat-balance .stat-value {
   color: #e4393c;

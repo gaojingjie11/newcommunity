@@ -1,19 +1,16 @@
 <template>
   <div class="admin-child-page">
     <Navbar />
-    <div class="container">
- <div class="page-header">
-        <div class="page-nav">
+    <div class="container custom-container">
+      <div class="top-bar">
         <div class="back-btn" @click="$router.push('/admin')">
           <el-icon class="back-icon"><ArrowLeft /></el-icon> 
-          <span></span>
+          <span>返回管理后台</span>
         </div>
       </div>
-        
-      </div>
 
-      <div class="table-container card" style="margin-top: 0px;">
-        <el-table :data="list" style="width: 100%" stripe border>
+      <div class="table-wrapper">
+        <el-table :data="list" class="custom-table" style="width: 100%">
           <el-table-column label="提交人" min-width="120">
             <template #default="{ row }">
               {{ displayUser(row) }}
@@ -60,19 +57,21 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="操作" width="180" fixed="right">
+          <el-table-column label="操作" width="180" fixed="right" align="center">
             <template #default="{ row }">
-              <button 
-                v-if="row.status !== 2" 
-                class="btn btn-sm btn-primary" 
-                @click="openProcess(row)"
-              >
-                {{ row.status === 0 ? '开始处理' : '完成处理' }}
-              </button>
-              <div v-else>
-                  <el-tooltip :content="row.result" placement="top" v-if="row.result">
-                     <span class="text-truncate" style="display:inline-block; max-width: 150px;">{{ row.result }}</span>
-                  </el-tooltip>
+              <div class="row-actions">
+                <button 
+                  v-if="row.status !== 2" 
+                  class="action-btn btn-sm btn-primary" 
+                  @click="openProcess(row)"
+                >
+                  {{ row.status === 0 ? '开始处理' : '完成处理' }}
+                </button>
+                <div v-else>
+                    <el-tooltip :content="row.result" placement="top" v-if="row.result">
+                       <span class="text-truncate" style="display:inline-block; max-width: 150px; color: #606266;">{{ row.result }}</span>
+                    </el-tooltip>
+                </div>
               </div>
             </template>
           </el-table-column>
@@ -208,17 +207,50 @@ onMounted(fetchList)
 
 <style scoped>
 /* Reuse styles */
-.page-nav { padding: 24px 0 16px; }
+/* 全局页面底色与容器 */
+.admin-child-page { min-height: 100vh; background-color: #f8f9fa; padding-bottom: 80px; }
+.custom-container { max-width: 1280px; margin: 0 auto; }
+
+/* 极简顶部区：只保留返回 */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px 0 24px;
+}
+
 .back-btn {
-  display: inline-flex; align-items: center; color: #606266; font-size: 15px;
+  display: inline-flex; align-items: center; color: #606266; font-size: 16px; font-weight: 600;
   cursor: pointer; transition: color 0.3s; padding: 8px 16px 8px 0;
 }
-.back-icon { margin-right: 6px; font-size: 16px; }
-.admin-child-page { min-height: 100vh; padding-bottom: var(--spacing-xl); }
-.page-header { display: flex; justify-content: space-before; margin-bottom: var(--spacing-lg); }
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-.content-cell { max-width: 250px; }
+.back-btn:hover { color: #2d597b; }
+.back-icon { margin-right: 6px; font-size: 18px; }
+
+/* 核心表格容器 */
+.table-wrapper { background: #ffffff; border-radius: 16px; padding: 24px 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02); }
+
+/* Element Plus 表格定制去后台感 */
+:deep(.custom-table) { --el-table-border-color: transparent; border-radius: 8px; overflow: hidden; }
+:deep(.custom-table th.el-table__cell) { font-weight: 600; font-size: 14px; padding: 18px 0; border-bottom: 1px solid #ebeef5; background: #fbfcfd; color: #606266; }
+:deep(.custom-table td.el-table__cell) { padding: 20px 0; border-bottom: 1px dashed #f0f2f5; font-size: 14px; }
+:deep(.custom-table::before) { display: none; }
+
+/* 列表操作区 */
+.row-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* 定制化按钮 */
+.action-btn { padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; }
+.btn-sm { padding: 6px 16px; font-size: 13px; }
+
+.btn-primary { background: #2d597b; color: #ffffff; box-shadow: 0 4px 12px rgba(45, 89, 123, 0.2); }
+.btn-primary:hover:not(:disabled) { background: #1f435d; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(45, 89, 123, 0.3); }
+
+.btn-outline { background: #ffffff; color: #2d597b; border-color: #2d597b; }
+.btn-outline:hover { background: #f0f7ff; transform: translateY(-1px); }
+
+.btn-danger-ghost { background: transparent; color: #f56c6c; border-color: #fbc4c4; }
+.btn-danger-ghost:hover { background: #fef0f0; color: #e4393c; transform: translateY(-1px); }
+
 .mb-4 { margin-bottom: 16px; }
 
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; }

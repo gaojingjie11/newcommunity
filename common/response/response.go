@@ -52,6 +52,14 @@ func Response(w http.ResponseWriter, resp interface{}, err error) {
 			msg = "系统繁忙，数据查询异常"
 		} else if strings.Contains(msg, "context deadline exceeded") || strings.Contains(msg, "timeout") {
 			msg = "网络请求超时，请稍后重试"
+		} else if strings.Contains(msg, "parking user not found") {
+			msg = "绑定失败：该手机号对应的用户不存在，请先核对手机号"
+		} else if strings.Contains(msg, "parking space unavailable") {
+			msg = "车位当前不可用"
+		} else if strings.Contains(msg, "duplicate parking number") {
+			msg = "车位编号已存在，请重新输入"
+		} else if strings.Contains(msg, "property fee already paid") {
+			msg = "该物业费账单已支付，请勿重复支付"
 		}
 
 		type coder interface {

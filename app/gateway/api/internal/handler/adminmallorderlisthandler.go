@@ -21,6 +21,10 @@ func AdminMallOrderListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
+		if _, ok := r.URL.Query()["status"]; !ok {
+			req.Status = -1
+		}
+
 		l := logic.NewAdminMallOrderListLogic(r.Context(), svcCtx)
 		resp, err := l.AdminMallOrderList(&req)
 		response.Response(w, resp, err)

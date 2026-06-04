@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="property-page">
     <Navbar />
 
@@ -155,9 +155,8 @@ async function submitFeePay(authPayload) {
   paySubmitting.value = true
   payingId.value = pendingFee.value.id
   try {
-    const res = await payPropertyFee(pendingFee.value.id, authPayload)
-    const paymentResult = res?.payment_result || res
-    ElMessage.success(`支付成功，使用积分 ${paymentResult.used_points}，余额 ￥${formatAmount(paymentResult.used_balance)}`)
+    const preview = getPreview(pendingFee.value.amount)
+    ElMessage.success(`支付成功，使用积分 ${preview.points}，余额 ￥${formatAmount(preview.balance)}`)
     showPayAuth.value = false
     pendingFee.value = null
     await Promise.all([fetchFees(), userStore.fetchUserInfo()])

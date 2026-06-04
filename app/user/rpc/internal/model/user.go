@@ -13,7 +13,7 @@ type SysUser struct {
 	Email          string    `gorm:"type:varchar(128)" json:"email"`
 	Avatar         string    `gorm:"type:varchar(255)" json:"avatar"`
 	GreenPoints    int       `gorm:"column:green_points;not null;default:0" json:"green_points"`
-	Balance        float64   `gorm:"type:decimal(10,2);not null;default:0.00" json:"balance"`
+	Balance        float64   `gorm:"->" json:"balance"`
 	FaceRegistered bool      `gorm:"column:face_registered;not null;default:false" json:"face_registered"`
 	FaceImageURL   string    `gorm:"column:face_image_url;type:varchar(512)" json:"face_image_url"`
 	Role           string    `gorm:"type:varchar(32)" json:"role"` // legacy compat; use sys_user_role for actual RBAC

@@ -38,7 +38,8 @@ const routes = [
   { path: '/admin/parking', name: 'AdminParkingList', component: () => import('@/views/admin/ParkingList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
   { path: '/admin/property-fee', name: 'AdminPropertyFeeList', component: () => import('@/views/admin/PropertyFeeList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
   { path: '/admin/ai-report', name: 'AdminAIReport', component: () => import('@/views/admin/AIReport.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin'] } },
-  { path: '/chat', name: 'Chat', component: () => import('@/views/chat/Index.vue'), meta: { requiresAuth: true } }
+  { path: '/chat', name: 'Chat', component: () => import('@/views/chat/Index.vue'), meta: { requiresAuth: true } },
+  { path: '/payment/result', name: 'PaymentResult', component: () => import('@/views/public/PaymentResult.vue'), meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({

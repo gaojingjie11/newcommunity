@@ -152,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch } from 'vue'
+import { ref, onMounted, onUnmounted, reactive, watch } from 'vue'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Navbar from '@/components/layout/Navbar.vue'
@@ -165,6 +165,56 @@ import { InfoFilled } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const orders = ref([])
+let countdownTimer = null
+let retryTimer = null
+
+function startCountdownTimer() {
+  stopCountdownTimer()
+  
+  const hasPending = orders.value.some(o => o.status === 0)
+  if (!hasPending) return
+  
+  // If there are pending orders that are already expired, schedule a slow check to pull updated statuses
+  const hasExpiredPending = orders.value.some(o => o.status === 0 && (o.expires_in_seconds || 0) <= 0)
+  if (hasExpiredPending) {
+    retryTimer = window.setTimeout(() => {
+      fetchOrders()
+    }, 3000)
+  }
+  
+  // Only run the 1-second interval if there are pending orders with positive countdown
+  const hasActivePending = orders.value.some(o => o.status === 0 && (o.expires_in_seconds || 0) > 0)
+  if (!hasActivePending) return
+  
+  countdownTimer = window.setInterval(() => {
+    let hasExpired = false
+    orders.value.forEach(order => {
+      if (order.status === 0 && order.expires_in_seconds !== undefined) {
+        if (order.expires_in_seconds > 0) {
+          order.expires_in_seconds--
+          if (order.expires_in_seconds === 0) {
+            hasExpired = true
+          }
+        }
+      }
+    })
+    
+    if (hasExpired) {
+      fetchOrders()
+    }
+  }, 1000)
+}
+
+function stopCountdownTimer() {
+  if (countdownTimer) {
+    window.clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  if (retryTimer) {
+    window.clearTimeout(retryTimer)
+    retryTimer = null
+  }
+}
 const currentTab = ref('all')
 const loading = ref(false)
 const total = ref(0)
@@ -275,8 +325,8 @@ async function submitOrderPay(authPayload) {
         return;
       }
 
-      const paymentResult = res?.payment_result || res
-      ElMessage.success(`支付成功，使用积分 ${paymentResult.used_points}，余额 ￥${formatAmount(paymentResult.used_balance)}`)
+      const preview = getPaymentPreview(current.total_amount)
+      ElMessage.success(`支付成功，使用积分 ${preview.points}，余额 ￥${formatAmount(preview.balance)}`)
       showPayAuth.value = false
       pendingOrder.value = null
       await Promise.all([fetchOrders(), userStore.fetchUserInfo()])
@@ -327,6 +377,7 @@ async function fetchOrders() {
     if (token !== fetchToken.value) return
     orders.value = res.list || []
     total.value = res.total || 0
+    startCountdownTimer()
   } catch (error) {
     if (token !== fetchToken.value) return
     ElMessage.error(error.response?.data?.msg || error.message || '获取订单失败')
@@ -339,6 +390,10 @@ async function fetchOrders() {
 
 onMounted(async () => {
   await Promise.all([fetchOrders(), userStore.fetchUserInfo()])
+})
+
+onUnmounted(() => {
+  stopCountdownTimer()
 })
 
 watch(currentTab, () => {

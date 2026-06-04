@@ -207,7 +207,7 @@ async function submitOrder() {
       cart_ids: cartItems.value.map((item) => item.id)
     })
     ElMessage.success('订单创建成功')
-    router.push(`/order/${order.order_id}`)
+    router.push(`/order/${order.id}`)
   } catch (error) {
     ElMessage.error(error.response?.data?.msg || error.message || '创建订单失败')
   } finally {

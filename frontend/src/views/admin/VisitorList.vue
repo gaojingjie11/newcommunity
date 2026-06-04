@@ -50,9 +50,14 @@
               </template>
           </el-table-column>
           
-          <el-table-column prop="status" label="审核状态" width="120" align="center">
+          <el-table-column prop="status" label="审核状态" width="140" align="center">
              <template #default="{ row }">
-               <span class="status-badge" :class="getStatusClass(row.status)">
+               <el-tooltip :content="row.audit_remark || '系统已处理'" placement="top" v-if="row.status !== 0">
+                 <span class="status-badge" :class="getStatusClass(row.status)">
+                   {{ getStatusText(row.status) }}
+                 </span>
+               </el-tooltip>
+               <span v-else class="status-badge" :class="getStatusClass(row.status)">
                  {{ getStatusText(row.status) }}
                </span>
              </template>
@@ -64,9 +69,7 @@
                  <button class="action-btn btn-sm btn-success-ghost" @click="handleAudit(row, 1)">同意</button>
                  <button class="action-btn btn-sm btn-danger-ghost" @click="handleAudit(row, 2)">拒绝</button>
                </div>
-               <span v-else class="remark-text" :title="row.audit_remark">
-                 {{ row.audit_remark || '系统已处理' }}
-               </span>
+               <span v-else class="text-secondary">-</span>
              </template>
           </el-table-column>
         </el-table>

@@ -1,25 +1,22 @@
 <template>
   <div class="admin-child-page">
     <Navbar />
-    <div class="container">
-      <div class="page-header">
-        <div class="page-nav">
-          <div class="back-btn" @click="$router.push('/admin')">
-            <el-icon class="back-icon"><ArrowLeft /></el-icon>
-            <span></span>
-          </div>
+    <div class="container custom-container">
+      <!-- 极简顶部区：只保留返回导航与操作按钮，去除了大标题 -->
+      <div class="top-bar">
+        <div class="back-btn" @click="$router.push('/admin')">
+          <el-icon class="back-icon"><ArrowLeft /></el-icon>
+          <span>返回管理后台</span>
         </div>
-        <button
-          class="btn btn-primary"
-          style="margin-left: 1000px; margin-top: 40px"
-          @click="openModal()"
-        >
-          + 添加门店
-        </button>
+        <div class="header-actions">
+          <button class="action-btn btn-primary" @click="openModal()">
+            + 添加门店
+          </button>
+        </div>
       </div>
 
-      <div class="table-container card">
-        <el-table :data="stores" style="width: 100%" stripe border>
+      <div class="table-wrapper">
+        <el-table :data="stores" class="custom-table" style="width: 100%">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column
             prop="name"
@@ -36,20 +33,22 @@
           <el-table-column prop="phone" label="电话" width="120" />
           <el-table-column prop="business_hours" label="营业时间" width="150" />
 
-          <el-table-column label="操作" width="260" fixed="right">
+          <el-table-column label="操作" width="280" fixed="right" align="center">
             <template #default="{ row }">
-              <button class="btn btn-sm btn-info" @click="openModal(row)">
-                编辑
-              </button>
-              <button class="btn btn-sm btn-primary ml-2" @click="openStoreProducts(row)">
-                商品管理
-              </button>
-              <button
-                class="btn btn-sm btn-danger ml-2"
-                @click="handleDelete(row.id)"
-              >
-                删除
-              </button>
+              <div class="row-actions">
+                <button class="action-btn btn-sm btn-outline" @click="openModal(row)">
+                  编辑
+                </button>
+                <button class="action-btn btn-sm btn-primary" @click="openStoreProducts(row)">
+                  商品管理
+                </button>
+                <button
+                  class="action-btn btn-sm btn-danger-ghost"
+                  @click="handleDelete(row.id)"
+                >
+                  删除
+                </button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -105,7 +104,7 @@
           </el-button>
         </div>
 
-        <el-table :data="storeProducts" style="width: 100%" stripe border v-loading="loadingProducts">
+        <el-table :data="storeProducts" class="custom-table" style="width: 100%" v-loading="loadingProducts">
           <el-table-column prop="product_id" label="商品ID" width="90" align="center" />
           <el-table-column label="商品图片" width="100" align="center">
             <template #default="{ row }">
@@ -320,8 +319,8 @@ const handleDelete = async (id) => {
 const openStoreProducts = async (store) => {
   currentStore.value = store;
   showStoreProductsDialog.value = true;
-  await fetchStoreProducts();
   await loadSystemProducts();
+  await fetchStoreProducts();
 };
 
 const fetchStoreProducts = async () => {
@@ -329,7 +328,19 @@ const fetchStoreProducts = async () => {
   loadingProducts.value = true;
   try {
     const res = await getStoreProducts(currentStore.value.id);
-    storeProducts.value = res?.list || res || [];
+    const rawList = res?.list || res || [];
+    storeProducts.value = rawList.map(item => {
+      const prod = systemProducts.value.find(p => p.id === item.product_id);
+      return {
+        ...item,
+        product: prod || {
+          name: item.product_name || '未知商品',
+          price: item.price,
+          image_url: '',
+          category_name: '-'
+        }
+      };
+    });
   } catch (e) {
     console.error(e);
     ElMessage.error("获取门店商品列表失败");
@@ -438,48 +449,51 @@ onMounted(fetchStores);
 </script>
 
 <style scoped>
-.page-nav {
-  padding: 24px 0 16px;
-}
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  color: #606266;
-  font-size: 15px;
-  cursor: pointer;
-  transition: color 0.3s;
-  padding: 8px 16px 8px 0;
-}
-.back-icon {
-  margin-right: 6px;
-  font-size: 16px;
-}
-.admin-child-page {
-  min-height: 100vh;
-  padding-bottom: var(--spacing-xl);
-}
-.page-header {
+/* 全局页面底色与容器 */
+.admin-child-page { min-height: 100vh; background-color: #f8f9fa; padding-bottom: 80px; }
+.custom-container { max-width: 1280px; margin: 0 auto; }
+
+/* 极简顶部区：只保留返回和操作 */
+.top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  padding: 32px 0 24px;
 }
-.table-container {
-  min-height: 600px;
+
+.back-btn {
+  display: inline-flex; align-items: center; color: #606266; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: color 0.3s; padding: 8px 16px 8px 0;
 }
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.table th,
-.table td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
-}
-.ml-2 {
-  margin-left: 8px;
-}
+.back-btn:hover { color: #2d597b; }
+.back-icon { margin-right: 6px; font-size: 18px; }
+
+.header-actions { display: flex; align-items: center; gap: 12px; }
+
+/* 核心表格容器 */
+.table-wrapper { background: #ffffff; border-radius: 16px; padding: 24px 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02); }
+
+/* Element Plus 表格定制去后台感 */
+:deep(.custom-table) { --el-table-border-color: transparent; border-radius: 8px; overflow: hidden; }
+:deep(.custom-table th.el-table__cell) { font-weight: 600; font-size: 14px; padding: 18px 0; border-bottom: 1px solid #ebeef5; background: #fbfcfd; color: #606266; }
+:deep(.custom-table td.el-table__cell) { padding: 20px 0; border-bottom: 1px dashed #f0f2f5; font-size: 14px; }
+:deep(.custom-table::before) { display: none; }
+
+/* 列表操作区 */
+.row-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* 定制化按钮 */
+.action-btn { padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; }
+.btn-sm { padding: 6px 16px; font-size: 13px; }
+
+.btn-primary { background: #2d597b; color: #ffffff; box-shadow: 0 4px 12px rgba(45, 89, 123, 0.2); }
+.btn-primary:hover:not(:disabled) { background: #1f435d; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(45, 89, 123, 0.3); }
+
+.btn-outline { background: #ffffff; color: #2d597b; border-color: #2d597b; }
+.btn-outline:hover { background: #f0f7ff; transform: translateY(-1px); }
+
+.btn-danger-ghost { background: transparent; color: #f56c6c; border-color: #fbc4c4; }
+.btn-danger-ghost:hover { background: #fef0f0; color: #e4393c; transform: translateY(-1px); }
 
 /* Modal Styles - Reuse */
 .modal-overlay {

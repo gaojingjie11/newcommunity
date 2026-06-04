@@ -21,6 +21,10 @@ func AdminWorkorderListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
+		if _, ok := r.URL.Query()["status"]; !ok {
+			req.Status = -1
+		}
+
 		l := logic.NewAdminWorkorderListLogic(r.Context(), svcCtx)
 		resp, err := l.AdminWorkorderList(&req)
 		response.Response(w, resp, err)

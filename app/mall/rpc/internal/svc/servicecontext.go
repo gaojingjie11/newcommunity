@@ -22,7 +22,6 @@ type ServiceContext struct {
 
 	ProductRepo      *repository.ProductRepo
 	CategoryRepo     *repository.CategoryRepo
-	PromotionRepo    *repository.PromotionRepo
 	CartRepo         *repository.CartRepo
 	OrderRepo        *repository.OrderRepo
 	StoreRepo        *repository.StoreRepo
@@ -37,7 +36,6 @@ type ServiceContext struct {
 
 	ProductSvc     *service.ProductService
 	CategorySvc    *service.CategoryService
-	PromotionSvc   *service.PromotionService
 	CartSvc        *service.CartService
 	OrderSvc       *service.OrderService
 	StoreSvc       *service.StoreService
@@ -83,7 +81,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// Repositories
 	productRepo := repository.NewProductRepo(database)
 	categoryRepo := repository.NewCategoryRepo(database)
-	promotionRepo := repository.NewPromotionRepo(database)
 	cartRepo := repository.NewCartRepo(database)
 	orderRepo := repository.NewOrderRepo(database)
 	storeRepo := repository.NewStoreRepo(database)
@@ -99,7 +96,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// Services
 	productSvc := service.NewProductService(productRepo)
 	categorySvc := service.NewCategoryService(categoryRepo)
-	promotionSvc := service.NewPromotionService(promotionRepo)
 	cartSvc := service.NewCartService(cartRepo, productRepo)
 	orderSvc := service.NewOrderService(database, orderRepo, cartRepo, productRepo, storeRepo, storeProductRepo, walletRepo, eventBus, rdb)
 	storeSvc := service.NewStoreService(storeRepo, storeProductRepo)
@@ -124,7 +120,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Redis:            rdb,
 		ProductRepo:      productRepo,
 		CategoryRepo:     categoryRepo,
-		PromotionRepo:    promotionRepo,
 		CartRepo:         cartRepo,
 		OrderRepo:        orderRepo,
 		StoreRepo:        storeRepo,
@@ -138,7 +133,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		UserRepo:         userRepo,
 		ProductSvc:       productSvc,
 		CategorySvc:      categorySvc,
-		PromotionSvc:     promotionSvc,
 		CartSvc:          cartSvc,
 		OrderSvc:         orderSvc,
 		StoreSvc:         storeSvc,

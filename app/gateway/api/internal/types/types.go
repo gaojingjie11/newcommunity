@@ -39,7 +39,7 @@ type AdminCreateProductReq struct {
 	OriginalPrice float64 `json:"original_price"`
 	Stock         int32   `json:"stock"`
 	ImageUrl      string  `json:"image_url"`
-	IsPromotion   int32   `json:"is_promotion"`
+	IsPromotion   int32   `json:"is_promotion,optional"`
 }
 
 type AdminCreateStoreReq struct {
@@ -93,7 +93,7 @@ type AdminUpdateProductReq struct {
 	OriginalPrice float64 `json:"original_price"`
 	Stock         int32   `json:"stock"`
 	ImageUrl      string  `json:"image_url"`
-	IsPromotion   int32   `json:"is_promotion"`
+	IsPromotion   int32   `json:"is_promotion,optional"`
 	Status        int32   `json:"status"`
 }
 
@@ -424,6 +424,7 @@ type OrderInfo struct {
 	Id               int64           `json:"id"`
 	OrderNo          string          `json:"order_no"`
 	UserId           int64           `json:"user_id"`
+	UserMobile       string          `json:"user_mobile,optional"`
 	TotalAmount      float64         `json:"total_amount"`
 	Status           int32           `json:"status"`
 	StoreId          int64           `json:"store_id"`

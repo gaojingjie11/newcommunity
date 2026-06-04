@@ -91,33 +91,6 @@ message StoreDetailResp {
   StoreInfo store = 1;
 }
 
-message PromotionInfo {
-  int64 id = 1;
-  string title = 2;
-  int32 type = 3;
-  string start_date = 4;
-  string end_date = 5;
-  int32 status = 6;
-}
-
-message ListPromotionsReq {
-  int32 page = 1;
-  int32 size = 2;
-}
-
-message PromotionListResp {
-  repeated PromotionInfo list = 1;
-  int64 total = 2;
-}
-
-message PromotionIDReq {
-  int64 id = 1;
-}
-
-message PromotionDetailResp {
-  PromotionInfo promotion = 1;
-}
-
 message CategoryInfo {
   int64 id = 1;
   string name = 2;
@@ -447,27 +420,6 @@ message AdminListProductsReq {
   string name = 3;
 }
 
-message CreatePromotionReq {
-  string title = 1;
-  int32 type = 2;
-  string start_date = 3;
-  string end_date = 4;
-}
-
-message UpdatePromotionReq {
-  int64 id = 1;
-  string title = 2;
-  int32 type = 3;
-  string start_date = 4;
-  string end_date = 5;
-  int32 status = 6;
-}
-
-message BindPromotionProductsReq {
-  int64 promotion_id = 1;
-  repeated int64 product_ids = 2;
-}
-
 message CreateServiceAreaReq {
   string name = 1;
   string points = 2;
@@ -567,8 +519,6 @@ service MallRpc {
   rpc ListStores(ListStoresReq) returns (StoreListResp);
   rpc GetStoreDetail(StoreIDReq) returns (StoreDetailResp);
 
-  rpc ListPromotions(ListPromotionsReq) returns (PromotionListResp);
-  rpc GetPromotionDetail(PromotionIDReq) returns (PromotionDetailResp);
 
   rpc ListCategories(ListCategoriesReq) returns (CategoryListResp);
   rpc GetCategoryDetail(CategoryIDReq) returns (CategoryDetailResp);
@@ -611,10 +561,6 @@ service MallRpc {
   rpc UpdateProduct(UpdateProductReq) returns (BaseResp);
   rpc DeleteProduct(ProductIDReq) returns (BaseResp);
 
-  rpc CreatePromotion(CreatePromotionReq) returns (BaseResp);
-  rpc UpdatePromotion(UpdatePromotionReq) returns (BaseResp);
-  rpc DeletePromotion(PromotionIDReq) returns (BaseResp);
-  rpc BindPromotionProducts(BindPromotionProductsReq) returns (BaseResp);
 
   rpc CreateServiceArea(CreateServiceAreaReq) returns (BaseResp);
   rpc UpdateServiceArea(UpdateServiceAreaReq) returns (BaseResp);
