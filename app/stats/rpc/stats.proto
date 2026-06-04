@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package stats;
+option go_package = "./stats";
+
+message BaseResp {
+  int32 code = 1;
+  string message = 2;
+}
+
+message SalesRankInfo {
+  int64 product_id = 1;
+  string product_name = 2;
+  int64 total_sales = 3;
+  double total_amount = 4;
+}
+
+message SalesRankResp {
+  repeated SalesRankInfo list = 1;
+}
+
+message ViewRankInfo {
+  int64 product_id = 1;
+  string product_name = 2;
+  int64 view_count = 3;
+  int64 unique_users = 4;
+}
+
+message ViewRankResp {
+  repeated ViewRankInfo list = 1;
+}
+
+message CommunityOverviewResp {
+  int64 user_count = 1;
+  int64 order_count = 2;
+  double paid_amount = 3;
+  int64 repair_count = 4;
+  int64 complaint_count = 5;
+  int64 fee_count = 6;
+  int64 fee_paid_count = 7;
+}
+
+message OrderSummaryInfo {
+  int32 status = 1;
+  int64 count = 2;
+  double total_amount = 3;
+}
+
+message OrderTrendInfo {
+  string date = 1;
+  int64 count = 2;
+  double amount = 3;
+}
+
+message OrderStatsResp {
+  repeated OrderSummaryInfo summaries = 1;
+  repeated OrderTrendInfo trends = 2;
+}
+
+message WorkorderSummaryInfo {
+  string type = 1;
+  int32 status = 2;
+  int64 count = 3;
+}
+
+message WorkorderStatsResp {
+  repeated WorkorderSummaryInfo summaries = 1;
+}
+
+message GenerateReportReq {
+  int64 user_id = 1;
+}
+
+message AIReportInfo {
+  int64 id = 1;
+  int64 repair_new_count = 2;
+  int64 repair_pending_count = 3;
+  int64 visitor_new_count = 4;
+  int64 property_paid_count = 5;
+  double property_paid_amount = 6;
+  string report_summary = 7;
+  string report_markdown = 8;
+  int64 generated_by = 9;
+  string created_at = 10;
+}
+
+message ReportResp {
+  AIReportInfo report = 1;
+}
+
+message ListReportsReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message ReportListResp {
+  repeated AIReportInfo list = 1;
+  int64 total = 2;
+}
+
+message ReportIDReq {
+  int64 id = 1;
+}
+
+message RankLimitReq {
+  int32 limit = 1;
+}
+
+message DaysReq {
+  int32 days = 1;
+}
+
+service StatsRpc {
+  rpc GetProductSalesRank(RankLimitReq) returns (SalesRankResp);
+  rpc GetProductViewRank(RankLimitReq) returns (ViewRankResp);
+  rpc GetCommunityOverview(BaseResp) returns (CommunityOverviewResp);
+  rpc GetOrderStatsCombined(DaysReq) returns (OrderStatsResp);
+  rpc GetWorkorderStats(BaseResp) returns (WorkorderStatsResp);
+
+  rpc GenerateAIReport(GenerateReportReq) returns (ReportResp);
+  rpc GetLatestAIReport(BaseResp) returns (ReportResp);
+  rpc ListAIReports(ListReportsReq) returns (ReportListResp);
+  rpc GetAIReportDetail(ReportIDReq) returns (ReportResp);
+}

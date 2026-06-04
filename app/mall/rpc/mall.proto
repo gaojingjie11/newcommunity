@@ -1,0 +1,641 @@
+syntax = "proto3";
+
+package mall;
+
+option go_package = "./mall";
+
+message BaseResp {
+  int32 code = 1;
+  string message = 2;
+}
+
+message UserIDReq {
+  int64 user_id = 1;
+}
+
+message ProductInfo {
+  int64 id = 1;
+  string category_name = 2;
+  string name = 3;
+  string description = 4;
+  int64 price = 5;
+  int64 original_price = 6;
+  int32 stock = 7;
+  string image_url = 8;
+  int32 is_promotion = 9;
+  int32 sales = 10;
+  int32 status = 11;
+  int32 version = 12;
+  string created_at = 13;
+  int64 category_id = 14;
+}
+
+message ListProductsReq {
+  int32 page = 1;
+  int32 size = 2;
+  int64 category_id = 3;
+  string name = 4;
+  string sort = 5;
+  int64 min_price = 6;
+  int64 max_price = 7;
+  int64 user_id = 8;
+}
+
+message ProductListResp {
+  repeated ProductInfo list = 1;
+  int64 total = 2;
+}
+
+message SearchProductsReq {
+  string keyword = 1;
+  int32 page = 2;
+  int32 size = 3;
+  int64 user_id = 4;
+}
+
+message ProductIDReq {
+  int64 id = 1;
+  int64 user_id = 2;
+}
+
+message ProductDetailResp {
+  ProductInfo product = 1;
+}
+
+message StoreInfo {
+  int64 id = 1;
+  string name = 2;
+  string address = 3;
+  string phone = 4;
+  double latitude = 5;
+  double longitude = 6;
+  int32 status = 7;
+  string created_at = 8;
+}
+
+message ListStoresReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message StoreListResp {
+  repeated StoreInfo list = 1;
+  int64 total = 2;
+}
+
+message StoreIDReq {
+  int64 id = 1;
+}
+
+message StoreDetailResp {
+  StoreInfo store = 1;
+}
+
+message PromotionInfo {
+  int64 id = 1;
+  string title = 2;
+  int32 type = 3;
+  string start_date = 4;
+  string end_date = 5;
+  int32 status = 6;
+}
+
+message ListPromotionsReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message PromotionListResp {
+  repeated PromotionInfo list = 1;
+  int64 total = 2;
+}
+
+message PromotionIDReq {
+  int64 id = 1;
+}
+
+message PromotionDetailResp {
+  PromotionInfo promotion = 1;
+}
+
+message CategoryInfo {
+  int64 id = 1;
+  string name = 2;
+  string icon = 3;
+  int32 sort = 4;
+}
+
+message ListCategoriesReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message CategoryListResp {
+  repeated CategoryInfo list = 1;
+  int64 total = 2;
+}
+
+message CategoryIDReq {
+  int64 id = 1;
+}
+
+message CategoryDetailResp {
+  CategoryInfo category = 1;
+}
+
+message ServiceAreaInfo {
+  int64 id = 1;
+  string name = 2;
+  string points = 3;
+  int32 status = 4;
+  string created_at = 5;
+}
+
+message ListServiceAreasReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message ServiceAreaListResp {
+  repeated ServiceAreaInfo list = 1;
+  int64 total = 2;
+}
+
+message CartItem {
+  int64 id = 1;
+  int64 user_id = 2;
+  int64 product_id = 3;
+  int32 quantity = 4;
+  string created_at = 5;
+  string product_name = 6;
+  int64 product_price = 7;
+  string product_image = 8;
+}
+
+message AddCartItemReq {
+  int64 user_id = 1;
+  int64 product_id = 2;
+  int32 quantity = 3;
+}
+
+message RemoveCartItemReq {
+  int64 user_id = 1;
+  int64 id = 2;
+}
+
+message UpdateCartItemQtyReq {
+  int64 user_id = 1;
+  int64 id = 2;
+  int32 quantity = 3;
+}
+
+message CartResp {
+  repeated CartItem items = 1;
+}
+
+message FavoriteInfo {
+  int64 id = 1;
+  int64 user_id = 2;
+  int64 product_id = 3;
+  string created_at = 4;
+  ProductInfo product = 5;
+}
+
+message AddFavoriteReq {
+  int64 user_id = 1;
+  int64 product_id = 2;
+}
+
+message RemoveFavoriteReq {
+  int64 user_id = 1;
+  int64 product_id = 2;
+}
+
+message ListFavoritesReq {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message FavoriteListResp {
+  repeated FavoriteInfo list = 1;
+  int64 total = 2;
+}
+
+message CheckFavoriteReq {
+  int64 user_id = 1;
+  int64 product_id = 2;
+}
+
+message CheckFavoriteResp {
+  bool is_favorite = 1;
+}
+
+message CommentInfo {
+  int64 id = 1;
+  int64 product_id = 2;
+  int64 user_id = 3;
+  string username = 4;
+  string avatar = 5;
+  string content = 6;
+  int32 rating = 7;
+  string created_at = 8;
+}
+
+message ListCommentsReq {
+  int64 product_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message CommentListResp {
+  repeated CommentInfo list = 1;
+  int64 total = 2;
+}
+
+message CreateCommentReq {
+  int64 user_id = 1;
+  int64 product_id = 2;
+  string content = 3;
+  int32 rating = 4;
+}
+
+message OrderItemInfo {
+  int64 id = 1;
+  int64 order_id = 2;
+  int64 product_id = 3;
+  string product_name = 4;
+  string product_image = 5;
+  int64 price = 6;
+  int32 quantity = 7;
+}
+
+message OrderInfo {
+  int64 id = 1;
+  string order_no = 2;
+  int64 user_id = 3;
+  int64 total_amount = 4;
+  int32 status = 5;
+  int64 store_id = 6;
+  string store_name = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  repeated OrderItemInfo items = 10;
+  int64 used_balance = 11;
+  string expire_at = 12;
+  int64 expires_in_seconds = 13;
+}
+
+message CreateOrderReq {
+  int64 user_id = 1;
+  repeated int64 cart_ids = 2;
+  int64 store_id = 3;
+}
+
+message ListOrdersReq {
+  int64 user_id = 1;
+  int32 status = 2;
+  int32 page = 3;
+  int32 size = 4;
+}
+
+message OrderListResp {
+  repeated OrderInfo list = 1;
+  int64 total = 2;
+}
+
+message OrderIDReq {
+  int64 id = 1;
+  int64 user_id = 2;
+}
+
+message CancelOrderReq {
+  int64 id = 1;
+  int64 user_id = 2;
+}
+
+message PayOrderReq {
+  int64 id = 1;
+  int64 user_id = 2;
+  string pay_type = 3;
+  string password = 4;
+  string face_image_url = 5;
+}
+
+message PayOrderResp {
+  bool success = 1;
+  string order_no = 2;
+  string pay_url = 3;
+}
+
+message AlipayNotifyReq {
+  map<string, string> params = 1;
+}
+
+message AlipayNotifyResp {
+  bool success = 1;
+}
+
+message PaymentStatusResp {
+  int32 status = 1;
+}
+
+message ListAvailableStoresReq {
+  int64 user_id = 1;
+  repeated int64 cart_ids = 2;
+}
+
+message DebitWalletReq {
+  int64 user_id = 1;
+  int64 amount = 2;
+  string order_no = 3;
+  string business_type = 4;
+  string idempotency_key = 5;
+}
+
+message DebitWalletResp {
+  bool success = 1;
+  string transaction_no = 2;
+}
+
+message RechargeWalletReq {
+  int64 user_id = 1;
+  int64 amount = 2;
+  string pay_type = 3;
+}
+
+message RechargeWalletResp {
+  int32 code = 1;
+  string message = 2;
+  string pay_url = 3;
+}
+
+message TransferWalletReq {
+  int64 user_id = 1;
+  string target_mobile = 2;
+  int64 amount = 3;
+}
+
+message WalletBalanceResp {
+  int64 balance = 1;
+}
+
+message WalletTransactionInfo {
+  int64 id = 1;
+  int64 wallet_id = 2;
+  string transaction_no = 3;
+  string type = 4;
+  int64 amount = 5;
+  int64 balance = 6;
+  string remark = 7;
+  string created_at = 8;
+  string biz_type = 9;
+  string biz_id = 10;
+}
+
+message ListWalletTxReq {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message WalletTxListResp {
+  repeated WalletTransactionInfo list = 1;
+  int64 total = 2;
+}
+
+message CreateCategoryReq {
+  string name = 1;
+  string icon = 2;
+  int32 sort = 3;
+}
+
+message UpdateCategoryReq {
+  int64 id = 1;
+  string name = 2;
+  string icon = 3;
+  int32 sort = 4;
+}
+
+message CreateProductReq {
+  int64 category_id = 1;
+  string name = 2;
+  string description = 3;
+  int64 price = 4;
+  int64 original_price = 5;
+  int32 stock = 6;
+  string image_url = 7;
+  int32 is_promotion = 8;
+}
+
+message UpdateProductReq {
+  int64 id = 1;
+  int64 category_id = 2;
+  string name = 3;
+  string description = 4;
+  int64 price = 5;
+  int64 original_price = 6;
+  int32 stock = 7;
+  string image_url = 8;
+  int32 is_promotion = 9;
+  int32 status = 10;
+}
+
+message AdminListProductsReq {
+  int32 page = 1;
+  int32 size = 2;
+  string name = 3;
+}
+
+message CreatePromotionReq {
+  string title = 1;
+  int32 type = 2;
+  string start_date = 3;
+  string end_date = 4;
+}
+
+message UpdatePromotionReq {
+  int64 id = 1;
+  string title = 2;
+  int32 type = 3;
+  string start_date = 4;
+  string end_date = 5;
+  int32 status = 6;
+}
+
+message BindPromotionProductsReq {
+  int64 promotion_id = 1;
+  repeated int64 product_ids = 2;
+}
+
+message CreateServiceAreaReq {
+  string name = 1;
+  string points = 2;
+}
+
+message UpdateServiceAreaReq {
+  int64 id = 1;
+  string name = 2;
+  string points = 3;
+  int32 status = 4;
+}
+
+message CreateStoreReq {
+  string name = 1;
+  string address = 2;
+  string phone = 3;
+  double latitude = 4;
+  double longitude = 5;
+}
+
+message UpdateStoreReq {
+  int64 id = 1;
+  string name = 2;
+  string address = 3;
+  string phone = 4;
+  double latitude = 5;
+  double longitude = 6;
+  int32 status = 7;
+}
+
+message BindStoreProductReq {
+  int64 store_id = 1;
+  int64 product_id = 2;
+  int32 stock = 3;
+}
+
+message UnbindStoreProductReq {
+  int64 store_id = 1;
+  int64 product_id = 2;
+}
+
+message UpdateStoreProductStatusReq {
+  int64 store_id = 1;
+  int64 product_id = 2;
+  int32 status = 3;
+}
+
+message UpdateStoreProductStockReq {
+  int64 store_id = 1;
+  int64 product_id = 2;
+  int32 stock = 3;
+}
+
+message ListStoreProductsReq {
+  int64 store_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message StoreProductInfo {
+  int64 id = 1;
+  int64 store_id = 2;
+  int64 product_id = 3;
+  string product_name = 4;
+  int64 price = 5;
+  int32 stock = 6;
+  int32 sold_count = 7;
+  int32 status = 8;
+}
+
+message StoreProductListResp {
+  repeated StoreProductInfo list = 1;
+  int64 total = 2;
+}
+
+message AdminListOrdersReq {
+  int32 page = 1;
+  int32 size = 2;
+  string order_no = 3;
+  int32 status = 4;
+}
+
+message ShipOrderReq {
+  int64 id = 1;
+}
+
+message AdminCancelOrderReq {
+  int64 id = 1;
+}
+
+service MallRpc {
+  rpc ListProducts(ListProductsReq) returns (ProductListResp);
+  rpc SearchProducts(SearchProductsReq) returns (ProductListResp);
+  rpc GetProductDetail(ProductIDReq) returns (ProductDetailResp);
+  rpc GetPromotions(ListProductsReq) returns (ProductListResp);
+
+  rpc ListStores(ListStoresReq) returns (StoreListResp);
+  rpc GetStoreDetail(StoreIDReq) returns (StoreDetailResp);
+
+  rpc ListPromotions(ListPromotionsReq) returns (PromotionListResp);
+  rpc GetPromotionDetail(PromotionIDReq) returns (PromotionDetailResp);
+
+  rpc ListCategories(ListCategoriesReq) returns (CategoryListResp);
+  rpc GetCategoryDetail(CategoryIDReq) returns (CategoryDetailResp);
+
+  rpc ListServiceAreas(ListServiceAreasReq) returns (ServiceAreaListResp);
+
+  rpc AddCartItem(AddCartItemReq) returns (BaseResp);
+  rpc RemoveCartItem(RemoveCartItemReq) returns (BaseResp);
+  rpc UpdateCartItemQty(UpdateCartItemQtyReq) returns (BaseResp);
+  rpc ListCart(UserIDReq) returns (CartResp);
+
+  rpc AddFavorite(AddFavoriteReq) returns (BaseResp);
+  rpc RemoveFavorite(RemoveFavoriteReq) returns (BaseResp);
+  rpc ListFavorites(ListFavoritesReq) returns (FavoriteListResp);
+  rpc CheckFavorite(CheckFavoriteReq) returns (CheckFavoriteResp);
+
+  rpc ListComments(ListCommentsReq) returns (CommentListResp);
+  rpc CreateComment(CreateCommentReq) returns (BaseResp);
+
+  rpc CreateOrder(CreateOrderReq) returns (OrderInfo);
+  rpc ListAvailableStores(ListAvailableStoresReq) returns (StoreListResp);
+  rpc PayOrder(PayOrderReq) returns (PayOrderResp);
+  rpc CancelOrder(CancelOrderReq) returns (BaseResp);
+  rpc ReceiveOrder(OrderIDReq) returns (BaseResp);
+  rpc GetOrderDetail(OrderIDReq) returns (OrderInfo);
+  rpc GetPaymentStatus(OrderIDReq) returns (PaymentStatusResp);
+  rpc ListOrders(ListOrdersReq) returns (OrderListResp);
+
+  rpc RechargeWallet(RechargeWalletReq) returns (RechargeWalletResp);
+  rpc TransferWallet(TransferWalletReq) returns (BaseResp);
+  rpc GetWalletBalance(UserIDReq) returns (WalletBalanceResp);
+  rpc ListWalletTransactions(ListWalletTxReq) returns (WalletTxListResp);
+
+  rpc CreateCategory(CreateCategoryReq) returns (BaseResp);
+  rpc UpdateCategory(UpdateCategoryReq) returns (BaseResp);
+  rpc DeleteCategory(CategoryIDReq) returns (BaseResp);
+
+  rpc AdminListProducts(AdminListProductsReq) returns (ProductListResp);
+  rpc CreateProduct(CreateProductReq) returns (BaseResp);
+  rpc UpdateProduct(UpdateProductReq) returns (BaseResp);
+  rpc DeleteProduct(ProductIDReq) returns (BaseResp);
+
+  rpc CreatePromotion(CreatePromotionReq) returns (BaseResp);
+  rpc UpdatePromotion(UpdatePromotionReq) returns (BaseResp);
+  rpc DeletePromotion(PromotionIDReq) returns (BaseResp);
+  rpc BindPromotionProducts(BindPromotionProductsReq) returns (BaseResp);
+
+  rpc CreateServiceArea(CreateServiceAreaReq) returns (BaseResp);
+  rpc UpdateServiceArea(UpdateServiceAreaReq) returns (BaseResp);
+  rpc DeleteServiceArea(CategoryIDReq) returns (BaseResp);
+
+  rpc CreateStore(CreateStoreReq) returns (BaseResp);
+  rpc UpdateStore(UpdateStoreReq) returns (BaseResp);
+  rpc DeleteStore(StoreIDReq) returns (BaseResp);
+
+  rpc BindStoreProduct(BindStoreProductReq) returns (BaseResp);
+  rpc UnbindStoreProduct(UnbindStoreProductReq) returns (BaseResp);
+  rpc UpdateStoreProductStatus(UpdateStoreProductStatusReq) returns (BaseResp);
+  rpc UpdateStoreProductStock(UpdateStoreProductStockReq) returns (BaseResp);
+  rpc ListStoreProducts(ListStoreProductsReq) returns (StoreProductListResp);
+
+  rpc AdminListOrders(AdminListOrdersReq) returns (OrderListResp);
+  rpc ShipOrder(ShipOrderReq) returns (BaseResp);
+  rpc AdminCancelOrder(AdminCancelOrderReq) returns (BaseResp);
+
+  // Internal endpoints
+  rpc CancelExpiredOrder(OrderIDReq) returns (BaseResp);
+  rpc DebitWallet(DebitWalletReq) returns (DebitWalletResp);
+  rpc AlipayNotify(AlipayNotifyReq) returns (AlipayNotifyResp);
+}

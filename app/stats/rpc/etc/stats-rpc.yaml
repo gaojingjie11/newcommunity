@@ -1,0 +1,25 @@
+Name: stats-rpc
+ListenOn: 0.0.0.0:9005
+Etcd:
+  Hosts:
+    - 101.42.34.232:2379
+  Key: community/stats-rpc
+
+MySQL:
+  Host: 101.42.34.232
+  Port: 3306
+  Database: smart_community
+  Username: root
+  Password: dsw123456
+
+BizRedis:
+  Host: 101.42.34.232
+  Port: 6379
+  Password: dsw123456
+  DB: 15
+
+Agent:
+  BaseUrl: http://agent-service:9100
+  LlmApiKey: ""
+  LlmBaseUrl: ""
+  LlmModel: ""

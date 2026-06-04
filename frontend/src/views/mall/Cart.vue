@@ -23,11 +23,11 @@
             <!-- 1. 商品图 -->
             <div
               class="item-image-wrapper"
-              @click="$router.push(`/product/${item.product.id}`)"
+              @click="$router.push(`/product/${item.product?.id}`)"
             >
               <img
                 :src="
-                  item.product.image_url || DEFAULT_PRODUCT_IMAGE
+                  item.product?.image_url || DEFAULT_PRODUCT_IMAGE
                 "
                 class="item-image"
               />
@@ -37,13 +37,13 @@
             <div class="item-info">
               <div
                 class="item-name"
-                @click="$router.push(`/product/${item.product.id}`)"
+                @click="$router.push(`/product/${item.product?.id}`)"
               >
-                {{ item.product.name }}
+                {{ item.product?.name }}
               </div>
               <div class="item-price">
                 <span class="price-currency">¥</span
-                ><span class="price-amount">{{ item.product.price }}</span>
+                ><span class="price-amount">{{ item.product?.price }}</span>
               </div>
             </div>
 

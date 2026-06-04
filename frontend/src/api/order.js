@@ -12,7 +12,22 @@ export function getCartList() {
   return request({
     url: '/mall/cart/items',
     method: 'get'
-  }).then((res) => res?.list || res || [])
+  }).then((res) => {
+    const list = res?.list || res || [];
+    return list.map(item => ({
+      id: item.id,
+      user_id: item.user_id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      created_at: item.created_at,
+      product: {
+        id: item.product_id,
+        name: item.product_name,
+        price: item.product_price,
+        image_url: item.product_image
+      }
+    }));
+  })
 }
 
 export function deleteCartItem(id) {

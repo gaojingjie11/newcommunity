@@ -1,0 +1,50 @@
+Name: gateway-api
+Host: 0.0.0.0
+Port: 8000
+Timeout: 10000
+
+Auth:
+  AccessSecret: "dev-secret-change-me"
+  AccessExpire: 86400
+
+UserRpc:
+  Endpoints:
+    - user-rpc:9001
+  Timeout: 10000
+
+MallRpc:
+  Endpoints:
+    - mall-rpc:9002
+  Timeout: 10000
+
+CommunityRpc:
+  Endpoints:
+    - community-rpc:9003
+  Timeout: 10000
+
+WorkorderRpc:
+  Endpoints:
+    - workorder-rpc:9004
+  Timeout: 10000
+
+StatsRpc:
+  Endpoints:
+    - stats-rpc:9005
+  Timeout: 10000
+
+BizRedis:
+  Host: 101.42.34.232
+  Port: 6379
+  Password: dsw123456
+  DB: 15
+
+MinIO:
+  Endpoint: 101.42.34.232:9000
+  AccessKey: minioadmin
+  SecretKey: dsw123456
+  Bucket: smart-community
+
+Gateway:
+  InternalToken: "dev-internal-token-change-me"
+  Services:
+    agent-service: http://agent-service:9100

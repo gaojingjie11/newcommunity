@@ -1,26 +1,130 @@
 version: '3.8'
 
 services:
-  # 后端服务
-  backend:
+  # User RPC Service
+  user-rpc:
     build:
-      context: ./smartcomunity
-      dockerfile: Dockerfile
-    container_name: smartserver
+      context: .
+      dockerfile: app/user/rpc/Dockerfile
+    container_name: sc-user-rpc
     restart: always
     environment:
-      - APP_ENV=prod
       - TZ=Asia/Shanghai
-      - ALIYUN_ACCESS_KEY_ID=${ALIYUN_ACCESS_KEY_ID}
-      - ALIYUN_ACCESS_KEY_SECRET=${ALIYUN_ACCESS_KEY_SECRET}
-      - ALIYUN_FACEBODY_ENDPOINT=${ALIYUN_FACEBODY_ENDPOINT:-facebody.cn-shanghai.aliyuncs.com}
-    network_mode: "host"
+    ports:
+      - "9001:9001"
+    networks:
+      - smart-network
 
-  # 前端服务
+  # Mall RPC Service
+  mall-rpc:
+    build:
+      context: .
+      dockerfile: app/mall/rpc/Dockerfile
+    container_name: sc-mall-rpc
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "9002:9002"
+    networks:
+      - smart-network
+
+  # Community RPC Service
+  community-rpc:
+    build:
+      context: .
+      dockerfile: app/community/rpc/Dockerfile
+    container_name: sc-community-rpc
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "9003:9003"
+    networks:
+      - smart-network
+
+  # Workorder RPC Service
+  workorder-rpc:
+    build:
+      context: .
+      dockerfile: app/workorder/rpc/Dockerfile
+    container_name: sc-workorder-rpc
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "9004:9004"
+    networks:
+      - smart-network
+
+  # Stats RPC Service
+  stats-rpc:
+    build:
+      context: .
+      dockerfile: app/stats/rpc/Dockerfile
+    container_name: sc-stats-rpc
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "9005:9005"
+    networks:
+      - smart-network
+
+  # Gateway API Service
+  gateway-api:
+    build:
+      context: .
+      dockerfile: app/gateway/api/Dockerfile
+    container_name: sc-gateway-api
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "8000:8000"
+    networks:
+      - smart-network
+    depends_on:
+      - user-rpc
+      - mall-rpc
+      - community-rpc
+      - workorder-rpc
+      - stats-rpc
+
+  # Agent Service (FastAPI)
+  agent-service:
+    build:
+      context: .
+      dockerfile: services/agent-service/Dockerfile
+    container_name: sc-agent-service
+    restart: always
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9100"]
+    environment:
+      - TZ=Asia/Shanghai
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_MODEL=${LLM_MODEL}
+    ports:
+      - "9100:9100"
+    networks:
+      - smart-network
+
+  # Frontend Service (Vue + Nginx)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: smartfrontend
     restart: always
-    network_mode: "host"
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "81:81"
+    networks:
+      - smart-network
+    depends_on:
+      - gateway-api
+
+networks:
+  smart-network:
+    driver: bridge

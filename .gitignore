@@ -59,3 +59,13 @@ mysql_data/
 database/
 tmp/
 temp/
+
+# Ignore legacy monolith and services
+smartcomunity/
+services/
+
+# Ignore docs
+docs/
+API_DOCS.md
+*.docx
+

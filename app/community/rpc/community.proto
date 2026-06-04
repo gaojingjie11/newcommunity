@@ -1,0 +1,253 @@
+syntax = "proto3";
+
+package community;
+option go_package = "./community";
+
+message BaseResp {
+  int32 code = 1;
+  string message = 2;
+}
+
+message UserIDReq {
+  int64 user_id = 1;
+}
+
+// Notices
+message NoticeInfo {
+  int64 id = 1;
+  string title = 2;
+  string content = 3;
+  string publisher = 4;
+  int64 view_count = 5;
+  int32 status = 6;
+  string created_at = 7;
+}
+
+message ListNoticesReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message NoticeListResp {
+  repeated NoticeInfo list = 1;
+  int64 total = 2;
+}
+
+message NoticeIDReq {
+  int64 id = 1;
+  int64 user_id = 2;
+}
+
+message NoticeDetailResp {
+  NoticeInfo notice = 1;
+}
+
+message NoticeViewsResp {
+  int64 views = 1;
+}
+
+message CreateNoticeReq {
+  string title = 1;
+  string content = 2;
+  string publisher = 3;
+}
+
+// Visitors
+message VisitorInfo {
+  int64 id = 1;
+  int64 user_id = 2;
+  string visitor_name = 3;
+  string visitor_phone = 4;
+  string visit_purpose = 5;
+  string release_time = 6;
+  string valid_date = 7;
+  int32 status = 8;
+  string audit_remark = 9;
+  string audit_at = 10;
+  string created_at = 11;
+  string user_name = 12;
+  string user_mobile = 13;
+}
+
+message CreateVisitorReq {
+  int64 user_id = 1;
+  string visitor_name = 2;
+  string visitor_phone = 3;
+  string visit_purpose = 4;
+  string release_time = 5;
+  string valid_date = 6;
+}
+
+message ListVisitorReq {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message VisitorListResp {
+  repeated VisitorInfo list = 1;
+  int64 total = 2;
+}
+
+message AuditVisitorReq {
+  int64 id = 1;
+  int32 status = 2;
+  string audit_remark = 3;
+}
+
+// Parking
+message ParkingSpaceInfo {
+  int64 id = 1;
+  string parking_no = 2;
+  int32 status = 3;
+  int64 user_id = 4;
+  string user_name = 5;
+  string user_mobile = 6;
+  string car_plate = 7;
+  int64 binding_id = 8;
+}
+
+message BindPlateReq {
+  int64 user_id = 1;
+  int64 parking_space_id = 2;
+  string car_plate = 3;
+}
+
+message ListParkingReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message ParkingListResp {
+  repeated ParkingSpaceInfo list = 1;
+  int64 total = 2;
+}
+
+message CreateParkingReq {
+  string parking_no = 1;
+}
+
+message AssignParkingReq {
+  int64 id = 1;
+  string mobile = 2;
+  string car_plate = 3;
+}
+
+message ParkingStatsResp {
+  int64 total = 1;
+  int64 bound = 2;
+  int64 free = 3;
+}
+
+// Property Fee
+message PropertyFeeInfo {
+  int64 id = 1;
+  int64 user_id = 2;
+  string month = 3;
+  double amount = 4;
+  int32 status = 5;
+  string due_date = 6;
+  string paid_at = 7;
+}
+
+message ListPropertyFeesReq {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message PropertyFeeListResp {
+  repeated PropertyFeeInfo list = 1;
+  int64 total = 2;
+}
+
+message CreatePropertyFeeReq {
+  int64 user_id = 1;
+  string month = 2;
+  double amount = 3;
+  string due_date = 4;
+}
+
+message PayPropertyFeeReq {
+  int64 id = 1;
+  int64 user_id = 2;
+}
+
+message PropertyFeePaymentInfo {
+  int64 id = 1;
+  int64 property_fee_id = 2;
+  int64 user_id = 3;
+  double amount = 4;
+  int64 wallet_transaction_id = 5;
+  string idempotency_key = 6;
+  int32 status = 7;
+  string paid_at = 8;
+}
+
+message ListPaymentsReq {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message PaymentListResp {
+  repeated PropertyFeePaymentInfo list = 1;
+  int64 total = 2;
+}
+
+// Messages
+message MessageInfo {
+  int64 id = 1;
+  int64 user_id = 2;
+  string content = 3;
+  string created_at = 4;
+  string username = 5;
+  string avatar = 6;
+}
+
+message ListMessagesReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message MessageListResp {
+  repeated MessageInfo list = 1;
+  int64 total = 2;
+}
+
+message SendMessageReq {
+  int64 user_id = 1;
+  string content = 2;
+}
+
+service CommunityRpc {
+  rpc ListNotices(ListNoticesReq) returns (NoticeListResp);
+  rpc GetNoticeDetail(NoticeIDReq) returns (NoticeDetailResp);
+  rpc MarkNoticeRead(NoticeIDReq) returns (BaseResp);
+  rpc AdminListNotices(ListNoticesReq) returns (NoticeListResp);
+  rpc CreateNotice(CreateNoticeReq) returns (BaseResp);
+  rpc DeleteNotice(NoticeIDReq) returns (BaseResp);
+  rpc GetNoticeViews(NoticeIDReq) returns (NoticeViewsResp);
+
+  rpc CreateVisitor(CreateVisitorReq) returns (BaseResp);
+  rpc ListMyVisitors(ListVisitorReq) returns (VisitorListResp);
+  rpc AdminListVisitors(ListVisitorReq) returns (VisitorListResp);
+  rpc AuditVisitor(AuditVisitorReq) returns (BaseResp);
+
+  rpc ListMyParking(UserIDReq) returns (ParkingListResp);
+  rpc BindPlate(BindPlateReq) returns (BaseResp);
+  rpc AdminListParking(ListParkingReq) returns (ParkingListResp);
+  rpc CreateParking(CreateParkingReq) returns (BaseResp);
+  rpc AssignParking(AssignParkingReq) returns (BaseResp);
+  rpc GetParkingStats(BaseResp) returns (ParkingStatsResp);
+
+  rpc ListMyFees(ListPropertyFeesReq) returns (PropertyFeeListResp);
+  rpc PayPropertyFee(PayPropertyFeeReq) returns (BaseResp);
+  rpc ListMyPayments(ListPaymentsReq) returns (PaymentListResp);
+  rpc AdminListFees(ListPropertyFeesReq) returns (PropertyFeeListResp);
+  rpc AdminCreateFee(CreatePropertyFeeReq) returns (BaseResp);
+  rpc AdminListPayments(ListPaymentsReq) returns (PaymentListResp);
+
+  rpc ListMessages(ListMessagesReq) returns (MessageListResp);
+  rpc SendMessage(SendMessageReq) returns (BaseResp);
+}

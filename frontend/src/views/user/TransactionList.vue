@@ -18,13 +18,54 @@
           <div class="icon-wrapper">
             <el-icon><Wallet /></el-icon>
           </div>
-          <span class="summary-label">当前账户余额</span>
+          <div class="balance-info">
+            <span class="summary-label">当前账户余额</span>
+            <div class="balance-amount-row">
+              <span class="currency">¥</span>
+              <span class="amount">{{ (userInfo.balance || 0).toFixed(2) }}</span>
+            </div>
+          </div>
         </div>
-        <div class="summary-right">
-          <span class="currency">¥</span>
-          <span class="amount">{{ (userInfo.balance || 0).toFixed(2) }}</span>
+        <div class="summary-actions">
+          <el-button type="primary" size="large" class="recharge-btn" @click="showRechargeDialog = true">
+            <el-icon class="btn-icon"><Plus /></el-icon>充值余额
+          </el-button>
         </div>
       </div>
+
+      <!-- 余额充值弹窗 -->
+      <el-dialog
+        v-model="showRechargeDialog"
+        title="账户余额充值"
+        width="460px"
+        align-center
+        class="recharge-dialog"
+        :before-close="closeRechargeDialog"
+      >
+        <el-form :model="rechargeForm" label-position="top">
+          <el-form-item label="充值金额 (元)">
+            <el-input-number 
+              v-model="rechargeForm.amount" 
+              :min="0.01" 
+              :precision="2" 
+              :step="10" 
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="支付方式">
+            <el-radio-group v-model="rechargeForm.payType" class="pay-type-group">
+              <el-radio-button label="alipay">支付宝 (沙箱)</el-radio-button>
+              <el-radio-button label="mock">模拟充值</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="closeRechargeDialog">取消</el-button>
+            <el-button type="primary" :loading="rechargeLoading" @click="handleRechargeSubmit">确认充值</el-button>
+          </div>
+        </template>
+      </el-dialog>
 
       <!-- 深度定制的流水表格 -->
       <div class="table-wrapper">
@@ -94,10 +135,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
-import { getTransactionList, getWalletBalance } from '@/api/finance'
+import { getTransactionList, getWalletBalance, recharge } from '@/api/finance'
 import dayjs from 'dayjs'
+import { ElMessage } from 'element-plus'
 // 引入必需的图标
-import { ArrowLeft, Wallet } from '@element-plus/icons-vue'
+import { ArrowLeft, Wallet, Plus } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const transactions = ref([])
@@ -106,6 +148,48 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const size = ref(10)
+
+const showRechargeDialog = ref(false)
+const rechargeLoading = ref(false)
+const rechargeForm = ref({
+  amount: 50.00,
+  payType: 'alipay'
+})
+
+const closeRechargeDialog = () => {
+  showRechargeDialog.value = false
+  rechargeForm.value.amount = 50.00
+  rechargeForm.value.payType = 'alipay'
+}
+
+const handleRechargeSubmit = async () => {
+  if (rechargeForm.value.amount <= 0) {
+    ElMessage.warning('请输入大于0的充值金额')
+    return
+  }
+  rechargeLoading.value = true
+  try {
+    const res = await recharge(rechargeForm.value.amount, rechargeForm.value.payType)
+    if (res && (res.code === 0 || !res.code)) {
+      if (rechargeForm.value.payType === 'alipay' && res.pay_url) {
+        ElMessage.success('正在跳转到支付宝支付收银台...')
+        window.location.href = res.pay_url
+      } else {
+        ElMessage.success('充值成功！')
+        closeRechargeDialog()
+        fetchTransactions()
+        fetchUser()
+      }
+    } else {
+      ElMessage.error(res?.message || '充值失败')
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('充值请求失败，请稍后重试')
+  } finally {
+    rechargeLoading.value = false
+  }
+}
 
 const fetchTransactions = async () => {
     loading.value = true
@@ -253,13 +337,19 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(45, 89, 123, 0.2);
 }
 
-.summary-label {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
+.balance-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.summary-right {
+.summary-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #7f8c8d;
+}
+
+.balance-amount-row {
   display: flex;
   align-items: baseline;
   color: #2d597b;
@@ -276,6 +366,56 @@ onMounted(() => {
   font-weight: 800;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   letter-spacing: -1px;
+}
+
+.recharge-btn {
+  background-color: #2d597b;
+  border-color: #2d597b;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 12px 24px;
+  transition: all 0.3s ease;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.recharge-btn:hover {
+  background-color: #1e3f5a;
+  border-color: #1e3f5a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 89, 123, 0.2);
+}
+
+.btn-icon {
+  margin-right: 6px;
+}
+
+.pay-type-group {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+:deep(.pay-type-group .el-radio-button) {
+  flex: 1;
+}
+
+:deep(.pay-type-group .el-radio-button__inner) {
+  border-radius: 8px !important;
+  border: 1px solid #dcdfe6 !important;
+  padding: 12px 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+:deep(.pay-type-group .el-radio-button__orig-radio:checked + .el-radio-button__inner) {
+  background-color: #e8f4ff;
+  border-color: #409eff !important;
+  color: #409eff;
+  box-shadow: none;
 }
 
 /* ★ 表格容器与深度美化 ★ */

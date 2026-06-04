@@ -1,10 +1,10 @@
 import request from '@/utils/request'
 
-export function recharge(amount) {
+export function recharge(amount, payType = 'alipay') {
   return request({
     url: '/mall/wallet/recharge',
     method: 'post',
-    data: { amount, idempotency_key: `recharge-${Date.now()}-${Math.random().toString(16).slice(2)}` }
+    data: { amount: Number(amount), pay_type: payType }
   })
 }
 

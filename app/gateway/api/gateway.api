@@ -1,0 +1,1182 @@
+syntax = "v1"
+
+info (
+	title:   "Gateway API"
+	desc:    "Unified Entry Gateway API"
+	version: "v1.0"
+)
+
+type BaseResp {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+type UserInfo {
+	Id             int64   `json:"id"`
+	Username       string  `json:"username"`
+	RealName       string  `json:"real_name"`
+	Mobile         string  `json:"mobile"`
+	Avatar         string  `json:"avatar"`
+	GreenPoints    int32   `json:"green_points"`
+	Role           string  `json:"role"`
+	Status         int32   `json:"status"`
+	FaceRegistered bool    `json:"face_registered"`
+	FaceImageUrl   string  `json:"face_image_url"`
+	Balance        float64 `json:"balance"`
+}
+
+type RegisterReq {
+	Mobile   string `json:"mobile"`
+	Password string `json:"password"`
+}
+
+type RegisterResp {
+	UserId int64 `json:"user_id"`
+}
+
+type LoginReq {
+	Mobile    string `json:"mobile"`
+	Password  string `json:"password"`
+	ClientIp  string `json:"client_ip,optional"`
+	UserAgent string `json:"user_agent,optional"`
+}
+
+type LoginResp {
+	Token            string   `json:"token"`
+	UserInfo         UserInfo `json:"user_info"`
+	IsNewUser        bool     `json:"is_new_user"`
+	ProfileCompleted bool     `json:"profile_completed"`
+}
+
+type LoginByCodeReq {
+	Mobile    string `json:"mobile"`
+	Code      string `json:"code"`
+	ClientIp  string `json:"client_ip,optional"`
+	UserAgent string `json:"user_agent,optional"`
+}
+
+type SendCodeReq {
+	Mobile string `json:"mobile"`
+}
+
+type ResetPasswordReq {
+	Mobile      string `json:"mobile"`
+	Code        string `json:"code"`
+	NewPassword string `json:"new_password"`
+}
+
+type ChangePasswordReq {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+type UpdateProfileReq {
+	Avatar   *string `json:"avatar,optional"`
+	Mobile   *string `json:"mobile,optional"`
+	Username *string `json:"username,optional"`
+	Gender   *int32  `json:"gender,optional"`
+	Email    *string `json:"email,optional"`
+	RealName *string `json:"real_name,optional"`
+	Age      *int32  `json:"age,optional"`
+}
+
+type RegisterFaceReq {
+	FaceImageUrl string `json:"face_image_url"`
+}
+
+type UploadResp {
+	Url string `json:"url"`
+	Key string `json:"key"`
+}
+
+// Mall-related types
+type ProductInfo {
+	Id            int64   `json:"id"`
+	CategoryName  string  `json:"category_name"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	Price         float64 `json:"price"`
+	OriginalPrice float64 `json:"original_price"`
+	Stock         int32   `json:"stock"`
+	ImageUrl      string  `json:"image_url"`
+	IsPromotion   int32   `json:"is_promotion"`
+	Sales         int32   `json:"sales"`
+	Status        int32   `json:"status"`
+	Version       int32   `json:"version"`
+	CreatedAt     string  `json:"created_at"`
+	CategoryId    int64   `json:"category_id"`
+}
+
+type ListProductsReq {
+	Page       int32   `form:"page,optional"`
+	Size       int32   `form:"size,optional"`
+	CategoryId int64   `form:"category_id,optional"`
+	Name       string  `form:"name,optional"`
+	Sort       string  `form:"sort,optional"`
+	MinPrice   float64 `form:"min_price,optional"`
+	MaxPrice   float64 `form:"max_price,optional"`
+}
+
+type ProductListResp {
+	List  []ProductInfo `json:"list"`
+	Total int64         `json:"total"`
+}
+
+type ProductIDReq {
+	Id int64 `path:"id"`
+}
+
+type StoreInfo {
+	Id        int64  `json:"id"`
+	Name      string `json:"name"`
+	Address   string `json:"address"`
+	Phone     string `json:"phone"`
+	CreatedAt string `json:"created_at,optional"`
+}
+
+type StoreListResp {
+	List  []StoreInfo `json:"list"`
+	Total int64       `json:"total"`
+}
+
+type CategoryInfo {
+	Id          int64  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,optional"`
+	Sort        int32  `json:"sort"`
+}
+
+type CategoryListResp {
+	List  []CategoryInfo `json:"list"`
+	Total int64          `json:"total"`
+}
+
+type CartItem {
+	Id           int64   `json:"id"`
+	UserId       int64   `json:"user_id"`
+	ProductId    int64   `json:"product_id"`
+	Quantity     int32   `json:"quantity"`
+	CreatedAt    string  `json:"created_at"`
+	ProductName  string  `json:"product_name"`
+	ProductPrice float64 `json:"product_price"`
+	ProductImage string  `json:"product_image"`
+}
+
+type CartResp {
+	List []CartItem `json:"list"`
+}
+
+type AddCartItemReq {
+	ProductId int64 `json:"product_id"`
+	Quantity  int32 `json:"quantity"`
+}
+
+type CartIDReq {
+	Id int64 `path:"id"`
+}
+
+type UpdateCartQtyReq {
+	Id       int64 `path:"id"`
+	Quantity int32 `json:"quantity"`
+}
+
+type FavoriteInfo {
+	Id        int64       `json:"id"`
+	UserId    int64       `json:"user_id"`
+	ProductId int64       `json:"product_id"`
+	CreatedAt string      `json:"created_at"`
+	Product   ProductInfo `json:"product"`
+}
+
+type FavoriteListResp {
+	List  []FavoriteInfo `json:"list"`
+	Total int64          `json:"total"`
+}
+
+type AddFavoriteReq {
+	ProductId int64 `json:"product_id"`
+}
+
+type DeleteFavoriteReq {
+	ProductId int64 `path:"productId"`
+}
+
+type CheckFavoriteReq {
+	ProductId int64 `path:"productId"`
+}
+
+type CheckFavoriteResp {
+	IsFavorite bool `json:"is_favorite"`
+}
+
+type CommentInfo {
+	Id        int64  `json:"id"`
+	ProductId int64  `json:"product_id"`
+	UserId    int64  `json:"user_id"`
+	Username  string `json:"username"`
+	Avatar    string `json:"avatar"`
+	Content   string `json:"content"`
+	Rating    int32  `json:"rating"`
+	CreatedAt string `json:"created_at"`
+}
+
+type CommentListResp {
+	List  []CommentInfo `json:"list"`
+	Total int64         `json:"total"`
+}
+
+type ListCommentsReq {
+	ProductId int64 `form:"product_id"`
+	Page      int32 `form:"page,optional"`
+	Size      int32 `form:"size,optional"`
+}
+
+type CreateCommentReq {
+	ProductId int64  `json:"product_id"`
+	Content   string `json:"content"`
+	Rating    int32  `json:"rating"`
+}
+
+type OrderItemInfo {
+	Id           int64   `json:"id"`
+	OrderId      int64   `json:"order_id"`
+	ProductId    int64   `json:"product_id"`
+	ProductName  string  `json:"product_name"`
+	ProductImage string  `json:"product_image"`
+	Price        float64 `json:"price"`
+	Quantity     int32   `json:"quantity"`
+}
+
+type OrderInfo {
+	Id               int64           `json:"id"`
+	OrderNo          string          `json:"order_no"`
+	UserId           int64           `json:"user_id"`
+	TotalAmount      float64         `json:"total_amount"`
+	Status           int32           `json:"status"`
+	StoreId          int64           `json:"store_id"`
+	StoreName        string          `json:"store_name"`
+	CreatedAt        string          `json:"created_at"`
+	UpdatedAt        string          `json:"updated_at"`
+	Items            []OrderItemInfo `json:"items"`
+	UsedBalance      float64         `json:"used_balance"`
+	ExpireAt         string          `json:"expire_at"`
+	ExpiresInSeconds int64           `json:"expires_in_seconds"`
+}
+
+type CreateOrderReq {
+	CartIds []int64 `json:"cart_ids"`
+	StoreId int64   `json:"store_id"`
+}
+
+type AvailableStoresReq {
+	CartIds string `form:"cart_ids"`
+}
+
+type ListOrdersReq {
+	Status int32 `form:"status,optional"`
+	Page   int32 `form:"page,optional"`
+	Size   int32 `form:"size,optional"`
+}
+
+type OrderListResp {
+	List  []OrderInfo `json:"list"`
+	Total int64       `json:"total"`
+}
+
+type OrderIDReq {
+	Id int64 `path:"id"`
+}
+
+type PayOrderReq {
+	Id             int64  `path:"id"`
+	PayType        string `json:"pay_type,optional"`
+	Password       string `json:"password,optional"`
+	FaceImageUrl   string `json:"face_image_url,optional"`
+	IdempotencyKey string `json:"idempotency_key,optional"`
+}
+
+type PayOrderResp {
+	Success bool   `json:"success"`
+	OrderNo string `json:"order_no"`
+	PayUrl  string `json:"pay_url,optional"`
+}
+
+type CancelOrderReq {
+	Id int64 `path:"id"`
+}
+
+type ReceiveOrderReq {
+	Id int64 `path:"id"`
+}
+
+type RechargeWalletReq {
+	Amount  float64 `json:"amount"`
+	PayType string  `json:"pay_type,optional"`
+}
+
+type RechargeWalletResp {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	PayUrl  string `json:"pay_url,optional"`
+}
+
+type TransferWalletReq {
+	TargetMobile string  `json:"target_mobile"`
+	Amount       float64 `json:"amount"`
+}
+
+type WalletBalanceResp {
+	Balance float64 `json:"balance"`
+}
+
+type WalletTransactionInfo {
+	Id            int64   `json:"id"`
+	WalletId      int64   `json:"wallet_id"`
+	TransactionNo string  `json:"transaction_no"`
+	Type          string  `json:"type"`
+	Amount        float64 `json:"amount"`
+	Balance       float64 `json:"balance"`
+	Remark        string  `json:"remark"`
+	CreatedAt     string  `json:"created_at"`
+	BizType       string  `json:"biz_type"`
+	BizId         string  `json:"biz_id"`
+}
+
+type ListTransactionsReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type WalletTxListResp {
+	List  []WalletTransactionInfo `json:"list"`
+	Total int64                   `json:"total"`
+}
+
+type AdminProductListReq {
+	Page int32  `form:"page,optional"`
+	Size int32  `form:"size,optional"`
+	Name string `form:"name,optional"`
+}
+
+type AdminCreateProductReq {
+	CategoryId    int64   `json:"category_id"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	Price         float64 `json:"price"`
+	OriginalPrice float64 `json:"original_price"`
+	Stock         int32   `json:"stock"`
+	ImageUrl      string  `json:"image_url"`
+	IsPromotion   int32   `json:"is_promotion"`
+}
+
+type AdminUpdateProductReq {
+	Id            int64   `path:"id"`
+	CategoryId    int64   `json:"category_id"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	Price         float64 `json:"price"`
+	OriginalPrice float64 `json:"original_price"`
+	Stock         int32   `json:"stock"`
+	ImageUrl      string  `json:"image_url"`
+	IsPromotion   int32   `json:"is_promotion"`
+	Status        int32   `json:"status"`
+}
+
+type AdminDeleteProductReq {
+	Id int64 `path:"id"`
+}
+
+type AdminCreateStoreReq {
+	Name      string  `json:"name"`
+	Address   string  `json:"address"`
+	Phone     string  `json:"phone"`
+	Latitude  float64 `json:"latitude,optional"`
+	Longitude float64 `json:"longitude,optional"`
+}
+
+type AdminUpdateStoreReq {
+	Id        int64   `path:"id"`
+	Name      string  `json:"name"`
+	Address   string  `json:"address"`
+	Phone     string  `json:"phone"`
+	Latitude  float64 `json:"latitude,optional"`
+	Longitude float64 `json:"longitude,optional"`
+	Status    int32   `json:"status"`
+}
+
+type AdminDeleteStoreReq {
+	Id int64 `path:"id"`
+}
+
+type AdminListOrdersReq {
+	Page    int32  `form:"page,optional"`
+	Size    int32  `form:"size,optional"`
+	OrderNo string `form:"order_no,optional"`
+	Status  int32  `form:"status,optional"`
+}
+
+type AdminShipOrderReq {
+	Id int64 `path:"id"`
+}
+
+type AdminGetStoreProductsReq {
+	StoreId int64 `path:"storeId"`
+}
+
+type StoreProductInfo {
+	Id          int64   `json:"id"`
+	StoreId     int64   `json:"store_id"`
+	ProductId   int64   `json:"product_id"`
+	ProductName string  `json:"product_name"`
+	Price       float64 `json:"price"`
+	Stock       int32   `json:"stock"`
+	SoldCount   int32   `json:"sold_count"`
+	Status      int32   `json:"status"`
+}
+
+type StoreProductListResp {
+	List  []StoreProductInfo `json:"list"`
+	Total int64              `json:"total"`
+}
+
+type AdminBindStoreProductReq {
+	StoreId   int64 `json:"store_id"`
+	ProductId int64 `json:"product_id"`
+	Stock     int32 `json:"stock"`
+}
+
+type AdminUnbindStoreProductReq {
+	StoreId   int64 `json:"store_id"`
+	ProductId int64 `json:"product_id"`
+}
+
+type AdminUpdateStoreProductStatusReq {
+	StoreId   int64 `json:"store_id"`
+	ProductId int64 `json:"product_id"`
+	Status    int32 `json:"status"`
+}
+
+type AdminUpdateStoreProductStockReq {
+	StoreId   int64 `json:"store_id"`
+	ProductId int64 `json:"product_id"`
+	Stock     int32 `json:"stock"`
+}
+
+// Community Types
+type NoticeInfo {
+	Id        int64  `json:"id"`
+	Title     string `json:"title"`
+	Content   string `json:"content"`
+	Publisher string `json:"publisher"`
+	ViewCount int64  `json:"view_count"`
+	Status    int32  `json:"status"`
+	CreatedAt string `json:"created_at"`
+}
+
+type ListNoticesReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type NoticeListResp {
+	List  []NoticeInfo `json:"list"`
+	Total int64        `json:"total"`
+}
+
+type NoticeIDReq {
+	Id int64 `path:"id"`
+}
+
+type NoticeViewsResp {
+	Views int64 `json:"views"`
+}
+
+type CreateNoticeReq {
+	Title     string `json:"title"`
+	Content   string `json:"content"`
+	Publisher string `json:"publisher,optional"`
+}
+
+type VisitorInfo {
+	Id           int64  `json:"id"`
+	UserId       int64  `json:"user_id"`
+	VisitorName  string `json:"visitor_name"`
+	VisitorPhone string `json:"visitor_phone"`
+	VisitPurpose string `json:"visit_purpose"`
+	ReleaseTime  string `json:"release_time"`
+	ValidDate    string `json:"valid_date"`
+	Status       int32  `json:"status"`
+	AuditRemark  string `json:"audit_remark"`
+	AuditAt      string `json:"audit_at"`
+	CreatedAt    string `json:"created_at"`
+	UserName     string `json:"user_name,optional"`
+	UserMobile   string `json:"user_mobile,optional"`
+}
+
+type CreateVisitorReq {
+	VisitorName  string `json:"visitor_name"`
+	VisitorPhone string `json:"visitor_phone"`
+	VisitPurpose string `json:"visit_purpose"`
+	ReleaseTime  string `json:"release_time"`
+	ValidDate    string `json:"valid_date"`
+}
+
+type ListVisitorReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type VisitorListResp {
+	List  []VisitorInfo `json:"list"`
+	Total int64         `json:"total"`
+}
+
+type AuditVisitorReq {
+	Id          int64  `path:"id"`
+	Status      int32  `json:"status"`
+	AuditRemark string `json:"audit_remark,optional"`
+}
+
+type ParkingSpaceInfo {
+	Id         int64  `json:"id"`
+	ParkingNo  string `json:"parking_no"`
+	Status     int32  `json:"status"`
+	UserId     int64  `json:"user_id"`
+	UserName   string `json:"user_name"`
+	UserMobile string `json:"user_mobile"`
+	CarPlate   string `json:"car_plate"`
+	BindingId  int64  `json:"binding_id"`
+}
+
+type BindPlateReq {
+	Id       int64  `path:"id"`
+	CarPlate string `json:"car_plate"`
+}
+
+type ListParkingReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type ParkingListResp {
+	List  []ParkingSpaceInfo `json:"list"`
+	Total int64              `json:"total"`
+}
+
+type CreateParkingReq {
+	ParkingNo string `json:"parking_no"`
+}
+
+type AssignParkingReq {
+	Id       int64  `path:"id"`
+	Mobile   string `json:"mobile,optional"`
+	CarPlate string `json:"car_plate,optional"`
+}
+
+type ParkingStatsResp {
+	Total int64 `json:"total"`
+	Bound int64 `json:"bound"`
+	Free  int64 `json:"free"`
+}
+
+type PropertyFeeInfo {
+	Id      int64   `json:"id"`
+	UserId  int64   `json:"user_id"`
+	Month   string  `json:"month"`
+	Amount  float64 `json:"amount"`
+	Status  int32   `json:"status"`
+	DueDate string  `json:"due_date"`
+	PaidAt  string  `json:"paid_at"`
+}
+
+type ListPropertyFeesReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type PropertyFeeListResp {
+	List  []PropertyFeeInfo `json:"list"`
+	Total int64             `json:"total"`
+}
+
+type CreatePropertyFeeReq {
+	UserId  int64   `json:"user_id"`
+	Month   string  `json:"month"`
+	Amount  float64 `json:"amount"`
+	DueDate string  `json:"due_date,optional"`
+}
+
+type PayPropertyFeeReq {
+	Id             int64  `path:"id"`
+	IdempotencyKey string `json:"idempotency_key,optional"`
+	PayType        string `json:"pay_type,optional"`
+	Password       string `json:"password,optional"`
+	FaceImageUrl   string `json:"face_image_url,optional"`
+}
+
+type PropertyFeePaymentInfo {
+	Id                  int64   `json:"id"`
+	PropertyFeeId       int64   `json:"property_fee_id"`
+	UserId              int64   `json:"user_id"`
+	Amount              float64 `json:"amount"`
+	WalletTransactionId int64   `json:"wallet_transaction_id"`
+	IdempotencyKey      string  `json:"idempotency_key"`
+	Status              int32   `json:"status"`
+	PaidAt              string  `json:"paid_at"`
+}
+
+type ListPaymentsReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type PaymentListResp {
+	List  []PropertyFeePaymentInfo `json:"list"`
+	Total int64                    `json:"total"`
+}
+
+type MessageInfo {
+	Id        int64  `json:"id"`
+	UserId    int64  `json:"user_id"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+	Username  string `json:"username"`
+	Avatar    string `json:"avatar"`
+}
+
+type ListMessagesReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type MessageListResp {
+	List  []MessageInfo `json:"list"`
+	Total int64         `json:"total"`
+}
+
+type SendMessageReq {
+	Content string `json:"content"`
+}
+
+// Workorder Types
+type WorkorderInfo {
+	Id          int64  `json:"id"`
+	Type        string `json:"type"`
+	UserId      int64  `json:"user_id"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+	Status      int32  `json:"status"`
+	Result      string `json:"result"`
+	ProcessorId int64  `json:"processor_id"`
+	ProcessedAt string `json:"processed_at"`
+	CreatedAt   string `json:"created_at"`
+	UserName    string `json:"user_name,optional"`
+	UserMobile  string `json:"user_mobile,optional"`
+}
+
+type CreateWorkorderReq {
+	Type        string `json:"type"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+}
+
+type ListWorkorderReq {
+	Status int32 `form:"status,optional"`
+	Page   int32 `form:"page,optional"`
+	Size   int32 `form:"size,optional"`
+}
+
+type WorkorderListResp {
+	List  []WorkorderInfo `json:"list"`
+	Total int64           `json:"total"`
+}
+
+type WorkorderLogInfo {
+	Id         int64  `json:"id"`
+	TargetType string `json:"target_type"`
+	TargetId   int64  `json:"target_id"`
+	FromStatus int32  `json:"from_status"`
+	ToStatus   int32  `json:"to_status"`
+	OperatorId int64  `json:"operator_id"`
+	Action     string `json:"action"`
+	Remark     string `json:"remark"`
+	CreatedAt  string `json:"created_at"`
+}
+
+type GetLogsReq {
+	Id int64 `path:"id"`
+}
+
+type LogListResp {
+	List []WorkorderLogInfo `json:"list"`
+}
+
+type ProcessWorkorderReq {
+	Id     int64  `path:"id"`
+	Status int32  `json:"status"`
+	Result string `json:"result"`
+	Remark string `json:"remark,optional"`
+}
+
+// Stats Types
+type SalesRankInfo {
+	ProductId   int64   `json:"product_id"`
+	ProductName string  `json:"product_name"`
+	TotalSales  int64   `json:"total_sales"`
+	TotalAmount float64 `json:"total_amount"`
+}
+
+type SalesRankResp {
+	List []SalesRankInfo `json:"list"`
+}
+
+type ViewRankInfo {
+	ProductId   int64  `json:"product_id"`
+	ProductName string `json:"product_name"`
+	ViewCount   int64  `json:"view_count"`
+	UniqueUsers int64  `json:"unique_users"`
+}
+
+type ViewRankResp {
+	List []ViewRankInfo `json:"list"`
+}
+
+type CommunityOverviewResp {
+	UserCount      int64   `json:"user_count"`
+	OrderCount     int64   `json:"order_count"`
+	PaidAmount     float64 `json:"paid_amount"`
+	RepairCount    int64   `json:"repair_count"`
+	ComplaintCount int64   `json:"complaint_count"`
+	FeeCount       int64   `json:"fee_count"`
+	FeePaidCount   int64   `json:"fee_paid_count"`
+}
+
+type OrderSummaryInfo {
+	Status      int32   `json:"status"`
+	Count       int64   `json:"count"`
+	TotalAmount float64 `json:"total_amount"`
+}
+
+type OrderTrendInfo {
+	Date   string  `json:"date"`
+	Count  int64   `json:"count"`
+	Amount float64 `json:"amount"`
+}
+
+type OrderStatsResp {
+	Summaries []OrderSummaryInfo `json:"summaries"`
+	Trends    []OrderTrendInfo   `json:"trends"`
+}
+
+type WorkorderSummaryInfo {
+	Type   string `json:"type"`
+	Status int32  `json:"status"`
+	Count  int64  `json:"count"`
+}
+
+type WorkorderStatsResp {
+	Summaries []WorkorderSummaryInfo `json:"summaries"`
+}
+
+type AIReportInfo {
+	Id                 int64   `json:"id"`
+	RepairNewCount     int64   `json:"repair_new_count"`
+	RepairPendingCount int64   `json:"repair_pending_count"`
+	VisitorNewCount    int64   `json:"visitor_new_count"`
+	PropertyPaidCount  int64   `json:"property_paid_count"`
+	PropertyPaidAmount float64 `json:"property_paid_amount"`
+	ReportSummary      string  `json:"report_summary"`
+	ReportMarkdown     string  `json:"report_markdown"`
+	GeneratedBy        int64   `json:"generated_by"`
+	CreatedAt          string  `json:"created_at"`
+}
+
+type ReportResp {
+	Report AIReportInfo `json:"report"`
+}
+
+type ListReportsReq {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
+}
+
+type ReportListResp {
+	List  []AIReportInfo `json:"list"`
+	Total int64          `json:"total"`
+}
+
+type ReportIDReq {
+	Id int64 `path:"id"`
+}
+
+type RankLimitReq {
+	Limit int32 `form:"limit,optional"`
+}
+
+type DaysReq {
+	Days int32 `form:"days,optional"`
+}
+
+@server (
+	prefix: /api/users
+)
+service Gateway {
+	@handler Register
+	post /register (RegisterReq) returns (RegisterResp)
+
+	@handler Login
+	post /login (LoginReq) returns (LoginResp)
+
+	@handler SmsCode
+	post /sms-code (SendCodeReq) returns (BaseResp)
+
+	@handler LoginCode
+	post /login-code (LoginByCodeReq) returns (LoginResp)
+
+	@handler ResetPasswordCode
+	post /password-reset/code (SendCodeReq) returns (BaseResp)
+
+	@handler ResetPassword
+	post /password-reset (ResetPasswordReq) returns (BaseResp)
+}
+
+@server (
+	prefix: /api
+	jwt:    Auth
+)
+service Gateway {
+	@handler GetMe
+	get /users/me returns (UserInfo)
+
+	@handler UpdateMe
+	put /users/me (UpdateProfileReq) returns (BaseResp)
+
+	@handler ChangeMePassword
+	put /users/me/password (ChangePasswordReq) returns (BaseResp)
+
+	@handler RegisterMeFace
+	post /users/me/face (RegisterFaceReq) returns (BaseResp)
+
+	@handler Logout
+	post /users/logout returns (BaseResp)
+
+	@handler Upload
+	post /upload returns (UploadResp)
+}
+
+// Mall Public Endpoints
+@server (
+	prefix: /api/mall
+)
+service Gateway {
+	@handler MallProductList
+	get /products (ListProductsReq) returns (ProductListResp)
+
+	@handler MallProductDetail
+	get /products/:id (ProductIDReq) returns (ProductInfo)
+
+	@handler MallCategories
+	get /categories returns (CategoryListResp)
+
+	@handler MallStores
+	get /stores returns (StoreListResp)
+
+	@handler MallComments
+	get /comments (ListCommentsReq) returns (CommentListResp)
+}
+
+// Mall Authenticated Endpoints
+@server (
+	prefix: /api/mall
+	jwt:    Auth
+)
+service Gateway {
+	@handler MallAddCartItem
+	post /cart/items (AddCartItemReq) returns (BaseResp)
+
+	@handler MallCartList
+	get /cart/items returns (CartResp)
+
+	@handler MallDeleteCartItem
+	delete /cart/items/:id (CartIDReq) returns (BaseResp)
+
+	@handler MallUpdateCartItemQty
+	put /cart/items/:id (UpdateCartQtyReq) returns (BaseResp)
+
+	@handler MallCreateOrder
+	post /orders (CreateOrderReq) returns (OrderInfo)
+
+	@handler MallAvailableStores
+	get /orders/available-stores (AvailableStoresReq) returns (StoreListResp)
+
+	@handler MallOrderList
+	get /orders (ListOrdersReq) returns (OrderListResp)
+
+	@handler MallOrderDetail
+	get /orders/:id (OrderIDReq) returns (OrderInfo)
+
+	@handler MallPayOrder
+	post /orders/:id/pay (PayOrderReq) returns (PayOrderResp)
+
+	@handler MallCancelOrder
+	post /orders/:id/cancel (CancelOrderReq) returns (BaseResp)
+
+	@handler MallReceiveOrder
+	post /orders/:id/receive (ReceiveOrderReq) returns (BaseResp)
+
+	@handler MallAddFavorite
+	post /favorites (AddFavoriteReq) returns (BaseResp)
+
+	@handler MallDeleteFavorite
+	delete /favorites/:productId (DeleteFavoriteReq) returns (BaseResp)
+
+	@handler MallFavoriteList
+	get /favorites returns (FavoriteListResp)
+
+	@handler MallCheckFavorite
+	get /favorites/check/:productId (CheckFavoriteReq) returns (CheckFavoriteResp)
+
+	@handler MallCreateComment
+	post /comments (CreateCommentReq) returns (BaseResp)
+
+	@handler MallRechargeWallet
+	post /wallet/recharge (RechargeWalletReq) returns (RechargeWalletResp)
+
+	@handler MallTransferWallet
+	post /wallet/transfer (TransferWalletReq) returns (BaseResp)
+
+	@handler MallWalletBalance
+	get /wallet/balance returns (WalletBalanceResp)
+
+	@handler MallWalletTransactions
+	get /wallet/transactions (ListTransactionsReq) returns (WalletTxListResp)
+}
+
+// Mall Admin Endpoints
+@server (
+	prefix: /api/admin/mall
+	jwt:    Auth
+)
+service Gateway {
+	@handler AdminMallProductList
+	get /products (AdminProductListReq) returns (ProductListResp)
+
+	@handler AdminMallCreateProduct
+	post /products (AdminCreateProductReq) returns (BaseResp)
+
+	@handler AdminMallUpdateProduct
+	put /products/:id (AdminUpdateProductReq) returns (BaseResp)
+
+	@handler AdminMallDeleteProduct
+	delete /products/:id (AdminDeleteProductReq) returns (BaseResp)
+
+	@handler AdminMallCreateStore
+	post /stores (AdminCreateStoreReq) returns (BaseResp)
+
+	@handler AdminMallUpdateStore
+	put /stores/:id (AdminUpdateStoreReq) returns (BaseResp)
+
+	@handler AdminMallDeleteStore
+	delete /stores/:id (AdminDeleteStoreReq) returns (BaseResp)
+
+	@handler AdminMallOrderList
+	get /orders (AdminListOrdersReq) returns (OrderListResp)
+
+	@handler AdminMallShipOrder
+	post /orders/:id/ship (AdminShipOrderReq) returns (BaseResp)
+
+	@handler AdminMallStoreProducts
+	get /store-products/:storeId (AdminGetStoreProductsReq) returns (StoreProductListResp)
+
+	@handler AdminMallBindStoreProduct
+	post /store-products (AdminBindStoreProductReq) returns (BaseResp)
+
+	@handler AdminMallUnbindStoreProduct
+	delete /store-products (AdminUnbindStoreProductReq) returns (BaseResp)
+
+	@handler AdminMallUpdateStoreProductStatus
+	put /store-products/status (AdminUpdateStoreProductStatusReq) returns (BaseResp)
+
+	@handler AdminMallUpdateStoreProductStock
+	put /store-products/stock (AdminUpdateStoreProductStockReq) returns (BaseResp)
+}
+
+// Community public
+@server (
+	prefix: /api/community
+)
+service Gateway {
+	@handler CommunityPing
+	get /ping returns (BaseResp)
+
+	@handler CommunityNotices
+	get /notices (ListNoticesReq) returns (NoticeListResp)
+
+	@handler CommunityNoticeDetail
+	get /notices/:id (NoticeIDReq) returns (NoticeInfo)
+}
+
+// Community authenticated
+@server (
+	prefix: /api/community
+	jwt:    Auth
+)
+service Gateway {
+	@handler CommunityMarkNoticeRead
+	post /notices/:id/read (NoticeIDReq) returns (BaseResp)
+
+	@handler CommunityCreateVisitor
+	post /visitors (CreateVisitorReq) returns (BaseResp)
+
+	@handler CommunityMyVisitors
+	get /visitors (ListVisitorReq) returns (VisitorListResp)
+
+	@handler CommunityMyParking
+	get /parking-spaces/my returns (ParkingListResp)
+
+	@handler CommunityBindPlate
+	put /parking-spaces/:id/plate (BindPlateReq) returns (BaseResp)
+
+	@handler CommunityMyFees
+	get /property-fees (ListPropertyFeesReq) returns (PropertyFeeListResp)
+
+	@handler CommunityPayFee
+	post /property-fees/:id/pay (PayPropertyFeeReq) returns (BaseResp)
+
+	@handler CommunityMyPayments
+	get /property-fees/payments (ListPaymentsReq) returns (PaymentListResp)
+
+	@handler CommunityMessages
+	get /messages (ListMessagesReq) returns (MessageListResp)
+
+	@handler CommunitySendMessage
+	post /message (SendMessageReq) returns (BaseResp)
+}
+
+// Community admin
+@server (
+	prefix: /api/admin/community
+	jwt:    Auth
+)
+service Gateway {
+	@handler AdminCommunityNotices
+	get /notices (ListNoticesReq) returns (NoticeListResp)
+
+	@handler AdminCommunityCreateNotice
+	post /notices (CreateNoticeReq) returns (BaseResp)
+
+	@handler AdminCommunityDeleteNotice
+	delete /notices/:id (NoticeIDReq) returns (BaseResp)
+
+	@handler AdminCommunityNoticeViews
+	get /notices/:id/views (NoticeIDReq) returns (NoticeViewsResp)
+
+	@handler AdminCommunityVisitors
+	get /visitors (ListVisitorReq) returns (VisitorListResp)
+
+	@handler AdminCommunityAuditVisitor
+	post /visitors/:id/audit (AuditVisitorReq) returns (BaseResp)
+
+	@handler AdminCommunityParking
+	get /parking-spaces (ListParkingReq) returns (ParkingListResp)
+
+	@handler AdminCommunityCreateParking
+	post /parking-spaces (CreateParkingReq) returns (BaseResp)
+
+	@handler AdminCommunityAssignParking
+	post /parking-spaces/:id/assign (AssignParkingReq) returns (BaseResp)
+
+	@handler AdminCommunityParkingStats
+	get /parking-spaces/statistics returns (ParkingStatsResp)
+
+	@handler AdminCommunityFees
+	get /property-fees (ListPropertyFeesReq) returns (PropertyFeeListResp)
+
+	@handler AdminCommunityCreateFee
+	post /property-fees (CreatePropertyFeeReq) returns (BaseResp)
+
+	@handler AdminCommunityPayments
+	get /property-fees/payments (ListPaymentsReq) returns (PaymentListResp)
+}
+
+// Workorder public
+@server (
+	prefix: /api/workorders
+)
+service Gateway {
+	@handler WorkorderPing
+	get /ping returns (BaseResp)
+}
+
+// Workorder authenticated
+@server (
+	prefix: /api/workorders
+	jwt:    Auth
+)
+service Gateway {
+	@handler WorkorderCreate
+	post / (CreateWorkorderReq) returns (BaseResp)
+
+	@handler WorkorderMyList
+	get / (ListWorkorderReq) returns (WorkorderListResp)
+
+	@handler WorkorderLogs
+	get /:id/logs (GetLogsReq) returns (LogListResp)
+}
+
+// Workorder admin
+@server (
+	prefix: /api/admin/workorders
+	jwt:    Auth
+)
+service Gateway {
+	@handler AdminWorkorderList
+	get / (ListWorkorderReq) returns (WorkorderListResp)
+
+	@handler AdminWorkorderProcess
+	post /:id/process (ProcessWorkorderReq) returns (BaseResp)
+}
+
+// Statistics (authenticated)
+@server (
+	prefix: /api/statistics
+	jwt:    Auth
+)
+service Gateway {
+	@handler StatsProductSalesRank
+	get /products/sales-rank (RankLimitReq) returns (SalesRankResp)
+
+	@handler StatsProductViewRank
+	get /products/view-rank (RankLimitReq) returns (ViewRankResp)
+
+	@handler StatsCommunityOverview
+	get /community/overview returns (CommunityOverviewResp)
+
+	@handler StatsOrdersCombined
+	get /orders (DaysReq) returns (OrderStatsResp)
+
+	@handler StatsWorkorders
+	get /workorders returns (WorkorderStatsResp)
+
+	@handler StatsGenerateReport
+	post /ai-report/generate returns (ReportResp)
+
+	@handler StatsLatestReport
+	get /ai-report/latest returns (ReportResp)
+
+	@handler StatsListReports
+	get /ai-report/list (ListReportsReq) returns (ReportListResp)
+
+	@handler StatsReportDetail
+	get /ai-report/:id (ReportIDReq) returns (ReportResp)
+}
+
+// Mall Unauthenticated Endpoints (e.g. Callbacks)
+@server (
+	prefix: /api/mall
+)
+service Gateway {
+	@handler MallAlipayNotify
+	post /payments/alipay/notify returns (BaseResp)
+}
+

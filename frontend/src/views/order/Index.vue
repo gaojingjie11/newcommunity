@@ -265,6 +265,16 @@ async function submitOrderPay(authPayload) {
         ...authPayload
       })
 
+      if (authPayload.pay_type === 'alipay' && res?.pay_url) {
+        ElMessage.success("正在为您跳转至支付宝收银台...")
+        showPayAuth.value = false;
+        pendingOrder.value = null;
+        setTimeout(() => {
+          window.location.href = res.pay_url;
+        }, 800);
+        return;
+      }
+
       const paymentResult = res?.payment_result || res
       ElMessage.success(`支付成功，使用积分 ${paymentResult.used_points}，余额 ￥${formatAmount(paymentResult.used_balance)}`)
       showPayAuth.value = false

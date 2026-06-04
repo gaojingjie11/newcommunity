@@ -43,6 +43,14 @@ function redirectToLogin() {
 
 request.interceptors.request.use(
   (config) => {
+    // 拦截防护：防止请求中带有字符串 "undefined"（这通常是前端变量未赋初值引起的拼接 Bug）
+    const urlStr = String(config.url || '')
+    if (urlStr.includes('/undefined') || urlStr.endsWith('undefined')) {
+      const err = new Error('请求参数格式不正确，包含了未定义的变量')
+      err.response = { status: 400, data: { code: 400, message: '请求参数格式错误' } }
+      return Promise.reject(err)
+    }
+
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`

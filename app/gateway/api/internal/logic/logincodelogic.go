@@ -1,0 +1,56 @@
+package logic
+
+import (
+	"context"
+
+	"smartcommunity-microservices/app/gateway/api/internal/svc"
+	"smartcommunity-microservices/app/gateway/api/internal/types"
+	"smartcommunity-microservices/app/user/rpc/user"
+
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+type LoginCodeLogic struct {
+	logx.Logger
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+}
+
+func NewLoginCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginCodeLogic {
+	return &LoginCodeLogic{
+		Logger: logx.WithContext(ctx),
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
+}
+
+func (l *LoginCodeLogic) LoginCode(req *types.LoginByCodeReq) (resp *types.LoginResp, err error) {
+	rpcResp, err := l.svcCtx.UserRpc.LoginByCode(l.ctx, &user.LoginByCodeReq{
+		Mobile:    req.Mobile,
+		Code:      req.Code,
+		ClientIp:  req.ClientIp,
+		UserAgent: req.UserAgent,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.LoginResp{
+		Token: rpcResp.Token,
+		UserInfo: types.UserInfo{
+			Id:             rpcResp.UserInfo.Id,
+			Username:       rpcResp.UserInfo.Username,
+			RealName:       rpcResp.UserInfo.RealName,
+			Mobile:         rpcResp.UserInfo.Mobile,
+			Avatar:         rpcResp.UserInfo.Avatar,
+			GreenPoints:    rpcResp.UserInfo.GreenPoints,
+			Role:           rpcResp.UserInfo.Role,
+			Status:         rpcResp.UserInfo.Status,
+			FaceRegistered: rpcResp.UserInfo.FaceRegistered,
+			FaceImageUrl:   rpcResp.UserInfo.FaceImageUrl,
+			Balance:        rpcResp.UserInfo.Balance,
+		},
+		IsNewUser:        rpcResp.IsNewUser,
+		ProfileCompleted: rpcResp.ProfileCompleted,
+	}, nil
+}

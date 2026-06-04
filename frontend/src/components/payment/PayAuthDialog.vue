@@ -43,6 +43,15 @@
           </div>
         </div>
       </el-tab-pane>
+
+      <el-tab-pane label="支付宝" name="alipay">
+        <div style="padding: 24px; text-align: center; background-color: #f6f9fc; border-radius: 8px;">
+          <p style="color: #303133; font-size: 16px; font-weight: 600; margin-bottom: 8px;">支付宝沙箱支付</p>
+          <p style="color: #606266; font-size: 14px; margin: 0;">
+            确认支付后将自动跳转至支付宝沙箱收银台完成付款。
+          </p>
+        </div>
+      </el-tab-pane>
     </el-tabs>
 
     <template #footer>
@@ -193,6 +202,11 @@ async function uploadCapturedFace() {
 }
 
 async function submit() {
+  if (activeTab.value === 'alipay') {
+    emit('confirm', { pay_type: 'alipay' })
+    return
+  }
+
   if (activeTab.value === 'password') {
     const pwd = password.value.trim()
     if (!pwd) {

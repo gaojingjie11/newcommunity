@@ -1,0 +1,29 @@
+Name: user-rpc
+ListenOn: 0.0.0.0:9001
+Etcd:
+  Hosts:
+    - 101.42.34.232:2379
+  Key: community/user-rpc
+
+MySQL:
+  Host: 101.42.34.232
+  Port: 3306
+  Database: smart_community
+  Username: root
+  Password: dsw123456
+
+BizRedis:
+  Host: 101.42.34.232
+  Port: 6379
+  Password: dsw123456
+  DB: 15
+
+RabbitMQ:
+  Host: 101.42.34.232
+  Port: 5672
+  Username: guest
+  Password: guest
+
+Jwt:
+  Secret: "dev-secret-change-me"
+  TTL: "24h"
