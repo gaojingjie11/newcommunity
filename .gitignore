@@ -35,6 +35,7 @@ frontend/.vite/
 
 # Go build/test output
 bin/
+build/
 *.exe
 *.dll
 *.so
