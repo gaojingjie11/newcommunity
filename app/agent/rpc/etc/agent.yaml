@@ -1,0 +1,61 @@
+Name: agent.rpc
+ListenOn: 0.0.0.0:9006
+Etcd:
+  Hosts:
+    - 101.42.34.232:2379
+  Key: agent.rpc
+
+Postgres:
+  Host: 42.193.104.173
+  Port: 5432
+  Database: smart_community
+  Username: admin
+  Password: sdl@admin
+  SSLMode: disable
+  TimeZone: Asia/Shanghai
+
+UserRpc:
+  Endpoints:
+    - 127.0.0.1:9001
+  Timeout: 10000
+
+MallRpc:
+  Endpoints:
+    - 127.0.0.1:9002
+  Timeout: 10000
+
+CommunityRpc:
+  Endpoints:
+    - 127.0.0.1:9003
+  Timeout: 10000
+
+WorkorderRpc:
+  Endpoints:
+    - 127.0.0.1:9004
+  Timeout: 10000
+
+Agent:
+  LlmApiKey: ${LLM_API_KEY}
+  LlmBaseUrl: ${LLM_BASE_URL}
+  LlmModel: ${LLM_MODEL}
+  Models:
+    ChatDefault:
+      ApiKey: ${LLM_CHAT_DEFAULT_API_KEY}
+      BaseUrl: ${LLM_CHAT_DEFAULT_BASE_URL}
+      Model: ${LLM_CHAT_DEFAULT_MODEL}
+    AgentReasoning:
+      ApiKey: ${LLM_AGENT_REASONING_API_KEY}
+      BaseUrl: ${LLM_AGENT_REASONING_BASE_URL}
+      Model: ${LLM_AGENT_REASONING_MODEL}
+    ImageVision:
+      ApiKey: ${LLM_IMAGE_VISION_API_KEY}
+      BaseUrl: ${LLM_IMAGE_VISION_BASE_URL}
+      Model: ${LLM_IMAGE_VISION_MODEL}
+    ASR:
+      ApiKey: ${LLM_ASR_API_KEY}
+      BaseUrl: ${LLM_ASR_BASE_URL}
+      Model: ${LLM_ASR_MODEL}
+    TTS:
+      ApiKey: ${LLM_TTS_API_KEY}
+      BaseUrl: ${LLM_TTS_BASE_URL}
+      Model: ${LLM_TTS_MODEL}

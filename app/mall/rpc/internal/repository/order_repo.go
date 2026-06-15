@@ -70,13 +70,14 @@ func (r *OrderRepo) UpdateStatus(tx *gorm.DB, id int64, fromStatus, toStatus int
 }
 
 // MarkAsPaid performs a conditional update: pending_payment -> paid.
-func (r *OrderRepo) MarkAsPaid(tx *gorm.DB, id int64, usedBalance int64) (int64, error) {
+func (r *OrderRepo) MarkAsPaid(tx *gorm.DB, id int64, usedBalance int64, usedPoints int) (int64, error) {
 	now := time.Now()
 	result := tx.Model(&model.Order{}).
 		Where("id = ? AND status = ?", id, consts.OrderStatusPendingPayment).
 		Updates(map[string]interface{}{
 			"status":       consts.OrderStatusPaid,
 			"used_balance": usedBalance,
+			"used_points":  usedPoints,
 			"paid_at":      &now,
 			"version":      gorm.Expr("version + 1"),
 		})
@@ -106,7 +107,7 @@ func (r *OrderRepo) FindExpiredPendingOrders(limit int) ([]model.Order, error) {
 	return orders, err
 }
 
-func (r *OrderRepo) ListAll(page, size int, status *int, keyword string) ([]model.Order, int64, error) {
+func (r *OrderRepo) ListAll(page, size int, status *int, keyword string, storeIDs []int64) ([]model.Order, int64, error) {
 	var orders []model.Order
 	var total int64
 
@@ -114,9 +115,40 @@ func (r *OrderRepo) ListAll(page, size int, status *int, keyword string) ([]mode
 	if status != nil {
 		query = query.Where("status = ?", *status)
 	}
+
+	// Filter by store IDs
+	if len(storeIDs) > 0 {
+		query = query.Where("store_id IN ?", storeIDs)
+	} else if storeIDs != nil {
+		// If storeIDs is non-nil but empty, it means the store admin has no stores bound.
+		// Return empty list immediately.
+		return []model.Order{}, 0, nil
+	}
+
+	// Search by Order No or Customer Phone number
 	if keyword != "" {
-		like := "%" + keyword + "%"
-		query = query.Where("order_no LIKE ?", like)
+		// Check if keyword is numeric and looks like a phone number
+		isPhone := true
+		for _, c := range keyword {
+			if c < '0' || c > '9' {
+				isPhone = false
+				break
+			}
+		}
+		if isPhone && len(keyword) >= 7 && len(keyword) <= 12 {
+			var userIDs []int64
+			err := r.db.Model(&model.SysUser{}).Where("mobile LIKE ?", "%"+keyword+"%").Pluck("id", &userIDs).Error
+			if err != nil {
+				return nil, 0, err
+			}
+			if len(userIDs) > 0 {
+				query = query.Where("user_id IN ? OR order_no LIKE ?", userIDs, "%"+keyword+"%")
+			} else {
+				query = query.Where("order_no LIKE ?", "%"+keyword+"%")
+			}
+		} else {
+			query = query.Where("order_no LIKE ?", "%"+keyword+"%")
+		}
 	}
 
 	if err := query.Count(&total).Error; err != nil {

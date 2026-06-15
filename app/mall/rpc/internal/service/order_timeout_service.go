@@ -2,7 +2,6 @@ package service
 
 import (
 	"log/slog"
-	"time"
 
 	"smartcommunity-microservices/app/mall/rpc/internal/consts"
 	"smartcommunity-microservices/app/mall/rpc/internal/model"
@@ -48,51 +47,14 @@ func NewOrderTimeoutService(
 	}
 }
 
-// Start begins the polling loop. Call Stop() to terminate.
+// Start begins the service (MQ-trigger mode, no polling).
 func (s *OrderTimeoutService) Start() {
-	go s.pollLoop()
-	s.log.Info("order timeout service started")
+	s.log.Info("order timeout service started (MQ-trigger mode)")
 }
 
-// Stop signals the polling loop to exit.
+// Stop signals the service to exit.
 func (s *OrderTimeoutService) Stop() {
-	close(s.stopCh)
 	s.log.Info("order timeout service stopped")
-}
-
-func (s *OrderTimeoutService) pollLoop() {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			s.processExpiredOrders()
-		case <-s.stopCh:
-			return
-		}
-	}
-}
-
-// processExpiredOrders finds and cancels expired pending orders in batches.
-func (s *OrderTimeoutService) processExpiredOrders() {
-	const batchSize = 100
-
-	orders, err := s.orderRepo.FindExpiredPendingOrders(batchSize)
-	if err != nil {
-		s.log.Error("find expired orders failed", "error", err)
-		return
-	}
-
-	for _, order := range orders {
-		if err := s.processExpiredOrder(&order); err != nil {
-			s.log.Error("cancel expired order failed",
-				"order_id", order.ID,
-				"order_no", order.OrderNo,
-				"error", err,
-			)
-		}
-	}
 }
 
 // processExpiredOrder cancels a single expired order within a transaction.

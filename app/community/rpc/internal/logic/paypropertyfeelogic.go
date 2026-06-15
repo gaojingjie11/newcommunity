@@ -2,9 +2,11 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"smartcommunity-microservices/app/community/rpc/internal/repository"
 	"smartcommunity-microservices/app/community/rpc/internal/svc"
@@ -69,5 +71,39 @@ func (l *PayPropertyFeeLogic) PayPropertyFee(in *community.PayPropertyFeeReq) (*
 		return nil, err
 	}
 
+	// Publish property fee paid event to MQ
+	if l.svcCtx.MQ != nil {
+		event := struct {
+			Event          string `json:"event"`
+			FeeID          int64  `json:"fee_id"`
+			UserID         int64  `json:"user_id"`
+			Month          string `json:"month"`
+			Amount         int64  `json:"amount"`
+			PaidAt         string `json:"paid_at"`
+			IdempotencyKey string `json:"idempotency_key"`
+		}{
+			Event:          "property_fee.paid",
+			FeeID:          fee.ID,
+			UserID:         fee.UserID,
+			Month:          fee.Month,
+			Amount:         fee.Amount,
+			PaidAt:         time.Now().Format(time.RFC3339),
+			IdempotencyKey: walletKey,
+		}
+		body, marshalErr := json.Marshal(event)
+		if marshalErr == nil {
+			pubCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if pubErr := l.svcCtx.MQ.PublishEvent(pubCtx, "property_fee.paid", body); pubErr != nil {
+				l.Logger.Errorf("failed to publish property_fee.paid event: %v", pubErr)
+			} else {
+				l.Logger.Infof("published property_fee.paid event successfully for fee %d", fee.ID)
+			}
+		} else {
+			l.Logger.Errorf("failed to marshal property_fee.paid event: %v", marshalErr)
+		}
+	}
+
 	return &community.BaseResp{Code: 0, Message: "success"}, nil
 }
+

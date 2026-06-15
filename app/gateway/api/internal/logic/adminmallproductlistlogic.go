@@ -26,9 +26,11 @@ func NewAdminMallProductListLogic(ctx context.Context, svcCtx *svc.ServiceContex
 
 func (l *AdminMallProductListLogic) AdminMallProductList(req *types.AdminProductListReq) (resp *types.ProductListResp, err error) {
 	rpcResp, err := l.svcCtx.MallRpc.AdminListProducts(l.ctx, &mall.AdminListProductsReq{
-		Page: req.Page,
-		Size: req.Size,
-		Name: req.Name,
+		Page:        req.Page,
+		Size:        req.Size,
+		Name:        req.Name,
+		CategoryId:  req.CategoryId,
+		IsPromotion: req.IsPromotion,
 	})
 	if err != nil {
 		return nil, err

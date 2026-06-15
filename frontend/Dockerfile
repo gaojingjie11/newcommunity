@@ -5,9 +5,9 @@ WORKDIR /build
 # Use Alibaba NPM mirror for faster installation in China
 RUN npm config set registry https://registry.npmmirror.com
 
-# Copy dependency definitions
 COPY package*.json ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm install
 
 # Copy source code and build
 COPY . .

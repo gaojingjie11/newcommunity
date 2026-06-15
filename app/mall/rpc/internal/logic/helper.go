@@ -1,11 +1,18 @@
 package logic
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"smartcommunity-microservices/app/mall/rpc/internal/model"
 	"smartcommunity-microservices/app/mall/rpc/types/mall"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 )
 
 func toProtoProduct(p *model.Product) *mall.ProductInfo {
@@ -31,6 +38,7 @@ func toProtoProduct(p *model.Product) *mall.ProductInfo {
 		Version:       int32(p.Version),
 		CreatedAt:     p.CreatedAt.Format("2006-01-02 15:04:05"),
 		CategoryId:    p.CategoryID,
+		ViewCount:     p.ViewCount,
 	}
 }
 
@@ -153,6 +161,9 @@ func toProtoOrder(o *model.Order) *mall.OrderInfo {
 		UsedBalance:      o.UsedBalance,
 		ExpireAt:         expireAtStr,
 		ExpiresInSeconds: expiresIn,
+		UsedPoints:       int32(o.UsedPoints),
+		StoreAddress:     o.Store.Address,
+		StorePhone:       o.Store.Phone,
 	}
 }
 
@@ -213,4 +224,101 @@ func toProtoStoreProduct(sp *model.StoreProduct) *mall.StoreProductInfo {
 		SoldCount:   int32(sp.SoldCount),
 		Status:      int32(sp.Status),
 	}
+}
+
+func checkStoreAccess(ctx context.Context, targetStoreID int64) error {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
+	}
+	vals := md.Get("x-store-ids")
+	if len(vals) == 0 {
+		return nil
+	}
+	if vals[0] == "none" {
+		return status.Error(codes.PermissionDenied, "您没有绑定任何店铺，无权进行此操作")
+	}
+	var hasAccess = false
+	for _, idStr := range strings.Split(vals[0], ",") {
+		var id int64
+		if _, err := fmt.Sscanf(idStr, "%d", &id); err == nil {
+			if id == targetStoreID {
+				hasAccess = true
+				break
+			}
+		}
+	}
+	if !hasAccess {
+		return status.Error(codes.PermissionDenied, "您无权操作其他店铺的资源")
+	}
+	return nil
+}
+
+func checkProductAccess(ctx context.Context, db *gorm.DB, productID int64) error {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
+	}
+	vals := md.Get("x-store-ids")
+	if len(vals) == 0 {
+		return nil
+	}
+	if vals[0] == "none" {
+		return status.Error(codes.PermissionDenied, "您没有绑定任何店铺，无权进行此操作")
+	}
+
+	var storeIDs []int64
+	err := db.Model(&model.StoreProduct{}).Where("product_id = ?", productID).Pluck("store_id", &storeIDs).Error
+	if err != nil {
+		return status.Error(codes.Internal, "查询商品关联店铺失败")
+	}
+
+	if len(storeIDs) == 0 {
+		return status.Error(codes.PermissionDenied, "您无权操作该商品")
+	}
+
+	userStoreIDs := make(map[int64]bool)
+	for _, idStr := range strings.Split(vals[0], ",") {
+		var id int64
+		if _, err := fmt.Sscanf(idStr, "%d", &id); err == nil {
+			userStoreIDs[id] = true
+		}
+	}
+
+	var hasAccess = false
+	for _, sid := range storeIDs {
+		if userStoreIDs[sid] {
+			hasAccess = true
+			break
+		}
+	}
+
+	if !hasAccess {
+		return status.Error(codes.PermissionDenied, "您无权操作其他店铺的商品资源")
+	}
+	return nil
+}
+
+func getStoreIDsFromCtx(ctx context.Context) ([]int64, bool) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		fmt.Printf("[DEBUG] getStoreIDsFromCtx: no incoming metadata ok=false\n")
+		return nil, false
+	}
+	vals := md.Get("x-store-ids")
+	fmt.Printf("[DEBUG] getStoreIDsFromCtx: vals=%v\n", vals)
+	if len(vals) == 0 {
+		return nil, false
+	}
+	if vals[0] == "none" {
+		return []int64{}, true
+	}
+	var ids []int64
+	for _, idStr := range strings.Split(vals[0], ",") {
+		var id int64
+		if _, err := fmt.Sscanf(idStr, "%d", &id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids, true
 }

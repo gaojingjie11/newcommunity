@@ -53,6 +53,16 @@ func (s *MallRpcServer) GetStoreDetail(ctx context.Context, in *mall.StoreIDReq)
 	return l.GetStoreDetail(in)
 }
 
+func (s *MallRpcServer) BindUserStores(ctx context.Context, in *mall.BindUserStoresReq) (*mall.BaseResp, error) {
+	l := logic.NewBindUserStoresLogic(ctx, s.svcCtx)
+	return l.BindUserStores(in)
+}
+
+func (s *MallRpcServer) GetUserStores(ctx context.Context, in *mall.UserIDReq) (*mall.StoreIDListResp, error) {
+	l := logic.NewGetUserStoresLogic(ctx, s.svcCtx)
+	return l.GetUserStores(in)
+}
+
 func (s *MallRpcServer) ListCategories(ctx context.Context, in *mall.ListCategoriesReq) (*mall.CategoryListResp, error) {
 	l := logic.NewListCategoriesLogic(ctx, s.svcCtx)
 	return l.ListCategories(in)

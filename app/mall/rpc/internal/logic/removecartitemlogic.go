@@ -24,7 +24,7 @@ func NewRemoveCartItemLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Re
 }
 
 func (l *RemoveCartItemLogic) RemoveCartItem(in *mall.RemoveCartItemReq) (*mall.BaseResp, error) {
-	err := l.svcCtx.CartSvc.Remove(in.UserId, in.Id)
+	err := l.svcCtx.CartSvc.Remove(in.Id, in.UserId)
 	if err != nil {
 		return &mall.BaseResp{Code: 500, Message: err.Error()}, nil
 	}

@@ -29,9 +29,15 @@ func (l *LoginByCodeLogic) LoginByCode(in *user.LoginByCodeReq) (*user.LoginResp
 		return nil, err
 	}
 
+	roles, _ := l.svcCtx.AdminService.ListRoles()
+	roleMap := make(map[string]string)
+	for _, r := range roles {
+		roleMap[r.Code] = r.Name
+	}
+
 	return &user.LoginResp{
 		Token:            res.Token,
-		UserInfo:         mapUserInfo(res.User),
+		UserInfo:         mapUserInfo(res.User, roleMap),
 		IsNewUser:        res.IsNewUser,
 		ProfileCompleted: res.ProfileCompleted,
 	}, nil

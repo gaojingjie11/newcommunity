@@ -241,9 +241,15 @@ func (s *OrderService) CreateOrder(userID int64, req CreateOrderRequest) (*model
 		return cartRepo.DeleteByIDs(req.CartIDs, userID)
 	})
 
+	if err == nil {
+		if reloaded, reloadErr := s.orderRepo.FindByID(order.ID); reloadErr == nil {
+			order = reloaded
+		}
+	}
+
 	// Best-effort event publish after tx commits
 	if err == nil && s.eventBus != nil {
-		s.eventBus.PublishOrderCreated(order)
+		s.eventBus.PublishOrderDelayCancel(order)
 	}
 	if err == nil {
 		s.cachePendingOrder(order, req.CartIDs)
@@ -308,14 +314,14 @@ func (s *OrderService) ListOrders(userID int64, page, size int, status *int) ([]
 	return s.orderRepo.ListByUser(userID, page, size, status)
 }
 
-func (s *OrderService) AdminListOrders(page, size int, status *int, keyword string) ([]model.Order, int64, error) {
+func (s *OrderService) AdminListOrders(page, size int, status *int, keyword string, storeIDs []int64) ([]model.Order, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if size < 1 || size > 100 {
 		size = 20
 	}
-	return s.orderRepo.ListAll(page, size, status, keyword)
+	return s.orderRepo.ListAll(page, size, status, keyword, storeIDs)
 }
 
 // ShipOrder transitions order from paid to shipped (status 1→2).

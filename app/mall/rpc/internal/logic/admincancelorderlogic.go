@@ -24,7 +24,15 @@ func NewAdminCancelOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *AdminCancelOrderLogic) AdminCancelOrder(in *mall.AdminCancelOrderReq) (*mall.BaseResp, error) {
-	err := l.svcCtx.OrderSvc.CancelOrder(in.Id, "管理员取消")
+	order, err := l.svcCtx.OrderRepo.FindByID(in.Id)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkStoreAccess(l.ctx, order.StoreID); err != nil {
+		return nil, err
+	}
+
+	err = l.svcCtx.OrderSvc.CancelOrder(in.Id, "管理员取消")
 	if err != nil {
 		return &mall.BaseResp{Code: 500, Message: err.Error()}, nil
 	}

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="community-chat-page">
     <Navbar />
 
@@ -92,11 +92,21 @@ async function fetchMessages(silent = false) {
   if (!silent) loading.value = true
   try {
     const res = await getCommunityMessages({ page: 1, size: 100 })
-    const list = Array.isArray(res?.list) ? res.list.slice().reverse() : []
-    const oldLen = messages.value.length
-    messages.value = list
-    // Only auto-scroll when new messages arrive or initial load
-    if (!silent || list.length !== oldLen) {
+    // Map flat response username and avatar to the nested user object expected by the view template
+    const list = Array.isArray(res?.list) ? res.list.map(item => ({
+      ...item,
+      user: {
+        username: item.username,
+        avatar: item.avatar
+      }
+    })).slice().reverse() : []
+    
+    // Check if message IDs list has changed to avoid unnecessary DOM updates or layout jumps
+    const oldIds = messages.value.map(m => m.id).join(',')
+    const newIds = list.map(m => m.id).join(',')
+    
+    if (oldIds !== newIds || messages.value.some(m => m.sending)) {
+      messages.value = list
       scrollToBottom()
     }
   } catch (error) {
@@ -110,13 +120,31 @@ async function handleSend() {
   const content = draft.value.trim()
   if (!content || sending.value) return
 
+  // Optimistic UI Update: instantly append the new message locally to prevent sending latency UX lag
+  const tempMsg = {
+    id: 'temp-' + Date.now(),
+    content: content,
+    created_at: new Date().toISOString(),
+    user_id: currentUserID.value,
+    user: {
+      username: userStore.userInfo?.username || '我',
+      avatar: userStore.userInfo?.avatar || ''
+    },
+    sending: true
+  }
+  messages.value.push(tempMsg)
+  draft.value = ''
+  scrollToBottom()
+
   sending.value = true
   try {
     await sendCommunityMessage({ content })
-    draft.value = ''
-    await fetchMessages()
+    // Quietly update messages from backend server without triggering the full list v-loading mask
+    await fetchMessages(true)
   } catch (error) {
     ElMessage.error(error.response?.data?.msg || error.message || '发送失败')
+    // Revert optimistic message on failure
+    messages.value = messages.value.filter(m => m.id !== tempMsg.id)
   } finally {
     sending.value = false
   }

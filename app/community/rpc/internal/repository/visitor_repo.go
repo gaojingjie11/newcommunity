@@ -21,6 +21,12 @@ func (r *VisitorRepo) Create(item *model.Visitor) error {
 }
 
 func (r *VisitorRepo) ListByUser(userID int64, page, size int) ([]model.Visitor, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.Visitor
 	var total int64
 	q := r.db.Model(&model.Visitor{}).Where("user_id = ?", userID)
@@ -32,6 +38,12 @@ func (r *VisitorRepo) ListByUser(userID int64, page, size int) ([]model.Visitor,
 }
 
 func (r *VisitorRepo) ListAll(status *int, page, size int) ([]model.VisitorAdminView, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.VisitorAdminView
 	var total int64
 	q := r.db.Model(&model.Visitor{})

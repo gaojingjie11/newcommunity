@@ -4,8 +4,10 @@
 package svc
 
 import (
+	"context"
 	"log"
 
+	"smartcommunity-microservices/app/agent/rpc/agentrpc"
 	"smartcommunity-microservices/app/community/rpc/communityrpc"
 	"smartcommunity-microservices/app/gateway/api/internal/config"
 	"smartcommunity-microservices/app/mall/rpc/mallrpc"
@@ -18,6 +20,8 @@ import (
 	"github.com/minio/minio-go/v7"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/zrpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type ServiceContext struct {
@@ -27,6 +31,7 @@ type ServiceContext struct {
 	CommunityRpc communityrpc.CommunityRpc
 	WorkorderRpc workorderrpc.WorkorderRpc
 	StatsRpc     statsrpc.StatsRpc
+	AgentRpc     agentrpc.AgentRpc
 	RedisClient  *goredis.Client
 	MinioClient  *minio.Client
 }
@@ -45,11 +50,26 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:       c,
 		UserRpc:      userrpc.NewUserRpc(zrpc.MustNewClient(c.UserRpc)),
-		MallRpc:      mallrpc.NewMallRpc(zrpc.MustNewClient(c.MallRpc)),
+		MallRpc:      mallrpc.NewMallRpc(zrpc.MustNewClient(c.MallRpc, zrpc.WithUnaryClientInterceptor(gatewayGrpcInterceptor))),
 		CommunityRpc: communityrpc.NewCommunityRpc(zrpc.MustNewClient(c.CommunityRpc)),
 		WorkorderRpc: workorderrpc.NewWorkorderRpc(zrpc.MustNewClient(c.WorkorderRpc)),
 		StatsRpc:     statsrpc.NewStatsRpc(zrpc.MustNewClient(c.StatsRpc)),
+		AgentRpc:     agentrpc.NewAgentRpc(zrpc.MustNewClient(c.AgentRpc)),
 		RedisClient:  rdb,
 		MinioClient:  minioClient,
 	}
+}
+
+func gatewayGrpcInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	ids, _ := ctx.Value("x-store-ids").(string)
+	isAdmin, _ := ctx.Value("x-is-admin").(bool)
+	log.Printf("[DEBUG] gatewayGrpcInterceptor: method=%s, x-store-ids=%s, x-is-admin=%t\n", method, ids, isAdmin)
+
+	if ids != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-store-ids", ids)
+	}
+	if isAdmin {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-is-admin", "true")
+	}
+	return invoker(ctx, method, req, reply, cc, opts...)
 }

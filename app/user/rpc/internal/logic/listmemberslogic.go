@@ -29,9 +29,15 @@ func (l *ListMembersLogic) ListMembers(in *user.ListMembersReq) (*user.ListMembe
 		return nil, err
 	}
 
+	roles, _ := l.svcCtx.AdminService.ListRoles()
+	roleMap := make(map[string]string)
+	for _, r := range roles {
+		roleMap[r.Code] = r.Name
+	}
+
 	var list []*user.UserInfo
 	for _, u := range users {
-		list = append(list, mapUserInfo(&u))
+		list = append(list, mapUserInfo(&u, roleMap))
 	}
 
 	return &user.ListMembersResp{

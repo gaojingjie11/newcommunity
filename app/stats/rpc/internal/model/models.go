@@ -34,23 +34,58 @@ type OrderItem struct {
 func (OrderItem) TableName() string { return "oms_order_item" }
 
 type SysUserStats struct {
-	ID        int64     `gorm:"primaryKey" json:"id"`
-	Status    int       `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          int64     `gorm:"primaryKey" json:"id"`
+	Username    string    `json:"username"`
+	RealName    string    `json:"real_name"`
+	GreenPoints int64     `json:"green_points"`
+	Status      int       `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 func (SysUserStats) TableName() string { return "sys_user" }
 
-type ProductViewLog struct {
-	ID        int64     `gorm:"primaryKey" json:"id"`
-	ProductID int64     `json:"product_id"`
-	UserID    int64     `json:"user_id"`
-	IP        string    `json:"ip"`
-	UserAgent string    `json:"user_agent"`
-	ViewedAt  time.Time `json:"viewed_at"`
+type PropertyFee struct {
+	ID        int64      `gorm:"primaryKey" json:"id"`
+	UserID    int64      `json:"user_id"`
+	Month     string     `json:"month"`
+	Amount    int64      `json:"amount"` // cents
+	Status    int        `json:"status"` // 0 unpaid, 1 paid
+	PaidAt    *time.Time `json:"paid_at"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
-func (ProductViewLog) TableName() string { return "product_view_logs" }
+func (PropertyFee) TableName() string { return "property_fees" }
+
+type ParkingSpace struct {
+	ID        int64     `gorm:"primaryKey" json:"id"`
+	ParkingNo string    `json:"parking_no"`
+	Status    int       `json:"status"` // 0 free, 1 bound
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (ParkingSpace) TableName() string { return "parking_spaces" }
+
+type UserParkingBinding struct {
+	ID             int64     `gorm:"primaryKey" json:"id"`
+	UserID         int64     `json:"user_id"`
+	ParkingSpaceID int64     `json:"parking_space_id"`
+	CarPlate       string    `json:"car_plate"`
+	Status         int       `json:"status"` // 1 active, 0 inactive
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+func (UserParkingBinding) TableName() string { return "user_parking_bindings" }
+
+type WorkOrder struct {
+	ID          int64      `gorm:"primaryKey" json:"id"`
+	Type        string     `json:"type"`
+	Category    string     `json:"category"`
+	Status      int        `json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+func (WorkOrder) TableName() string { return "workorders" }
+
 
 // Statistics aggregation result structs
 type ProductSalesRank struct {
@@ -85,6 +120,18 @@ type WorkorderSummary struct {
 	Count  int64  `json:"count"`
 }
 
+type RepairStat struct {
+	Name  string `json:"name"`
+	Value int64  `json:"value"`
+}
+
+type EcoLeaderboard struct {
+	UserID      int64  `json:"user_id"`
+	Username    string `json:"username"`
+	RealName    string `json:"real_name"`
+	GreenPoints int64  `json:"green_points"`
+}
+
 type CommunityOverview struct {
 	UserCount      int64 `json:"user_count"`
 	OrderCount     int64 `json:"order_count"`
@@ -93,6 +140,15 @@ type CommunityOverview struct {
 	ComplaintCount int64 `json:"complaint_count"`
 	FeeCount       int64 `json:"fee_count"`
 	FeePaidCount   int64 `json:"fee_paid_count"`
+
+	TotalUsers     int64        `json:"total_users"`
+	TodayOrders    int64        `json:"today_orders"`
+	ParkingRate    string       `json:"parking_rate"`
+	MonthIncome    float64      `json:"month_income"`
+	RepairStats    []RepairStat `json:"repair_stats"`
+	IncomeDates    []string     `json:"income_dates"`
+	IncomeTrend    []float64    `json:"income_trend"`
+	CostStructure  []float64    `json:"cost_structure"`
 }
 
 // AI Report
@@ -104,7 +160,7 @@ type AIReport struct {
 	PropertyPaidCount  int64     `gorm:"column:property_paid_count;not null;default:0" json:"property_paid_count"`
 	PropertyPaidAmount float64   `gorm:"column:property_paid_amount;type:decimal(10,2);not null;default:0.00" json:"property_paid_amount"`
 	ReportSummary      string    `gorm:"column:report_summary;type:varchar(255)" json:"report_summary"`
-	Report             string    `gorm:"column:report_markdown;type:longtext" json:"report"`
+	Report             string    `gorm:"column:report_markdown;type:text" json:"report"`
 	GeneratedBy        int64     `gorm:"column:generated_by;not null;default:0" json:"generated_by"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`

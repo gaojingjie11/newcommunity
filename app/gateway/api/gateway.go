@@ -22,14 +22,17 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
 
 	ctx := svc.NewServiceContext(c)
 
-	server := rest.MustNewServer(c.RestConf, rest.WithNotFoundHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mw := permCheckMiddleware(ctx)
+	server := rest.MustNewServer(c.RestConf, rest.WithNotFoundHandler(mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serveProxy(w, r, ctx)
-	})))
+	}))))
 	defer server.Stop()
+
+	server.Use(permCheckMiddleware(ctx))
 
 	handler.RegisterHandlers(server, ctx)
 

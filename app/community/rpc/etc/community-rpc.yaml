@@ -1,16 +1,19 @@
 Name: community-rpc
 ListenOn: 0.0.0.0:9003
+Timeout: 30000
 Etcd:
   Hosts:
     - 101.42.34.232:2379
   Key: community/community-rpc
 
-MySQL:
-  Host: 101.42.34.232
-  Port: 3306
+Postgres:
+  Host: 42.193.104.173
+  Port: 5432
   Database: smart_community
-  Username: root
-  Password: dsw123456
+  Username: admin
+  Password: sdl@admin
+  SSLMode: disable
+  TimeZone: Asia/Shanghai
 
 BizRedis:
   Host: 101.42.34.232
@@ -18,7 +21,14 @@ BizRedis:
   Password: dsw123456
   DB: 15
 
+RabbitMQ:
+  Host: 101.42.34.232
+  Port: 5672
+  Username: guest
+  Password: guest
+
 MallRpc:
   Endpoints:
     - mall-rpc:9002
   Timeout: 10000
+

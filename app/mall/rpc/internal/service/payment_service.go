@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PaymentService struct {
@@ -76,6 +77,12 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 	if req.IdempotencyKey == "" {
 		return nil, errors.New("支付参数不完整，请重试")
 	}
+
+	// Defer cleanup of the temporary pay face image if one was uploaded
+	if req.PayType == "face" && req.FaceImageURL != "" {
+		defer s.eventBus.PublishFileCleanup(req.FaceImageURL)
+	}
+
 	if err := s.ValidatePayAuth(userID, req); err != nil {
 		return nil, err
 	}
@@ -87,10 +94,19 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 		case consts.PaymentStatusSuccess:
 			return &PayOrderResult{}, nil // Already paid
 		case consts.PaymentStatusInit:
-			return nil, errors.New("支付处理中，请稍后重试")
+			// If the init record is older than 2 minutes, it's likely stale/abandoned
+			// Mark it as failed and allow retry
+			if time.Since(existing.CreatedAt) > 2*time.Minute {
+				_, _ = s.paymentRepo.UpdateStatus(nil, existing.ID, consts.PaymentStatusInit, consts.PaymentStatusFailed, "支付超时自动作废")
+				// Fall through to allow retry
+			} else {
+				return nil, errors.New("支付处理中，请稍后重试")
+			}
 		case consts.PaymentStatusFailed:
 			// Allow retry with same key — delete old failed record
-			// (or could return error; here we allow retry)
+			if err := s.db.Delete(&model.PaymentRecord{}, existing.ID).Error; err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -102,17 +118,33 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 	if order.UserID != userID {
 		return nil, errors.New("无权操作此订单")
 	}
+	if order.Status == consts.OrderStatusPaid {
+		// Already paid, return success immediately
+		return &PayOrderResult{
+			UsedPoints:  order.UsedPoints,
+			UsedBalance: float64(order.UsedBalance) / 100,
+		}, nil
+	}
 	if order.Status != consts.OrderStatusPendingPayment {
 		return nil, errors.New("订单状态不允许支付")
 	}
 
 	// Step 2: Insert payment record (init status)
+	paymentMethod := "balance"
+	if req.PayType == "face" {
+		paymentMethod = "face"
+	} else if req.PayType == "password" {
+		paymentMethod = "password"
+	} else if req.PayType == "nopassword" {
+		paymentMethod = "nopassword"
+	}
+
 	record := &model.PaymentRecord{
 		OrderID:        order.ID,
 		OrderNo:        order.OrderNo,
 		UserID:         userID,
 		Amount:         order.TotalAmount,
-		PaymentMethod:  "wallet",
+		PaymentMethod:  paymentMethod,
 		Status:         consts.PaymentStatusInit,
 		IdempotencyKey: req.IdempotencyKey,
 	}
@@ -123,6 +155,9 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 
 	// Step 3: Core transaction
 	var txErr error
+	var finalUsedPoints int
+	var finalRemainingAmount int64
+
 	err = s.db.Transaction(func(tx *gorm.DB) error {
 		orderRepo := s.orderRepo.WithTx(tx)
 		walletRepo := s.walletRepo.WithTx(tx)
@@ -134,6 +169,14 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 		if err != nil {
 			txErr = errors.New("订单不存在")
 			return err
+		}
+		if lockedOrder.Status == consts.OrderStatusPaid {
+			// Already paid, return nil (success) and sync status to order memory
+			order.UsedPoints = lockedOrder.UsedPoints
+			order.UsedBalance = lockedOrder.UsedBalance
+			finalUsedPoints = lockedOrder.UsedPoints
+			finalRemainingAmount = lockedOrder.UsedBalance
+			return nil
 		}
 		if lockedOrder.Status != consts.OrderStatusPendingPayment {
 			txErr = errors.New("订单状态已变更，无法支付")
@@ -160,38 +203,77 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 			return txErr
 		}
 
-		// Lock wallet row
-		wallet, err := walletRepo.FindByUserIDForUpdate(tx, userID)
-		if err != nil {
-			txErr = errors.New("钱包不存在")
+		// Lock user row to get and update green_points
+		var userRecord model.SysUser
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", userID).First(&userRecord).Error; err != nil {
+			txErr = errors.New("用户不存在")
 			return err
 		}
 
-		// Atomic debit
-		affected, err := walletRepo.Debit(tx, userID, order.TotalAmount)
-		if err != nil {
-			return err
+		// Calculate points offset (1 point = 10 cents)
+		maxDeductiblePoints := int(order.TotalAmount / 10)
+		usedPoints := userRecord.GreenPoints
+		if usedPoints > maxDeductiblePoints {
+			usedPoints = maxDeductiblePoints
 		}
-		if affected == 0 {
-			txErr = errors.New("余额不足")
-			return fmt.Errorf("insufficient balance: need %d, have %d", order.TotalAmount, wallet.Balance)
+
+		remainingAmountInCents := order.TotalAmount - int64(usedPoints*10)
+		finalUsedPoints = usedPoints
+		finalRemainingAmount = remainingAmountInCents
+
+		// Lock and debit wallet row if needed
+		var walletBalanceBefore int64
+		var walletBalanceAfter int64
+
+		if remainingAmountInCents > 0 {
+			wallet, err := walletRepo.FindByUserIDForUpdate(tx, userID)
+			if err != nil {
+				txErr = errors.New("钱包不存在")
+				return err
+			}
+			walletBalanceBefore = wallet.Balance
+			walletBalanceAfter = wallet.Balance - remainingAmountInCents
+
+			affected, err := walletRepo.Debit(tx, userID, remainingAmountInCents)
+			if err != nil {
+				return err
+			}
+			if affected == 0 {
+				txErr = errors.New("余额不足")
+				return fmt.Errorf("insufficient balance: need %d, have %d", remainingAmountInCents, wallet.Balance)
+			}
+		} else {
+			wallet, err := walletRepo.FindByUserIDForUpdate(tx, userID)
+			if err == nil && wallet != nil {
+				walletBalanceBefore = wallet.Balance
+				walletBalanceAfter = wallet.Balance
+			}
+		}
+
+		// Deduct points from user
+		if usedPoints > 0 {
+			err = tx.Model(&model.SysUser{}).Where("id = ?", userID).Update("green_points", gorm.Expr("green_points - ?", usedPoints)).Error
+			if err != nil {
+				return err
+			}
 		}
 
 		// Record wallet transaction
 		remark := "钱包支付"
-		if order.UsedPoints > 0 {
-			if order.UsedBalance == 0 {
+		if usedPoints > 0 {
+			if remainingAmountInCents == 0 {
 				remark = "积分支付"
 			} else {
 				remark = "积分+钱包支付"
 			}
 		}
+
 		if err := walletRepo.CreateTransaction(tx, &model.WalletTransaction{
 			UserID:         userID,
 			Type:           consts.WalletTxTypeOrderPay,
-			Amount:         -order.TotalAmount,
-			BalanceBefore:  wallet.Balance,
-			BalanceAfter:   wallet.Balance - order.TotalAmount,
+			Amount:         -remainingAmountInCents,
+			BalanceBefore:  walletBalanceBefore,
+			BalanceAfter:   walletBalanceAfter,
 			RelatedID:      order.ID,
 			BizType:        consts.BizTypeOrderPay,
 			BizID:          order.OrderNo,
@@ -202,14 +284,18 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 		}
 
 		// Mark order as paid (conditional: WHERE status=pending_payment)
-		affected, err = orderRepo.MarkAsPaid(tx, orderID, order.TotalAmount)
+		affectedRows, err := orderRepo.MarkAsPaid(tx, orderID, remainingAmountInCents, usedPoints)
 		if err != nil {
 			return err
 		}
-		if affected == 0 {
+		if affectedRows == 0 {
 			txErr = errors.New("订单状态已变更，无法支付")
 			return fmt.Errorf("MarkAsPaid affected 0 rows")
 		}
+
+		// Update order in memory for response
+		order.UsedPoints = usedPoints
+		order.UsedBalance = remainingAmountInCents
 
 		return nil
 	})
@@ -238,8 +324,8 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 	}
 
 	return &PayOrderResult{
-		UsedPoints:  order.UsedPoints,
-		UsedBalance: float64(order.TotalAmount) / 100,
+		UsedPoints:  finalUsedPoints,
+		UsedBalance: float64(finalRemainingAmount) / 100,
 	}, nil
 }
 

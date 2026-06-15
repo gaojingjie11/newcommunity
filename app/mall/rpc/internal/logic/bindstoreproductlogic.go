@@ -24,6 +24,9 @@ func NewBindStoreProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *BindStoreProductLogic) BindStoreProduct(in *mall.BindStoreProductReq) (*mall.BaseResp, error) {
+	if err := checkStoreAccess(l.ctx, in.StoreId); err != nil {
+		return nil, err
+	}
 	err := l.svcCtx.StoreSvc.BindProduct(in.StoreId, in.ProductId, int(in.Stock))
 	if err != nil {
 		return &mall.BaseResp{Code: 500, Message: err.Error()}, nil

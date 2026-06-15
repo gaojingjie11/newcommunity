@@ -18,12 +18,15 @@ type (
 	BaseResp              = stats.BaseResp
 	CommunityOverviewResp = stats.CommunityOverviewResp
 	DaysReq               = stats.DaysReq
+	EcoLeaderboardInfo    = stats.EcoLeaderboardInfo
+	EcoStatsResp          = stats.EcoStatsResp
 	GenerateReportReq     = stats.GenerateReportReq
 	ListReportsReq        = stats.ListReportsReq
 	OrderStatsResp        = stats.OrderStatsResp
 	OrderSummaryInfo      = stats.OrderSummaryInfo
 	OrderTrendInfo        = stats.OrderTrendInfo
 	RankLimitReq          = stats.RankLimitReq
+	RepairStatInfo        = stats.RepairStatInfo
 	ReportIDReq           = stats.ReportIDReq
 	ReportListResp        = stats.ReportListResp
 	ReportResp            = stats.ReportResp
@@ -44,6 +47,7 @@ type (
 		GetLatestAIReport(ctx context.Context, in *BaseResp, opts ...grpc.CallOption) (*ReportResp, error)
 		ListAIReports(ctx context.Context, in *ListReportsReq, opts ...grpc.CallOption) (*ReportListResp, error)
 		GetAIReportDetail(ctx context.Context, in *ReportIDReq, opts ...grpc.CallOption) (*ReportResp, error)
+		GetEcoLeaderboard(ctx context.Context, in *BaseResp, opts ...grpc.CallOption) (*EcoStatsResp, error)
 	}
 
 	defaultStatsRpc struct {
@@ -100,4 +104,9 @@ func (m *defaultStatsRpc) ListAIReports(ctx context.Context, in *ListReportsReq,
 func (m *defaultStatsRpc) GetAIReportDetail(ctx context.Context, in *ReportIDReq, opts ...grpc.CallOption) (*ReportResp, error) {
 	client := stats.NewStatsRpcClient(m.cli.Conn())
 	return client.GetAIReportDetail(ctx, in, opts...)
+}
+
+func (m *defaultStatsRpc) GetEcoLeaderboard(ctx context.Context, in *BaseResp, opts ...grpc.CallOption) (*EcoStatsResp, error) {
+	client := stats.NewStatsRpcClient(m.cli.Conn())
+	return client.GetEcoLeaderboard(ctx, in, opts...)
 }

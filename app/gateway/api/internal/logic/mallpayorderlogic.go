@@ -31,6 +31,8 @@ func (l *MallPayOrderLogic) MallPayOrder(req *types.PayOrderReq) (resp *types.Pa
 		PayType:        req.PayType,
 		Password:       req.Password,
 		FaceImageUrl:   req.FaceImageUrl,
+		IdempotencyKey: req.IdempotencyKey,
+		ReturnUrl:      req.ReturnUrl,
 	})
 	if err != nil {
 		return nil, err

@@ -50,6 +50,11 @@
               <span class="meta-label">当前库存</span>
               <span class="meta-value">{{ product.stock }} <span class="meta-unit">件</span></span>
             </div>
+            <div class="meta-divider"></div>
+            <div class="meta-item">
+              <span class="meta-label">浏览量</span>
+              <span class="meta-value">{{ product.view_count || 0 }} <span class="meta-unit">次</span></span>
+            </div>
           </div>
 
           <!-- 商品评价展开触发器 -->
@@ -441,38 +446,46 @@ onMounted(async () => {
 .detail-meta {
   display: flex;
   align-items: center;
-  gap: 32px;
-  margin-bottom: 20px;
-  padding: 0 10px;
+  justify-content: space-between;
+  background: #fcfdfe;
+  border: 1px solid #f0f2f5;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-bottom: 24px;
 }
 
 .meta-divider {
   width: 1px;
-  height: 16px;
+  height: 24px;
   background-color: #ebeef5;
 }
 
 .meta-item {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
   align-items: center;
-  gap: 8px;
+  flex: 1;
 }
 
 .meta-label {
-  font-size: 13px;
+  font-size: 12px;
   color: #909399;
+  white-space: nowrap;
 }
 
 .meta-value {
   font-size: 16px;
   font-weight: 600;
   color: #303133;
+  white-space: nowrap;
 }
 
 .meta-unit {
   font-size: 12px;
   font-weight: normal;
   color: #909399;
+  margin-left: 2px;
 }
 
 /* 高级触发器条 */

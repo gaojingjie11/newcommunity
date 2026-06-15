@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.0
-// source: app/mall/rpc/mall.proto
+// source: mall.proto
 
 package mall
 
@@ -25,6 +25,8 @@ const (
 	MallRpc_GetPromotions_FullMethodName            = "/mall.MallRpc/GetPromotions"
 	MallRpc_ListStores_FullMethodName               = "/mall.MallRpc/ListStores"
 	MallRpc_GetStoreDetail_FullMethodName           = "/mall.MallRpc/GetStoreDetail"
+	MallRpc_BindUserStores_FullMethodName           = "/mall.MallRpc/BindUserStores"
+	MallRpc_GetUserStores_FullMethodName            = "/mall.MallRpc/GetUserStores"
 	MallRpc_ListCategories_FullMethodName           = "/mall.MallRpc/ListCategories"
 	MallRpc_GetCategoryDetail_FullMethodName        = "/mall.MallRpc/GetCategoryDetail"
 	MallRpc_ListServiceAreas_FullMethodName         = "/mall.MallRpc/ListServiceAreas"
@@ -86,6 +88,8 @@ type MallRpcClient interface {
 	GetPromotions(ctx context.Context, in *ListProductsReq, opts ...grpc.CallOption) (*ProductListResp, error)
 	ListStores(ctx context.Context, in *ListStoresReq, opts ...grpc.CallOption) (*StoreListResp, error)
 	GetStoreDetail(ctx context.Context, in *StoreIDReq, opts ...grpc.CallOption) (*StoreDetailResp, error)
+	BindUserStores(ctx context.Context, in *BindUserStoresReq, opts ...grpc.CallOption) (*BaseResp, error)
+	GetUserStores(ctx context.Context, in *UserIDReq, opts ...grpc.CallOption) (*StoreIDListResp, error)
 	ListCategories(ctx context.Context, in *ListCategoriesReq, opts ...grpc.CallOption) (*CategoryListResp, error)
 	GetCategoryDetail(ctx context.Context, in *CategoryIDReq, opts ...grpc.CallOption) (*CategoryDetailResp, error)
 	ListServiceAreas(ctx context.Context, in *ListServiceAreasReq, opts ...grpc.CallOption) (*ServiceAreaListResp, error)
@@ -200,6 +204,26 @@ func (c *mallRpcClient) GetStoreDetail(ctx context.Context, in *StoreIDReq, opts
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StoreDetailResp)
 	err := c.cc.Invoke(ctx, MallRpc_GetStoreDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mallRpcClient) BindUserStores(ctx context.Context, in *BindUserStoresReq, opts ...grpc.CallOption) (*BaseResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BaseResp)
+	err := c.cc.Invoke(ctx, MallRpc_BindUserStores_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mallRpcClient) GetUserStores(ctx context.Context, in *UserIDReq, opts ...grpc.CallOption) (*StoreIDListResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StoreIDListResp)
+	err := c.cc.Invoke(ctx, MallRpc_GetUserStores_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -706,6 +730,8 @@ type MallRpcServer interface {
 	GetPromotions(context.Context, *ListProductsReq) (*ProductListResp, error)
 	ListStores(context.Context, *ListStoresReq) (*StoreListResp, error)
 	GetStoreDetail(context.Context, *StoreIDReq) (*StoreDetailResp, error)
+	BindUserStores(context.Context, *BindUserStoresReq) (*BaseResp, error)
+	GetUserStores(context.Context, *UserIDReq) (*StoreIDListResp, error)
 	ListCategories(context.Context, *ListCategoriesReq) (*CategoryListResp, error)
 	GetCategoryDetail(context.Context, *CategoryIDReq) (*CategoryDetailResp, error)
 	ListServiceAreas(context.Context, *ListServiceAreasReq) (*ServiceAreaListResp, error)
@@ -783,6 +809,12 @@ func (UnimplementedMallRpcServer) ListStores(context.Context, *ListStoresReq) (*
 }
 func (UnimplementedMallRpcServer) GetStoreDetail(context.Context, *StoreIDReq) (*StoreDetailResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetStoreDetail not implemented")
+}
+func (UnimplementedMallRpcServer) BindUserStores(context.Context, *BindUserStoresReq) (*BaseResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method BindUserStores not implemented")
+}
+func (UnimplementedMallRpcServer) GetUserStores(context.Context, *UserIDReq) (*StoreIDListResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserStores not implemented")
 }
 func (UnimplementedMallRpcServer) ListCategories(context.Context, *ListCategoriesReq) (*CategoryListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCategories not implemented")
@@ -1056,6 +1088,42 @@ func _MallRpc_GetStoreDetail_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MallRpcServer).GetStoreDetail(ctx, req.(*StoreIDReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MallRpc_BindUserStores_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BindUserStoresReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MallRpcServer).BindUserStores(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MallRpc_BindUserStores_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MallRpcServer).BindUserStores(ctx, req.(*BindUserStoresReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MallRpc_GetUserStores_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserIDReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MallRpcServer).GetUserStores(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MallRpc_GetUserStores_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MallRpcServer).GetUserStores(ctx, req.(*UserIDReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1974,6 +2042,14 @@ var MallRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MallRpc_GetStoreDetail_Handler,
 		},
 		{
+			MethodName: "BindUserStores",
+			Handler:    _MallRpc_BindUserStores_Handler,
+		},
+		{
+			MethodName: "GetUserStores",
+			Handler:    _MallRpc_GetUserStores_Handler,
+		},
+		{
 			MethodName: "ListCategories",
 			Handler:    _MallRpc_ListCategories_Handler,
 		},
@@ -2171,5 +2247,5 @@ var MallRpc_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "app/mall/rpc/mall.proto",
+	Metadata: "mall.proto",
 }

@@ -56,7 +56,7 @@ UQIDAQAB
 	}
 
 	// 3. Generate payment URL
-	payURL, err := s.GetPaymentURL("TEST_ORDER_001", 1500) // 15.00 Yuan
+	payURL, err := s.GetPaymentURL("TEST_ORDER_001", 1500, "") // 15.00 Yuan
 	if err != nil {
 		t.Fatalf("failed to get payment URL: %v", err)
 	}

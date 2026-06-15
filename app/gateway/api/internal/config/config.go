@@ -22,6 +22,7 @@ type Config struct {
 	CommunityRpc zrpc.RpcClientConf
 	WorkorderRpc zrpc.RpcClientConf
 	StatsRpc     zrpc.RpcClientConf
+	AgentRpc     zrpc.RpcClientConf
 	BizRedis     redis.RedisConfig
 	MinIO        storage.MinIOConfig
 	Gateway struct {

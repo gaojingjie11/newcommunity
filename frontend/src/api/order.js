@@ -68,6 +68,31 @@ export function getOrderList(params) {
     url: '/mall/orders',
     method: 'get',
     params
+  }).then((res) => {
+    const list = res?.list || res || [];
+    const mapItems = (items) => (items || []).map(item => ({
+      ...item,
+      product: {
+        id: item.product_id,
+        name: item.product_name,
+        image_url: item.product_image
+      }
+    }));
+    
+    if (res && res.list) {
+      return {
+        ...res,
+        list: list.map(order => ({
+          ...order,
+          items: mapItems(order.items)
+        }))
+      };
+    }
+    
+    return list.map(order => ({
+      ...order,
+      items: mapItems(order.items)
+    }));
   })
 }
 
@@ -82,7 +107,8 @@ export function payOrder(orderId, data = {}) {
       pay_type: data.pay_type || 'password',
       password: data.password || '',
       face_image_url: data.face_image_url || '',
-      idempotency_key: idempotencyKey
+      idempotency_key: idempotencyKey,
+      return_url: data.return_url || data.returnUrl || ''
     }
   })
 }
@@ -105,5 +131,24 @@ export function getOrderDetail(id) {
   return request({
     url: `/mall/orders/${id}`,
     method: 'get'
+  }).then((res) => {
+    if (!res) return res;
+    return {
+      ...res,
+      store: {
+        id: res.store_id,
+        name: res.store_name,
+        address: res.store_address,
+        phone: res.store_phone
+      },
+      items: (res.items || []).map(item => ({
+        ...item,
+        product: {
+          id: item.product_id,
+          name: item.product_name,
+          image_url: item.product_image
+        }
+      }))
+    };
   })
 }

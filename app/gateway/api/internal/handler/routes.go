@@ -51,6 +51,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				Method:  http.MethodGet,
+				Path:    "/green-points/leaderboard",
+				Handler: GetGreenPointsLeaderboardHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/green-points/upload-garbage",
+				Handler: UploadGarbageHandler(serverCtx),
+			},
+			{
 				Method:  http.MethodPost,
 				Path:    "/upload",
 				Handler: UploadHandler(serverCtx),
@@ -279,6 +289,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodPut,
 				Path:    "/store-products/stock",
 				Handler: AdminMallUpdateStoreProductStockHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/stores",
+				Handler: AdminMallListStoresHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -561,5 +576,47 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 		},
 		rest.WithPrefix("/api/mall"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/chat/stream",
+				Handler: ChatStreamHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/conversations",
+				Handler: ListConversationsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/conversations",
+				Handler: CreateConversationHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/conversations/:id",
+				Handler: DeleteConversationHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/conversations/:id/history",
+				Handler: GetChatHistoryHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/sessions/:id/actions/:actionId/approve",
+				Handler: ApproveActionHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/sessions/:id/actions/:actionId/reject",
+				Handler: RejectActionHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api/agent"),
 	)
 }

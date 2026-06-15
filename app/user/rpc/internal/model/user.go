@@ -4,7 +4,7 @@ import "time"
 
 type SysUser struct {
 	ID             int64     `gorm:"primaryKey" json:"id"`
-	Username       string    `gorm:"type:varchar(64)" json:"username"`
+	Username       string    `gorm:"type:varchar(64);uniqueIndex" json:"username"`
 	Password       string    `gorm:"type:varchar(255)" json:"-"`
 	RealName       string    `gorm:"column:real_name;type:varchar(64)" json:"real_name"`
 	Mobile         string    `gorm:"type:varchar(20);uniqueIndex" json:"mobile"`
@@ -49,7 +49,7 @@ func (SysMenu) TableName() string { return "sys_menu" }
 
 type SysUserRole struct {
 	ID     int64 `gorm:"primaryKey" json:"id"`
-	UserID int64 `json:"user_id"`
+	UserID int64 `gorm:"index" json:"user_id"`
 	RoleID int64 `json:"role_id"`
 }
 
@@ -57,7 +57,7 @@ func (SysUserRole) TableName() string { return "sys_user_role" }
 
 type SysRoleMenu struct {
 	ID     int64 `gorm:"primaryKey" json:"id"`
-	RoleID int64 `json:"role_id"`
+	RoleID int64 `gorm:"index" json:"role_id"`
 	MenuID int64 `json:"menu_id"`
 }
 

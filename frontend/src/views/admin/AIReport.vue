@@ -133,7 +133,7 @@ const size = ref(10)
 
 const detailVisible = ref(false)
 const activeReport = ref(null)
-const activeReportHtml = computed(() => markdownToHtml(activeReport.value?.report || ''))
+const activeReportHtml = computed(() => markdownToHtml(activeReport.value?.report_markdown || ''))
 
 function formatDateTime(value) {
   return dayjs(value).format('YYYY-MM-DD HH:mm:ss')
@@ -181,11 +181,11 @@ async function handleGenerate(showMessage) {
   try {
     const data = await generateAIReport()
     if (showMessage) {
-      ElMessage.success('AI 报告生成成功')
+      ElMessage.success('AI 报告生成请求已提交，后台正在计算，请稍后刷新列表查看')
     }
     await fetchList()
-    if (showMessage && data?.id) {
-      await openDetail(data.id)
+    if (showMessage && data?.report?.id) {
+      await openDetail(data.report.id)
     }
   } catch (error) {
     if (isTimeoutError(error)) {
@@ -206,7 +206,8 @@ async function openDetail(id) {
   detailVisible.value = true
   detailLoading.value = true
   try {
-    activeReport.value = await getAIReportDetail(id)
+    const res = await getAIReportDetail(id)
+    activeReport.value = res.report
   } catch (error) {
     ElMessage.error(error.response?.data?.msg || error.message || '获取报告详情失败')
   } finally {

@@ -1,11 +1,17 @@
 package svc
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"log"
+	"math/rand"
+	"time"
 
 	"smartcommunity-microservices/app/mall/rpc/internal/config"
 	"smartcommunity-microservices/app/mall/rpc/internal/repository"
 	"smartcommunity-microservices/app/mall/rpc/internal/service"
+	"smartcommunity-microservices/app/mall/rpc/internal/model"
 	"smartcommunity-microservices/common/db"
 	"smartcommunity-microservices/common/logger"
 	"smartcommunity-microservices/common/mq"
@@ -19,6 +25,7 @@ type ServiceContext struct {
 	Config config.Config
 	DB     *gorm.DB
 	Redis  *goredis.Client
+	MQ     *mq.Client
 
 	ProductRepo      *repository.ProductRepo
 	CategoryRepo     *repository.CategoryRepo
@@ -31,7 +38,6 @@ type ServiceContext struct {
 	WalletRepo       *repository.WalletRepo
 	ServiceAreaRepo  *repository.ServiceAreaRepo
 	PaymentRepo      *repository.PaymentRepo
-	ViewLogRepo      *repository.ViewLogRepo
 	UserRepo         *repository.UserRepo
 
 	ProductSvc     *service.ProductService
@@ -52,11 +58,30 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	logr := logger.New(c.Name)
 
-	// Init MySQL
-	database, err := db.InitMySQL(c.MySQL)
+	// Init Postgres
+	database, err := db.InitPostgres(c.Postgres)
 	if err != nil {
-		log.Fatalf("init mysql failed: %v", err)
+		log.Fatalf("init postgres failed: %v", err)
 	}
+
+	// Run AutoMigrate for PostgreSQL tables
+	_ = database.AutoMigrate(
+		&model.Cart{},
+		&model.ProductComment{},
+		&model.UserProfile{},
+		&model.Favorite{},
+		&model.Order{},
+		&model.OrderItem{},
+		&model.PaymentRecord{},
+		&model.Product{},
+		&model.ProductCategory{},
+		&model.ServiceArea{},
+		&model.Store{},
+		&model.StoreProduct{},
+		&model.UserStore{},
+		&model.Wallet{},
+		&model.WalletTransaction{},
+	)
 
 	// Init Redis
 	rdb, err := redis.Init(c.BizRedis)
@@ -90,12 +115,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	walletRepo := repository.NewWalletRepo(database)
 	serviceAreaRepo := repository.NewServiceAreaRepo(database)
 	paymentRepo := repository.NewPaymentRepo(database)
-	viewLogRepo := repository.NewViewLogRepo(database)
 	userRepo := repository.NewUserRepo(database)
 
 	// Services
-	productSvc := service.NewProductService(productRepo)
-	categorySvc := service.NewCategoryService(categoryRepo)
+	productSvc := service.NewProductService(productRepo, rdb, eventBus)
+	categorySvc := service.NewCategoryService(categoryRepo, rdb)
 	cartSvc := service.NewCartService(cartRepo, productRepo)
 	orderSvc := service.NewOrderService(database, orderRepo, cartRepo, productRepo, storeRepo, storeProductRepo, walletRepo, eventBus, rdb)
 	storeSvc := service.NewStoreService(storeRepo, storeProductRepo)
@@ -114,10 +138,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	timeoutSvc := service.NewOrderTimeoutService(database, orderRepo, storeProductRepo, productRepo, eventBus, logr)
 	timeoutSvc.Start()
 
+	// Asynchronously warm up the product details cache in Redis
+	go warmUpProductCache(database, rdb)
+
 	return &ServiceContext{
 		Config:           c,
 		DB:               database,
 		Redis:            rdb,
+		MQ:               mqClient,
 		ProductRepo:      productRepo,
 		CategoryRepo:     categoryRepo,
 		CartRepo:         cartRepo,
@@ -129,7 +157,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		WalletRepo:       walletRepo,
 		ServiceAreaRepo:  serviceAreaRepo,
 		PaymentRepo:      paymentRepo,
-		ViewLogRepo:      viewLogRepo,
 		UserRepo:         userRepo,
 		ProductSvc:       productSvc,
 		CategorySvc:      categorySvc,
@@ -145,4 +172,27 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		EventBus:         eventBus,
 		TimeoutSvc:       timeoutSvc,
 	}
+}
+
+func warmUpProductCache(db *gorm.DB, rdb *goredis.Client) {
+	var products []model.Product
+	// Query only active products (status = 1)
+	if err := db.Where("status = ?", 1).Find(&products).Error; err != nil {
+		log.Printf("[Cache Warm-Up] Failed to query products from DB: %v", err)
+		return
+	}
+
+	ctx := context.Background()
+	count := 0
+	for _, p := range products {
+		cacheKey := fmt.Sprintf("mall:product:detail:%d", p.ID)
+		productJSON, err := json.Marshal(p)
+		if err == nil {
+			// Set a randomized TTL (2 hours + up to 10 minutes random jitter)
+			ttl := 7200 + rand.Intn(600)
+			_ = rdb.Set(ctx, cacheKey, string(productJSON), time.Duration(ttl)*time.Second).Err()
+			count++
+		}
+	}
+	log.Printf("[Cache Warm-Up] Completed. Loaded %d/%d products into Redis successfully.", count, len(products))
 }

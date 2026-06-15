@@ -312,7 +312,8 @@ async function submitOrderPay(authPayload) {
   try {
     await withLoading(current.id, async () => {
       const res = await payOrder(current.id, {
-        ...authPayload
+        ...authPayload,
+        return_url: window.location.origin + '/payment/result'
       })
 
       if (authPayload.pay_type === 'alipay' && res?.pay_url) {

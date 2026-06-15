@@ -1,15 +1,18 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /build
 
 ENV GOPROXY=https://goproxy.cn,direct
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -p 2 -ldflags="-s -w" -o /app/stats-rpc ./app/stats/rpc/stats.go
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -p 2 -ldflags="-s -w" -o /app/stats-rpc ./app/stats/rpc/stats.go
 
 FROM alpine:3.20
 

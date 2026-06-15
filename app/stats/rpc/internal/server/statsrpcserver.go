@@ -67,3 +67,8 @@ func (s *StatsRpcServer) GetAIReportDetail(ctx context.Context, in *stats.Report
 	l := logic.NewGetAIReportDetailLogic(ctx, s.svcCtx)
 	return l.GetAIReportDetail(in)
 }
+
+func (s *StatsRpcServer) GetEcoLeaderboard(ctx context.Context, in *stats.BaseResp) (*stats.EcoStatsResp, error) {
+	l := logic.NewGetEcoLeaderboardLogic(ctx, s.svcCtx)
+	return l.GetEcoLeaderboard(in)
+}

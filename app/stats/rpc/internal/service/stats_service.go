@@ -19,6 +19,7 @@ const (
 	cacheKeyOverview   = "stats:community:overview"
 	cacheKeyOrders     = "stats:orders:%d"
 	cacheKeyWorkorders = "stats:workorders:summary"
+	cacheKeyLeaderboard = "stats:green:leaderboard:%d"
 
 	ttlStatsShort = 30 * time.Second
 	ttlStatsLong  = 60 * time.Second
@@ -172,4 +173,32 @@ func (s *StatsService) WorkorderSummary() ([]model.WorkorderSummary, error) {
 	}
 	s.setJSONCache(ctx, cacheKeyWorkorders, result, ttlStatsLong)
 	return result, nil
+}
+
+func (s *StatsService) GreenPointsLeaderboard(limit int) ([]model.EcoLeaderboard, int64, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf(cacheKeyLeaderboard, limit)
+
+	type leaderboardCache struct {
+		List              []model.EcoLeaderboard `json:"list"`
+		TotalPointsIssued int64                  `json:"total_points_issued"`
+	}
+
+	var cached leaderboardCache
+	if s.getJSONCache(ctx, key, &cached) {
+		return cached.List, cached.TotalPointsIssued, nil
+	}
+
+	list, err := s.repo.GreenPointsLeaderboard(limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	total, err := s.repo.TotalGreenPointsIssued()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	s.setJSONCache(ctx, key, leaderboardCache{List: list, TotalPointsIssued: total}, ttlStatsLong)
+	return list, total, nil
 }

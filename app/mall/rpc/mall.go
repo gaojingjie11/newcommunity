@@ -22,9 +22,12 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
 	ctx := svc.NewServiceContext(c)
 	defer ctx.TimeoutSvc.Stop()
+
+	// Start RabbitMQ Notification Consumer in background
+	go svc.StartNotificationConsumer(ctx)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		mall.RegisterMallRpcServer(grpcServer, server.NewMallRpcServer(ctx))

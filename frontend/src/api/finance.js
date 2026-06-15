@@ -1,10 +1,10 @@
 import request from '@/utils/request'
 
-export function recharge(amount, payType = 'alipay') {
+export function recharge(amount, payType = 'alipay', returnUrl = '') {
   return request({
     url: '/mall/wallet/recharge',
     method: 'post',
-    data: { amount: Number(amount), pay_type: payType }
+    data: { amount: Number(amount), pay_type: payType, return_url: returnUrl }
   })
 }
 

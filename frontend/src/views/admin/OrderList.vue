@@ -9,14 +9,31 @@
           <el-icon class="back-icon"><ArrowLeft /></el-icon> 
           <span>返回管理后台</span>
         </div>
-        <div class="header-actions">
+        <div class="header-actions" style="display: flex; gap: 12px; align-items: center; width: auto;">
+          <el-select 
+            v-model="filterStoreId" 
+            placeholder="所有门店" 
+            clearable 
+            style="width: 180px;" 
+            @change="handleSearch"
+            class="custom-select"
+          >
+            <el-option 
+              v-for="item in myStores" 
+              :key="item.id" 
+              :label="item.name" 
+              :value="item.id" 
+            />
+          </el-select>
+
           <el-input 
-            v-model="searchUserId" 
-            placeholder="按用户ID搜索订单..." 
+            v-model="searchKeyword" 
+            placeholder="输入订单号 / 客户手机号..." 
             class="search-input"
             clearable 
             @clear="handleSearch"
             @keyup.enter="handleSearch"
+            style="width: 280px;"
           >
             <template #append>
               <el-button @click="handleSearch">
@@ -141,7 +158,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
-import { getAdminOrderList, shipOrder } from '@/api/admin'
+import { getAdminOrderList, shipOrder, getAdminStores } from '@/api/admin'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 // 引入图标
@@ -154,7 +171,18 @@ const loadingData = ref(false)
 const total = ref(0)
 const page = ref(1)
 const size = ref(10)
-const searchUserId = ref('')
+const searchKeyword = ref('')
+const myStores = ref([])
+const filterStoreId = ref(null)
+
+const fetchMyStores = async () => {
+  try {
+    const res = await getAdminStores({ page: 1, size: 1000 })
+    myStores.value = res.list || []
+  } catch (error) {
+    console.error('获取门店列表失败', error)
+  }
+}
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
@@ -167,8 +195,11 @@ const fetchOrders = async () => {
   loadingData.value = true
   try {
     const params = { page: page.value, size: size.value }
-    if (searchUserId.value) {
-        params.user_id = searchUserId.value
+    if (searchKeyword.value) {
+        params.order_no = searchKeyword.value
+    }
+    if (filterStoreId.value) {
+        params.store_id = filterStoreId.value
     }
     const res = await getAdminOrderList(params)
     if (res.list) {
@@ -206,6 +237,7 @@ const handleSearch = () => {
 }
  
 onMounted(() => {
+  fetchMyStores()
   fetchOrders()
 })
 </script>

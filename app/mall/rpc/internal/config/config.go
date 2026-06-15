@@ -2,6 +2,7 @@ package config
 
 import (
 	"smartcommunity-microservices/common/db"
+	"smartcommunity-microservices/common/mail"
 	"smartcommunity-microservices/common/mq"
 	"smartcommunity-microservices/common/redis"
 
@@ -10,9 +11,10 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	MySQL    db.MySQLConfig
+	Postgres db.PostgresConfig
 	BizRedis redis.RedisConfig
 	RabbitMQ mq.RabbitMQConfig
+	Mail     mail.MailConfig
 	Alipay   struct {
 		AppID           string
 		PrivateKey      string

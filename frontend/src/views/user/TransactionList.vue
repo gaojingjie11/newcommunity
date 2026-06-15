@@ -173,7 +173,8 @@ const handleRechargeSubmit = async () => {
   }
   rechargeLoading.value = true
   try {
-    const res = await recharge(rechargeForm.value.amount, rechargeForm.value.payType)
+    const returnUrl = window.location.origin + '/payment/result'
+    const res = await recharge(rechargeForm.value.amount, rechargeForm.value.payType, returnUrl)
     if (res && (res.code === 0 || !res.code)) {
       if (rechargeForm.value.payType === 'alipay' && res.pay_url) {
         ElMessage.success('正在跳转到支付宝支付收银台...')

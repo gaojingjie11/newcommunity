@@ -8,7 +8,7 @@
       </div>
       
       <div class="notice-list">
-        <div class="notice-card" v-for="notice in notices" :key="notice.id">
+        <div class="notice-card" v-for="notice in notices" :key="notice.id" @click="showNoticeDetail(notice)">
           <div class="notice-main">
             <h3 class="notice-title">{{ notice.title }}</h3>
             <p class="notice-content">{{ notice.content }}</p>
@@ -36,20 +36,49 @@
         />
       </div>
     </div>
+
+    <!-- 公告详情弹窗 -->
+    <el-dialog
+      v-model="detailVisible"
+      title="公告详情"
+      width="640px"
+      destroy-on-close
+      class="premium-dialog"
+    >
+      <div v-if="activeNotice" class="notice-detail-modal">
+        <h2 class="detail-title">{{ activeNotice.title }}</h2>
+        <div class="detail-meta">
+          <span class="publisher"><el-icon><Avatar /></el-icon> {{ activeNotice.publisher }}</span>
+          <span class="date"><el-icon><Calendar /></el-icon> {{ formatDate(activeNotice.created_at) }}</span>
+          <span class="views"><el-icon><View /></el-icon> {{ activeNotice.view_count }} 浏览</span>
+        </div>
+        <div class="detail-content">{{ activeNotice.content }}</div>
+      </div>
+      <template #footer>
+        <div class="modal-actions">
+          <button type="button" class="action-btn btn-default" @click="detailVisible = false">关闭</button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
-import { getNoticeList } from '@/api/service'
+import { getNoticeList, getNoticeDetail } from '@/api/service'
 import dayjs from 'dayjs'
 import { Avatar, Calendar, View } from '@element-plus/icons-vue'
 
+const route = useRoute()
 const notices = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+
+const detailVisible = ref(false)
+const activeNotice = ref(null)
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
@@ -73,6 +102,24 @@ const fetchList = async () => {
   }
 }
 
+const showNoticeDetail = async (notice) => {
+  detailVisible.value = true
+  activeNotice.value = notice
+  
+  try {
+    const res = await getNoticeDetail(notice.id)
+    activeNotice.value = res
+    
+    // 实时同步更新列表中的浏览量
+    const index = notices.value.findIndex(item => item.id === notice.id)
+    if (index !== -1) {
+      notices.value[index].view_count = res.view_count
+    }
+  } catch (error) {
+    console.error('获取公告详情失败:', error)
+  }
+}
+
 const handleSizeChange = (val) => {
   pageSize.value = val
   fetchList()
@@ -83,8 +130,31 @@ const handleCurrentChange = (val) => {
   fetchList()
 }
 
-onMounted(() => {
-  fetchList()
+const checkQueryParam = async () => {
+  const idParam = route.query.id
+  if (idParam) {
+    const noticeId = parseInt(idParam)
+    const notice = notices.value.find(item => item.id === noticeId)
+    if (notice) {
+      showNoticeDetail(notice)
+    } else {
+      try {
+        const res = await getNoticeDetail(noticeId)
+        showNoticeDetail(res)
+      } catch (e) {
+        console.error('获取外部公告详情失败:', e)
+      }
+    }
+  }
+}
+
+watch(() => route.query.id, () => {
+  checkQueryParam()
+})
+
+onMounted(async () => {
+  await fetchList()
+  await checkQueryParam()
 })
 </script>
 
@@ -119,4 +189,21 @@ onMounted(() => {
 .pagination-container { display: flex; justify-content: center; margin-top: 40px; }
 :deep(.custom-pagination .el-pager li.is-active) { background-color: #2d597b; color: #fff; border-radius: 4px; }
 :deep(.custom-pagination .el-pager li:hover) { color: #2d597b; }
+
+/* ================= 弹窗与详情美化 ================= */
+:deep(.premium-dialog) { border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.1); overflow: hidden; }
+:deep(.premium-dialog .el-dialog__header) { margin-right: 0; padding: 24px 32px 20px; border-bottom: 1px solid #f0f2f5; }
+:deep(.premium-dialog .el-dialog__title) { font-weight: 700; color: #2c3e50; font-size: 18px; }
+:deep(.premium-dialog .el-dialog__body) { padding: 32px; }
+:deep(.premium-dialog .el-dialog__footer) { padding: 16px 32px 24px; border-top: 1px solid #f0f2f5; }
+
+.notice-detail-modal { display: flex; flex-direction: column; gap: 20px; }
+.detail-title { font-size: 24px; font-weight: 700; color: #2c3e50; margin: 0; line-height: 1.4; }
+.detail-meta { display: flex; gap: 24px; align-items: center; padding-bottom: 16px; border-bottom: 1px dashed #f0f2f5; }
+.detail-content { font-size: 16px; color: #303133; line-height: 1.8; white-space: pre-wrap; word-break: break-all; }
+
+.modal-actions { display: flex; justify-content: flex-end; }
+.action-btn { padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; }
+.btn-default { background: #ffffff; color: #606266; border-color: #dcdfe6; }
+.btn-default:hover { color: #2d597b; border-color: #2d597b; background: #f0f7ff; }
 </style>

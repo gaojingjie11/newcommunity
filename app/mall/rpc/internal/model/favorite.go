@@ -4,7 +4,7 @@ import "time"
 
 type Favorite struct {
 	ID        int64     `gorm:"primaryKey" json:"id"`
-	UserID    int64     `json:"user_id"`
+	UserID    int64     `gorm:"index" json:"user_id"`
 	ProductID int64     `json:"product_id"`
 	CreatedAt time.Time `json:"created_at"`
 	Product   Product   `gorm:"foreignKey:ProductID" json:"product"`

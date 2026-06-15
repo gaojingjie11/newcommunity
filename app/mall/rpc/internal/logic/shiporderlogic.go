@@ -24,7 +24,15 @@ func NewShipOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ShipOrd
 }
 
 func (l *ShipOrderLogic) ShipOrder(in *mall.ShipOrderReq) (*mall.BaseResp, error) {
-	err := l.svcCtx.OrderSvc.ShipOrder(in.Id)
+	order, err := l.svcCtx.OrderRepo.FindByID(in.Id)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkStoreAccess(l.ctx, order.StoreID); err != nil {
+		return nil, err
+	}
+
+	err = l.svcCtx.OrderSvc.ShipOrder(in.Id)
 	if err != nil {
 		return &mall.BaseResp{Code: 500, Message: err.Error()}, nil
 	}

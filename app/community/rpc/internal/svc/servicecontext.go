@@ -6,7 +6,9 @@ import (
 	"smartcommunity-microservices/app/community/rpc/internal/config"
 	"smartcommunity-microservices/app/community/rpc/internal/repository"
 	"smartcommunity-microservices/app/mall/rpc/mallrpc"
+	"smartcommunity-microservices/app/community/rpc/internal/model"
 	"smartcommunity-microservices/common/db"
+	"smartcommunity-microservices/common/mq"
 	"smartcommunity-microservices/common/redis"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -18,6 +20,7 @@ type ServiceContext struct {
 	Config          config.Config
 	DB              *gorm.DB
 	Redis           *goredis.Client
+	MQ              *mq.Client
 	NoticeRepo      *repository.NoticeRepo
 	VisitorRepo     *repository.VisitorRepo
 	ParkingRepo     *repository.ParkingRepo
@@ -27,16 +30,39 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	// Initialize MySQL
-	database, err := db.InitMySQL(c.MySQL)
+	// Initialize Postgres
+	database, err := db.InitPostgres(c.Postgres)
 	if err != nil {
-		log.Fatalf("failed to init mysql in community-rpc: %v", err)
+		log.Fatalf("failed to init postgres in community-rpc: %v", err)
 	}
+
+	// Run AutoMigrate for PostgreSQL tables
+	_ = database.AutoMigrate(
+		&model.Notice{},
+		&model.Visitor{},
+		&model.ParkingSpace{},
+		&model.UserParkingBinding{},
+		&model.PropertyFee{},
+		&model.PropertyFeePayment{},
+		&model.CommunityMessage{},
+	)
 
 	// Initialize Redis
 	rdb, err := redis.Init(c.BizRedis)
 	if err != nil {
 		log.Fatalf("failed to init redis in community-rpc: %v", err)
+	}
+
+	// Initialize MQ
+	var mqClient *mq.Client
+	if c.RabbitMQ.URL() != "" {
+		var mqErr error
+		mqClient, mqErr = mq.Connect(c.RabbitMQ)
+		if mqErr != nil {
+			log.Printf("rabbitmq connect failed in community-rpc: %v", mqErr)
+		} else {
+			log.Printf("rabbitmq connected in community-rpc")
+		}
 	}
 
 	// Initialize Repositories
@@ -53,6 +79,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:          c,
 		DB:              database,
 		Redis:           rdb,
+		MQ:              mqClient,
 		NoticeRepo:      noticeRepo,
 		VisitorRepo:     visitorRepo,
 		ParkingRepo:     parkingRepo,
@@ -61,3 +88,4 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		MallRpc:         mallClient,
 	}
 }
+

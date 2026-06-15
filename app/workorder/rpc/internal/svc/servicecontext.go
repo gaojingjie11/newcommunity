@@ -6,6 +6,7 @@ import (
 	"smartcommunity-microservices/app/workorder/rpc/internal/config"
 	"smartcommunity-microservices/app/workorder/rpc/internal/repository"
 	"smartcommunity-microservices/app/workorder/rpc/internal/service"
+	"smartcommunity-microservices/app/workorder/rpc/internal/model"
 	"smartcommunity-microservices/common/db"
 	"smartcommunity-microservices/common/logger"
 	"smartcommunity-microservices/common/mq"
@@ -26,11 +27,17 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	logr := logger.New(c.Name)
 
-	// Initialize MySQL
-	database, err := db.InitMySQL(c.MySQL)
+	// Initialize Postgres
+	database, err := db.InitPostgres(c.Postgres)
 	if err != nil {
-		log.Fatalf("failed to init mysql in workorder-rpc: %v", err)
+		log.Fatalf("failed to init postgres in workorder-rpc: %v", err)
 	}
+
+	// Run AutoMigrate for PostgreSQL tables
+	_ = database.AutoMigrate(
+		&model.WorkOrder{},
+		&model.WorkorderLog{},
+	)
 
 	// Initialize Redis
 	rdb, err := redis.Init(c.BizRedis)

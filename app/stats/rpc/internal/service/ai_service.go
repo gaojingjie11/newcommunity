@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -18,11 +19,28 @@ type AIService struct {
 	model   string
 }
 
+func isPlaceholder(val string) bool {
+	val = strings.TrimSpace(val)
+	return val == "" || strings.Contains(val, "${") || (strings.HasPrefix(val, "$") && len(val) > 1)
+}
+
 func NewAIService(apiKey, baseURL, model string) *AIService {
+	k := os.ExpandEnv(strings.TrimSpace(apiKey))
+	if isPlaceholder(k) {
+		k = ""
+	}
+	u := os.ExpandEnv(strings.TrimSpace(baseURL))
+	if isPlaceholder(u) {
+		u = ""
+	}
+	m := os.ExpandEnv(strings.TrimSpace(model))
+	if isPlaceholder(m) {
+		m = ""
+	}
 	return &AIService{
-		apiKey:  strings.TrimSpace(apiKey),
-		baseURL: strings.TrimSpace(baseURL),
-		model:   strings.TrimSpace(model),
+		apiKey:  k,
+		baseURL: u,
+		model:   m,
 	}
 }
 

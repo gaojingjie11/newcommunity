@@ -12,7 +12,9 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     token: localStorage.getItem('token') || '',
     userInfo: JSON.parse(localStorage.getItem('userInfo') || '{}'),
-    isLoggedIn: !!localStorage.getItem('token')
+    permissions: JSON.parse(localStorage.getItem('permissions') || '[]'),
+    isLoggedIn: !!localStorage.getItem('token'),
+    isInfoFetched: false
   }),
 
   actions: {
@@ -20,9 +22,12 @@ export const useUserStore = defineStore('user', {
       const res = await apiLogin(data)
       this.token = res.token
       this.userInfo = res.user_info
+      this.permissions = res.user_info?.permissions || []
       this.isLoggedIn = true
+      this.isInfoFetched = true
       localStorage.setItem('token', res.token)
       localStorage.setItem('userInfo', JSON.stringify(res.user_info))
+      localStorage.setItem('permissions', JSON.stringify(this.permissions))
       await this.refreshWalletBalance()
       return res
     },
@@ -31,9 +36,12 @@ export const useUserStore = defineStore('user', {
       const res = await apiLoginByCode(data)
       this.token = res.token
       this.userInfo = res.user_info
+      this.permissions = res.user_info?.permissions || []
       this.isLoggedIn = true
+      this.isInfoFetched = true
       localStorage.setItem('token', res.token)
       localStorage.setItem('userInfo', JSON.stringify(res.user_info))
+      localStorage.setItem('permissions', JSON.stringify(this.permissions))
       await this.refreshWalletBalance()
       return res
     },
@@ -46,8 +54,11 @@ export const useUserStore = defineStore('user', {
       try {
         const userInfo = await getUserInfo()
         this.userInfo = userInfo || {}
+        this.permissions = userInfo?.permissions || []
+        this.isInfoFetched = true
         await this.refreshWalletBalance()
         localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
+        localStorage.setItem('permissions', JSON.stringify(this.permissions))
         return this.userInfo
       } catch (error) {
         console.error('fetchUserInfo failed', error)
@@ -79,9 +90,12 @@ export const useUserStore = defineStore('user', {
       } finally {
         this.token = ''
         this.userInfo = {}
+        this.permissions = []
         this.isLoggedIn = false
+        this.isInfoFetched = false
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
+        localStorage.removeItem('permissions')
       }
     }
   }

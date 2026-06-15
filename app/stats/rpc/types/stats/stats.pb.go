@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.35.0
-// source: app/stats/rpc/stats.proto
+// source: stats.proto
 
 package stats
 
@@ -31,7 +31,7 @@ type BaseResp struct {
 
 func (x *BaseResp) Reset() {
 	*x = BaseResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[0]
+	mi := &file_stats_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *BaseResp) String() string {
 func (*BaseResp) ProtoMessage() {}
 
 func (x *BaseResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[0]
+	mi := &file_stats_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *BaseResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BaseResp.ProtoReflect.Descriptor instead.
 func (*BaseResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{0}
+	return file_stats_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *BaseResp) GetCode() int32 {
@@ -85,7 +85,7 @@ type SalesRankInfo struct {
 
 func (x *SalesRankInfo) Reset() {
 	*x = SalesRankInfo{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[1]
+	mi := &file_stats_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +97,7 @@ func (x *SalesRankInfo) String() string {
 func (*SalesRankInfo) ProtoMessage() {}
 
 func (x *SalesRankInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[1]
+	mi := &file_stats_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +110,7 @@ func (x *SalesRankInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SalesRankInfo.ProtoReflect.Descriptor instead.
 func (*SalesRankInfo) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{1}
+	return file_stats_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SalesRankInfo) GetProductId() int64 {
@@ -150,7 +150,7 @@ type SalesRankResp struct {
 
 func (x *SalesRankResp) Reset() {
 	*x = SalesRankResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[2]
+	mi := &file_stats_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -162,7 +162,7 @@ func (x *SalesRankResp) String() string {
 func (*SalesRankResp) ProtoMessage() {}
 
 func (x *SalesRankResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[2]
+	mi := &file_stats_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -175,7 +175,7 @@ func (x *SalesRankResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SalesRankResp.ProtoReflect.Descriptor instead.
 func (*SalesRankResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{2}
+	return file_stats_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SalesRankResp) GetList() []*SalesRankInfo {
@@ -197,7 +197,7 @@ type ViewRankInfo struct {
 
 func (x *ViewRankInfo) Reset() {
 	*x = ViewRankInfo{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[3]
+	mi := &file_stats_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -209,7 +209,7 @@ func (x *ViewRankInfo) String() string {
 func (*ViewRankInfo) ProtoMessage() {}
 
 func (x *ViewRankInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[3]
+	mi := &file_stats_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,7 +222,7 @@ func (x *ViewRankInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ViewRankInfo.ProtoReflect.Descriptor instead.
 func (*ViewRankInfo) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{3}
+	return file_stats_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ViewRankInfo) GetProductId() int64 {
@@ -262,7 +262,7 @@ type ViewRankResp struct {
 
 func (x *ViewRankResp) Reset() {
 	*x = ViewRankResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[4]
+	mi := &file_stats_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -274,7 +274,7 @@ func (x *ViewRankResp) String() string {
 func (*ViewRankResp) ProtoMessage() {}
 
 func (x *ViewRankResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[4]
+	mi := &file_stats_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -287,7 +287,7 @@ func (x *ViewRankResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ViewRankResp.ProtoReflect.Descriptor instead.
 func (*ViewRankResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{4}
+	return file_stats_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ViewRankResp) GetList() []*ViewRankInfo {
@@ -295,6 +295,58 @@ func (x *ViewRankResp) GetList() []*ViewRankInfo {
 		return x.List
 	}
 	return nil
+}
+
+type RepairStatInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         int64                  `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RepairStatInfo) Reset() {
+	*x = RepairStatInfo{}
+	mi := &file_stats_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RepairStatInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepairStatInfo) ProtoMessage() {}
+
+func (x *RepairStatInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepairStatInfo.ProtoReflect.Descriptor instead.
+func (*RepairStatInfo) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RepairStatInfo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RepairStatInfo) GetValue() int64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
 }
 
 type CommunityOverviewResp struct {
@@ -306,13 +358,21 @@ type CommunityOverviewResp struct {
 	ComplaintCount int64                  `protobuf:"varint,5,opt,name=complaint_count,json=complaintCount,proto3" json:"complaint_count,omitempty"`
 	FeeCount       int64                  `protobuf:"varint,6,opt,name=fee_count,json=feeCount,proto3" json:"fee_count,omitempty"`
 	FeePaidCount   int64                  `protobuf:"varint,7,opt,name=fee_paid_count,json=feePaidCount,proto3" json:"fee_paid_count,omitempty"`
+	TotalUsers     int64                  `protobuf:"varint,8,opt,name=total_users,json=totalUsers,proto3" json:"total_users,omitempty"`
+	TodayOrders    int64                  `protobuf:"varint,9,opt,name=today_orders,json=todayOrders,proto3" json:"today_orders,omitempty"`
+	ParkingRate    string                 `protobuf:"bytes,10,opt,name=parking_rate,json=parkingRate,proto3" json:"parking_rate,omitempty"`
+	MonthIncome    float64                `protobuf:"fixed64,11,opt,name=month_income,json=monthIncome,proto3" json:"month_income,omitempty"`
+	RepairStats    []*RepairStatInfo      `protobuf:"bytes,12,rep,name=repair_stats,json=repairStats,proto3" json:"repair_stats,omitempty"`
+	IncomeDates    []string               `protobuf:"bytes,13,rep,name=income_dates,json=incomeDates,proto3" json:"income_dates,omitempty"`
+	IncomeTrend    []float64              `protobuf:"fixed64,14,rep,packed,name=income_trend,json=incomeTrend,proto3" json:"income_trend,omitempty"`
+	CostStructure  []float64              `protobuf:"fixed64,15,rep,packed,name=cost_structure,json=costStructure,proto3" json:"cost_structure,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CommunityOverviewResp) Reset() {
 	*x = CommunityOverviewResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[5]
+	mi := &file_stats_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -324,7 +384,7 @@ func (x *CommunityOverviewResp) String() string {
 func (*CommunityOverviewResp) ProtoMessage() {}
 
 func (x *CommunityOverviewResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[5]
+	mi := &file_stats_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -337,7 +397,7 @@ func (x *CommunityOverviewResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommunityOverviewResp.ProtoReflect.Descriptor instead.
 func (*CommunityOverviewResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{5}
+	return file_stats_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CommunityOverviewResp) GetUserCount() int64 {
@@ -389,6 +449,190 @@ func (x *CommunityOverviewResp) GetFeePaidCount() int64 {
 	return 0
 }
 
+func (x *CommunityOverviewResp) GetTotalUsers() int64 {
+	if x != nil {
+		return x.TotalUsers
+	}
+	return 0
+}
+
+func (x *CommunityOverviewResp) GetTodayOrders() int64 {
+	if x != nil {
+		return x.TodayOrders
+	}
+	return 0
+}
+
+func (x *CommunityOverviewResp) GetParkingRate() string {
+	if x != nil {
+		return x.ParkingRate
+	}
+	return ""
+}
+
+func (x *CommunityOverviewResp) GetMonthIncome() float64 {
+	if x != nil {
+		return x.MonthIncome
+	}
+	return 0
+}
+
+func (x *CommunityOverviewResp) GetRepairStats() []*RepairStatInfo {
+	if x != nil {
+		return x.RepairStats
+	}
+	return nil
+}
+
+func (x *CommunityOverviewResp) GetIncomeDates() []string {
+	if x != nil {
+		return x.IncomeDates
+	}
+	return nil
+}
+
+func (x *CommunityOverviewResp) GetIncomeTrend() []float64 {
+	if x != nil {
+		return x.IncomeTrend
+	}
+	return nil
+}
+
+func (x *CommunityOverviewResp) GetCostStructure() []float64 {
+	if x != nil {
+		return x.CostStructure
+	}
+	return nil
+}
+
+type EcoLeaderboardInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	RealName      string                 `protobuf:"bytes,3,opt,name=real_name,json=realName,proto3" json:"real_name,omitempty"`
+	Nickname      string                 `protobuf:"bytes,4,opt,name=nickname,proto3" json:"nickname,omitempty"`
+	Points        int64                  `protobuf:"varint,5,opt,name=points,proto3" json:"points,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EcoLeaderboardInfo) Reset() {
+	*x = EcoLeaderboardInfo{}
+	mi := &file_stats_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EcoLeaderboardInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EcoLeaderboardInfo) ProtoMessage() {}
+
+func (x *EcoLeaderboardInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EcoLeaderboardInfo.ProtoReflect.Descriptor instead.
+func (*EcoLeaderboardInfo) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *EcoLeaderboardInfo) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *EcoLeaderboardInfo) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *EcoLeaderboardInfo) GetRealName() string {
+	if x != nil {
+		return x.RealName
+	}
+	return ""
+}
+
+func (x *EcoLeaderboardInfo) GetNickname() string {
+	if x != nil {
+		return x.Nickname
+	}
+	return ""
+}
+
+func (x *EcoLeaderboardInfo) GetPoints() int64 {
+	if x != nil {
+		return x.Points
+	}
+	return 0
+}
+
+type EcoStatsResp struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	List              []*EcoLeaderboardInfo  `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
+	TotalPointsIssued int64                  `protobuf:"varint,2,opt,name=total_points_issued,json=totalPointsIssued,proto3" json:"total_points_issued,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *EcoStatsResp) Reset() {
+	*x = EcoStatsResp{}
+	mi := &file_stats_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EcoStatsResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EcoStatsResp) ProtoMessage() {}
+
+func (x *EcoStatsResp) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EcoStatsResp.ProtoReflect.Descriptor instead.
+func (*EcoStatsResp) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *EcoStatsResp) GetList() []*EcoLeaderboardInfo {
+	if x != nil {
+		return x.List
+	}
+	return nil
+}
+
+func (x *EcoStatsResp) GetTotalPointsIssued() int64 {
+	if x != nil {
+		return x.TotalPointsIssued
+	}
+	return 0
+}
+
 type OrderSummaryInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        int32                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -400,7 +644,7 @@ type OrderSummaryInfo struct {
 
 func (x *OrderSummaryInfo) Reset() {
 	*x = OrderSummaryInfo{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[6]
+	mi := &file_stats_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -412,7 +656,7 @@ func (x *OrderSummaryInfo) String() string {
 func (*OrderSummaryInfo) ProtoMessage() {}
 
 func (x *OrderSummaryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[6]
+	mi := &file_stats_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -425,7 +669,7 @@ func (x *OrderSummaryInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderSummaryInfo.ProtoReflect.Descriptor instead.
 func (*OrderSummaryInfo) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{6}
+	return file_stats_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *OrderSummaryInfo) GetStatus() int32 {
@@ -460,7 +704,7 @@ type OrderTrendInfo struct {
 
 func (x *OrderTrendInfo) Reset() {
 	*x = OrderTrendInfo{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[7]
+	mi := &file_stats_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -472,7 +716,7 @@ func (x *OrderTrendInfo) String() string {
 func (*OrderTrendInfo) ProtoMessage() {}
 
 func (x *OrderTrendInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[7]
+	mi := &file_stats_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -485,7 +729,7 @@ func (x *OrderTrendInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderTrendInfo.ProtoReflect.Descriptor instead.
 func (*OrderTrendInfo) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{7}
+	return file_stats_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *OrderTrendInfo) GetDate() string {
@@ -519,7 +763,7 @@ type OrderStatsResp struct {
 
 func (x *OrderStatsResp) Reset() {
 	*x = OrderStatsResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[8]
+	mi := &file_stats_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +775,7 @@ func (x *OrderStatsResp) String() string {
 func (*OrderStatsResp) ProtoMessage() {}
 
 func (x *OrderStatsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[8]
+	mi := &file_stats_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +788,7 @@ func (x *OrderStatsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderStatsResp.ProtoReflect.Descriptor instead.
 func (*OrderStatsResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{8}
+	return file_stats_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *OrderStatsResp) GetSummaries() []*OrderSummaryInfo {
@@ -572,7 +816,7 @@ type WorkorderSummaryInfo struct {
 
 func (x *WorkorderSummaryInfo) Reset() {
 	*x = WorkorderSummaryInfo{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[9]
+	mi := &file_stats_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -584,7 +828,7 @@ func (x *WorkorderSummaryInfo) String() string {
 func (*WorkorderSummaryInfo) ProtoMessage() {}
 
 func (x *WorkorderSummaryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[9]
+	mi := &file_stats_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -597,7 +841,7 @@ func (x *WorkorderSummaryInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkorderSummaryInfo.ProtoReflect.Descriptor instead.
 func (*WorkorderSummaryInfo) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{9}
+	return file_stats_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *WorkorderSummaryInfo) GetType() string {
@@ -630,7 +874,7 @@ type WorkorderStatsResp struct {
 
 func (x *WorkorderStatsResp) Reset() {
 	*x = WorkorderStatsResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[10]
+	mi := &file_stats_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -642,7 +886,7 @@ func (x *WorkorderStatsResp) String() string {
 func (*WorkorderStatsResp) ProtoMessage() {}
 
 func (x *WorkorderStatsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[10]
+	mi := &file_stats_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -655,7 +899,7 @@ func (x *WorkorderStatsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkorderStatsResp.ProtoReflect.Descriptor instead.
 func (*WorkorderStatsResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{10}
+	return file_stats_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *WorkorderStatsResp) GetSummaries() []*WorkorderSummaryInfo {
@@ -674,7 +918,7 @@ type GenerateReportReq struct {
 
 func (x *GenerateReportReq) Reset() {
 	*x = GenerateReportReq{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[11]
+	mi := &file_stats_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +930,7 @@ func (x *GenerateReportReq) String() string {
 func (*GenerateReportReq) ProtoMessage() {}
 
 func (x *GenerateReportReq) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[11]
+	mi := &file_stats_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +943,7 @@ func (x *GenerateReportReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateReportReq.ProtoReflect.Descriptor instead.
 func (*GenerateReportReq) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{11}
+	return file_stats_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GenerateReportReq) GetUserId() int64 {
@@ -727,7 +971,7 @@ type AIReportInfo struct {
 
 func (x *AIReportInfo) Reset() {
 	*x = AIReportInfo{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[12]
+	mi := &file_stats_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -739,7 +983,7 @@ func (x *AIReportInfo) String() string {
 func (*AIReportInfo) ProtoMessage() {}
 
 func (x *AIReportInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[12]
+	mi := &file_stats_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -752,7 +996,7 @@ func (x *AIReportInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIReportInfo.ProtoReflect.Descriptor instead.
 func (*AIReportInfo) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{12}
+	return file_stats_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AIReportInfo) GetId() int64 {
@@ -834,7 +1078,7 @@ type ReportResp struct {
 
 func (x *ReportResp) Reset() {
 	*x = ReportResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[13]
+	mi := &file_stats_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -846,7 +1090,7 @@ func (x *ReportResp) String() string {
 func (*ReportResp) ProtoMessage() {}
 
 func (x *ReportResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[13]
+	mi := &file_stats_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -859,7 +1103,7 @@ func (x *ReportResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportResp.ProtoReflect.Descriptor instead.
 func (*ReportResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{13}
+	return file_stats_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ReportResp) GetReport() *AIReportInfo {
@@ -879,7 +1123,7 @@ type ListReportsReq struct {
 
 func (x *ListReportsReq) Reset() {
 	*x = ListReportsReq{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[14]
+	mi := &file_stats_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +1135,7 @@ func (x *ListReportsReq) String() string {
 func (*ListReportsReq) ProtoMessage() {}
 
 func (x *ListReportsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[14]
+	mi := &file_stats_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +1148,7 @@ func (x *ListReportsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReportsReq.ProtoReflect.Descriptor instead.
 func (*ListReportsReq) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{14}
+	return file_stats_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListReportsReq) GetPage() int32 {
@@ -931,7 +1175,7 @@ type ReportListResp struct {
 
 func (x *ReportListResp) Reset() {
 	*x = ReportListResp{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[15]
+	mi := &file_stats_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -943,7 +1187,7 @@ func (x *ReportListResp) String() string {
 func (*ReportListResp) ProtoMessage() {}
 
 func (x *ReportListResp) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[15]
+	mi := &file_stats_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -956,7 +1200,7 @@ func (x *ReportListResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportListResp.ProtoReflect.Descriptor instead.
 func (*ReportListResp) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{15}
+	return file_stats_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ReportListResp) GetList() []*AIReportInfo {
@@ -982,7 +1226,7 @@ type ReportIDReq struct {
 
 func (x *ReportIDReq) Reset() {
 	*x = ReportIDReq{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[16]
+	mi := &file_stats_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -994,7 +1238,7 @@ func (x *ReportIDReq) String() string {
 func (*ReportIDReq) ProtoMessage() {}
 
 func (x *ReportIDReq) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[16]
+	mi := &file_stats_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1007,7 +1251,7 @@ func (x *ReportIDReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportIDReq.ProtoReflect.Descriptor instead.
 func (*ReportIDReq) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{16}
+	return file_stats_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ReportIDReq) GetId() int64 {
@@ -1026,7 +1270,7 @@ type RankLimitReq struct {
 
 func (x *RankLimitReq) Reset() {
 	*x = RankLimitReq{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[17]
+	mi := &file_stats_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1038,7 +1282,7 @@ func (x *RankLimitReq) String() string {
 func (*RankLimitReq) ProtoMessage() {}
 
 func (x *RankLimitReq) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[17]
+	mi := &file_stats_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1051,7 +1295,7 @@ func (x *RankLimitReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RankLimitReq.ProtoReflect.Descriptor instead.
 func (*RankLimitReq) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{17}
+	return file_stats_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RankLimitReq) GetLimit() int32 {
@@ -1070,7 +1314,7 @@ type DaysReq struct {
 
 func (x *DaysReq) Reset() {
 	*x = DaysReq{}
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[18]
+	mi := &file_stats_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1082,7 +1326,7 @@ func (x *DaysReq) String() string {
 func (*DaysReq) ProtoMessage() {}
 
 func (x *DaysReq) ProtoReflect() protoreflect.Message {
-	mi := &file_app_stats_rpc_stats_proto_msgTypes[18]
+	mi := &file_stats_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +1339,7 @@ func (x *DaysReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DaysReq.ProtoReflect.Descriptor instead.
 func (*DaysReq) Descriptor() ([]byte, []int) {
-	return file_app_stats_rpc_stats_proto_rawDescGZIP(), []int{18}
+	return file_stats_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DaysReq) GetDays() int32 {
@@ -1105,11 +1349,11 @@ func (x *DaysReq) GetDays() int32 {
 	return 0
 }
 
-var File_app_stats_rpc_stats_proto protoreflect.FileDescriptor
+var File_stats_proto protoreflect.FileDescriptor
 
-const file_app_stats_rpc_stats_proto_rawDesc = "" +
+const file_stats_proto_rawDesc = "" +
 	"\n" +
-	"\x19app/stats/rpc/stats.proto\x12\x05stats\"8\n" +
+	"\vstats.proto\x12\x05stats\"8\n" +
 	"\bBaseResp\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x95\x01\n" +
@@ -1130,7 +1374,10 @@ const file_app_stats_rpc_stats_proto_rawDesc = "" +
 	"view_count\x18\x03 \x01(\x03R\tviewCount\x12!\n" +
 	"\funique_users\x18\x04 \x01(\x03R\vuniqueUsers\"7\n" +
 	"\fViewRankResp\x12'\n" +
-	"\x04list\x18\x01 \x03(\v2\x13.stats.ViewRankInfoR\x04list\"\x87\x02\n" +
+	"\x04list\x18\x01 \x03(\v2\x13.stats.ViewRankInfoR\x04list\":\n" +
+	"\x0eRepairStatInfo\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value\"\xb8\x04\n" +
 	"\x15CommunityOverviewResp\x12\x1d\n" +
 	"\n" +
 	"user_count\x18\x01 \x01(\x03R\tuserCount\x12\x1f\n" +
@@ -1141,7 +1388,26 @@ const file_app_stats_rpc_stats_proto_rawDesc = "" +
 	"\frepair_count\x18\x04 \x01(\x03R\vrepairCount\x12'\n" +
 	"\x0fcomplaint_count\x18\x05 \x01(\x03R\x0ecomplaintCount\x12\x1b\n" +
 	"\tfee_count\x18\x06 \x01(\x03R\bfeeCount\x12$\n" +
-	"\x0efee_paid_count\x18\a \x01(\x03R\ffeePaidCount\"c\n" +
+	"\x0efee_paid_count\x18\a \x01(\x03R\ffeePaidCount\x12\x1f\n" +
+	"\vtotal_users\x18\b \x01(\x03R\n" +
+	"totalUsers\x12!\n" +
+	"\ftoday_orders\x18\t \x01(\x03R\vtodayOrders\x12!\n" +
+	"\fparking_rate\x18\n" +
+	" \x01(\tR\vparkingRate\x12!\n" +
+	"\fmonth_income\x18\v \x01(\x01R\vmonthIncome\x128\n" +
+	"\frepair_stats\x18\f \x03(\v2\x15.stats.RepairStatInfoR\vrepairStats\x12!\n" +
+	"\fincome_dates\x18\r \x03(\tR\vincomeDates\x12!\n" +
+	"\fincome_trend\x18\x0e \x03(\x01R\vincomeTrend\x12%\n" +
+	"\x0ecost_structure\x18\x0f \x03(\x01R\rcostStructure\"\x9a\x01\n" +
+	"\x12EcoLeaderboardInfo\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\x12\x1b\n" +
+	"\treal_name\x18\x03 \x01(\tR\brealName\x12\x1a\n" +
+	"\bnickname\x18\x04 \x01(\tR\bnickname\x12\x16\n" +
+	"\x06points\x18\x05 \x01(\x03R\x06points\"m\n" +
+	"\fEcoStatsResp\x12-\n" +
+	"\x04list\x18\x01 \x03(\v2\x19.stats.EcoLeaderboardInfoR\x04list\x12.\n" +
+	"\x13total_points_issued\x18\x02 \x01(\x03R\x11totalPointsIssued\"c\n" +
 	"\x10OrderSummaryInfo\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\x05R\x06status\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x03R\x05count\x12!\n" +
@@ -1188,7 +1454,7 @@ const file_app_stats_rpc_stats_proto_rawDesc = "" +
 	"\fRankLimitReq\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\"\x1d\n" +
 	"\aDaysReq\x12\x12\n" +
-	"\x04days\x18\x01 \x01(\x05R\x04days2\xc9\x04\n" +
+	"\x04days\x18\x01 \x01(\x05R\x04days2\x84\x05\n" +
 	"\bStatsRpc\x12@\n" +
 	"\x13GetProductSalesRank\x12\x13.stats.RankLimitReq\x1a\x14.stats.SalesRankResp\x12>\n" +
 	"\x12GetProductViewRank\x12\x13.stats.RankLimitReq\x1a\x13.stats.ViewRankResp\x12E\n" +
@@ -1198,95 +1464,103 @@ const file_app_stats_rpc_stats_proto_rawDesc = "" +
 	"\x10GenerateAIReport\x12\x18.stats.GenerateReportReq\x1a\x11.stats.ReportResp\x127\n" +
 	"\x11GetLatestAIReport\x12\x0f.stats.BaseResp\x1a\x11.stats.ReportResp\x12=\n" +
 	"\rListAIReports\x12\x15.stats.ListReportsReq\x1a\x15.stats.ReportListResp\x12:\n" +
-	"\x11GetAIReportDetail\x12\x12.stats.ReportIDReq\x1a\x11.stats.ReportRespB\tZ\a./statsb\x06proto3"
+	"\x11GetAIReportDetail\x12\x12.stats.ReportIDReq\x1a\x11.stats.ReportResp\x129\n" +
+	"\x11GetEcoLeaderboard\x12\x0f.stats.BaseResp\x1a\x13.stats.EcoStatsRespB\tZ\a./statsb\x06proto3"
 
 var (
-	file_app_stats_rpc_stats_proto_rawDescOnce sync.Once
-	file_app_stats_rpc_stats_proto_rawDescData []byte
+	file_stats_proto_rawDescOnce sync.Once
+	file_stats_proto_rawDescData []byte
 )
 
-func file_app_stats_rpc_stats_proto_rawDescGZIP() []byte {
-	file_app_stats_rpc_stats_proto_rawDescOnce.Do(func() {
-		file_app_stats_rpc_stats_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_app_stats_rpc_stats_proto_rawDesc), len(file_app_stats_rpc_stats_proto_rawDesc)))
+func file_stats_proto_rawDescGZIP() []byte {
+	file_stats_proto_rawDescOnce.Do(func() {
+		file_stats_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_stats_proto_rawDesc), len(file_stats_proto_rawDesc)))
 	})
-	return file_app_stats_rpc_stats_proto_rawDescData
+	return file_stats_proto_rawDescData
 }
 
-var file_app_stats_rpc_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
-var file_app_stats_rpc_stats_proto_goTypes = []any{
+var file_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_stats_proto_goTypes = []any{
 	(*BaseResp)(nil),              // 0: stats.BaseResp
 	(*SalesRankInfo)(nil),         // 1: stats.SalesRankInfo
 	(*SalesRankResp)(nil),         // 2: stats.SalesRankResp
 	(*ViewRankInfo)(nil),          // 3: stats.ViewRankInfo
 	(*ViewRankResp)(nil),          // 4: stats.ViewRankResp
-	(*CommunityOverviewResp)(nil), // 5: stats.CommunityOverviewResp
-	(*OrderSummaryInfo)(nil),      // 6: stats.OrderSummaryInfo
-	(*OrderTrendInfo)(nil),        // 7: stats.OrderTrendInfo
-	(*OrderStatsResp)(nil),        // 8: stats.OrderStatsResp
-	(*WorkorderSummaryInfo)(nil),  // 9: stats.WorkorderSummaryInfo
-	(*WorkorderStatsResp)(nil),    // 10: stats.WorkorderStatsResp
-	(*GenerateReportReq)(nil),     // 11: stats.GenerateReportReq
-	(*AIReportInfo)(nil),          // 12: stats.AIReportInfo
-	(*ReportResp)(nil),            // 13: stats.ReportResp
-	(*ListReportsReq)(nil),        // 14: stats.ListReportsReq
-	(*ReportListResp)(nil),        // 15: stats.ReportListResp
-	(*ReportIDReq)(nil),           // 16: stats.ReportIDReq
-	(*RankLimitReq)(nil),          // 17: stats.RankLimitReq
-	(*DaysReq)(nil),               // 18: stats.DaysReq
+	(*RepairStatInfo)(nil),        // 5: stats.RepairStatInfo
+	(*CommunityOverviewResp)(nil), // 6: stats.CommunityOverviewResp
+	(*EcoLeaderboardInfo)(nil),    // 7: stats.EcoLeaderboardInfo
+	(*EcoStatsResp)(nil),          // 8: stats.EcoStatsResp
+	(*OrderSummaryInfo)(nil),      // 9: stats.OrderSummaryInfo
+	(*OrderTrendInfo)(nil),        // 10: stats.OrderTrendInfo
+	(*OrderStatsResp)(nil),        // 11: stats.OrderStatsResp
+	(*WorkorderSummaryInfo)(nil),  // 12: stats.WorkorderSummaryInfo
+	(*WorkorderStatsResp)(nil),    // 13: stats.WorkorderStatsResp
+	(*GenerateReportReq)(nil),     // 14: stats.GenerateReportReq
+	(*AIReportInfo)(nil),          // 15: stats.AIReportInfo
+	(*ReportResp)(nil),            // 16: stats.ReportResp
+	(*ListReportsReq)(nil),        // 17: stats.ListReportsReq
+	(*ReportListResp)(nil),        // 18: stats.ReportListResp
+	(*ReportIDReq)(nil),           // 19: stats.ReportIDReq
+	(*RankLimitReq)(nil),          // 20: stats.RankLimitReq
+	(*DaysReq)(nil),               // 21: stats.DaysReq
 }
-var file_app_stats_rpc_stats_proto_depIdxs = []int32{
+var file_stats_proto_depIdxs = []int32{
 	1,  // 0: stats.SalesRankResp.list:type_name -> stats.SalesRankInfo
 	3,  // 1: stats.ViewRankResp.list:type_name -> stats.ViewRankInfo
-	6,  // 2: stats.OrderStatsResp.summaries:type_name -> stats.OrderSummaryInfo
-	7,  // 3: stats.OrderStatsResp.trends:type_name -> stats.OrderTrendInfo
-	9,  // 4: stats.WorkorderStatsResp.summaries:type_name -> stats.WorkorderSummaryInfo
-	12, // 5: stats.ReportResp.report:type_name -> stats.AIReportInfo
-	12, // 6: stats.ReportListResp.list:type_name -> stats.AIReportInfo
-	17, // 7: stats.StatsRpc.GetProductSalesRank:input_type -> stats.RankLimitReq
-	17, // 8: stats.StatsRpc.GetProductViewRank:input_type -> stats.RankLimitReq
-	0,  // 9: stats.StatsRpc.GetCommunityOverview:input_type -> stats.BaseResp
-	18, // 10: stats.StatsRpc.GetOrderStatsCombined:input_type -> stats.DaysReq
-	0,  // 11: stats.StatsRpc.GetWorkorderStats:input_type -> stats.BaseResp
-	11, // 12: stats.StatsRpc.GenerateAIReport:input_type -> stats.GenerateReportReq
-	0,  // 13: stats.StatsRpc.GetLatestAIReport:input_type -> stats.BaseResp
-	14, // 14: stats.StatsRpc.ListAIReports:input_type -> stats.ListReportsReq
-	16, // 15: stats.StatsRpc.GetAIReportDetail:input_type -> stats.ReportIDReq
-	2,  // 16: stats.StatsRpc.GetProductSalesRank:output_type -> stats.SalesRankResp
-	4,  // 17: stats.StatsRpc.GetProductViewRank:output_type -> stats.ViewRankResp
-	5,  // 18: stats.StatsRpc.GetCommunityOverview:output_type -> stats.CommunityOverviewResp
-	8,  // 19: stats.StatsRpc.GetOrderStatsCombined:output_type -> stats.OrderStatsResp
-	10, // 20: stats.StatsRpc.GetWorkorderStats:output_type -> stats.WorkorderStatsResp
-	13, // 21: stats.StatsRpc.GenerateAIReport:output_type -> stats.ReportResp
-	13, // 22: stats.StatsRpc.GetLatestAIReport:output_type -> stats.ReportResp
-	15, // 23: stats.StatsRpc.ListAIReports:output_type -> stats.ReportListResp
-	13, // 24: stats.StatsRpc.GetAIReportDetail:output_type -> stats.ReportResp
-	16, // [16:25] is the sub-list for method output_type
-	7,  // [7:16] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	5,  // 2: stats.CommunityOverviewResp.repair_stats:type_name -> stats.RepairStatInfo
+	7,  // 3: stats.EcoStatsResp.list:type_name -> stats.EcoLeaderboardInfo
+	9,  // 4: stats.OrderStatsResp.summaries:type_name -> stats.OrderSummaryInfo
+	10, // 5: stats.OrderStatsResp.trends:type_name -> stats.OrderTrendInfo
+	12, // 6: stats.WorkorderStatsResp.summaries:type_name -> stats.WorkorderSummaryInfo
+	15, // 7: stats.ReportResp.report:type_name -> stats.AIReportInfo
+	15, // 8: stats.ReportListResp.list:type_name -> stats.AIReportInfo
+	20, // 9: stats.StatsRpc.GetProductSalesRank:input_type -> stats.RankLimitReq
+	20, // 10: stats.StatsRpc.GetProductViewRank:input_type -> stats.RankLimitReq
+	0,  // 11: stats.StatsRpc.GetCommunityOverview:input_type -> stats.BaseResp
+	21, // 12: stats.StatsRpc.GetOrderStatsCombined:input_type -> stats.DaysReq
+	0,  // 13: stats.StatsRpc.GetWorkorderStats:input_type -> stats.BaseResp
+	14, // 14: stats.StatsRpc.GenerateAIReport:input_type -> stats.GenerateReportReq
+	0,  // 15: stats.StatsRpc.GetLatestAIReport:input_type -> stats.BaseResp
+	17, // 16: stats.StatsRpc.ListAIReports:input_type -> stats.ListReportsReq
+	19, // 17: stats.StatsRpc.GetAIReportDetail:input_type -> stats.ReportIDReq
+	0,  // 18: stats.StatsRpc.GetEcoLeaderboard:input_type -> stats.BaseResp
+	2,  // 19: stats.StatsRpc.GetProductSalesRank:output_type -> stats.SalesRankResp
+	4,  // 20: stats.StatsRpc.GetProductViewRank:output_type -> stats.ViewRankResp
+	6,  // 21: stats.StatsRpc.GetCommunityOverview:output_type -> stats.CommunityOverviewResp
+	11, // 22: stats.StatsRpc.GetOrderStatsCombined:output_type -> stats.OrderStatsResp
+	13, // 23: stats.StatsRpc.GetWorkorderStats:output_type -> stats.WorkorderStatsResp
+	16, // 24: stats.StatsRpc.GenerateAIReport:output_type -> stats.ReportResp
+	16, // 25: stats.StatsRpc.GetLatestAIReport:output_type -> stats.ReportResp
+	18, // 26: stats.StatsRpc.ListAIReports:output_type -> stats.ReportListResp
+	16, // 27: stats.StatsRpc.GetAIReportDetail:output_type -> stats.ReportResp
+	8,  // 28: stats.StatsRpc.GetEcoLeaderboard:output_type -> stats.EcoStatsResp
+	19, // [19:29] is the sub-list for method output_type
+	9,  // [9:19] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
-func init() { file_app_stats_rpc_stats_proto_init() }
-func file_app_stats_rpc_stats_proto_init() {
-	if File_app_stats_rpc_stats_proto != nil {
+func init() { file_stats_proto_init() }
+func file_stats_proto_init() {
+	if File_stats_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_stats_rpc_stats_proto_rawDesc), len(file_app_stats_rpc_stats_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stats_proto_rawDesc), len(file_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_app_stats_rpc_stats_proto_goTypes,
-		DependencyIndexes: file_app_stats_rpc_stats_proto_depIdxs,
-		MessageInfos:      file_app_stats_rpc_stats_proto_msgTypes,
+		GoTypes:           file_stats_proto_goTypes,
+		DependencyIndexes: file_stats_proto_depIdxs,
+		MessageInfos:      file_stats_proto_msgTypes,
 	}.Build()
-	File_app_stats_rpc_stats_proto = out.File
-	file_app_stats_rpc_stats_proto_goTypes = nil
-	file_app_stats_rpc_stats_proto_depIdxs = nil
+	File_stats_proto = out.File
+	file_stats_proto_goTypes = nil
+	file_stats_proto_depIdxs = nil
 }

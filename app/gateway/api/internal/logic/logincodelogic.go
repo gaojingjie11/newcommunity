@@ -35,6 +35,17 @@ func (l *LoginCodeLogic) LoginCode(req *types.LoginByCodeReq) (resp *types.Login
 		return nil, err
 	}
 
+	// Fetch permissions
+	permResp, err := l.svcCtx.UserRpc.GetUserPermissions(l.ctx, &user.UserIDReq{
+		UserId: rpcResp.UserInfo.Id,
+	})
+	var permissions []string
+	if err == nil && permResp != nil {
+		permissions = permResp.Permissions
+	} else {
+		permissions = make([]string, 0)
+	}
+
 	return &types.LoginResp{
 		Token: rpcResp.Token,
 		UserInfo: types.UserInfo{
@@ -45,10 +56,12 @@ func (l *LoginCodeLogic) LoginCode(req *types.LoginByCodeReq) (resp *types.Login
 			Avatar:         rpcResp.UserInfo.Avatar,
 			GreenPoints:    rpcResp.UserInfo.GreenPoints,
 			Role:           rpcResp.UserInfo.Role,
+			RoleName:       rpcResp.UserInfo.RoleName,
 			Status:         rpcResp.UserInfo.Status,
 			FaceRegistered: rpcResp.UserInfo.FaceRegistered,
 			FaceImageUrl:   rpcResp.UserInfo.FaceImageUrl,
 			Balance:        rpcResp.UserInfo.Balance,
+			Permissions:    permissions,
 		},
 		IsNewUser:        rpcResp.IsNewUser,
 		ProfileCompleted: rpcResp.ProfileCompleted,

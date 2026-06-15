@@ -205,12 +205,14 @@
             <template #default="scope">
               <div class="row-actions">
                 <button
+                  v-if="hasPermission('mall:product:update')"
                   class="action-btn btn-sm btn-outline"
                   @click="openModal(scope.row)"
                 >
                   编辑
                 </button>
                 <el-popconfirm
+                  v-if="hasPermission('mall:product:delete')"
                   title="确定将该商品从库中彻底删除吗？"
                   confirm-button-text="确定删除"
                   cancel-button-text="取消"
@@ -394,9 +396,9 @@
               type="button"
               class="action-btn btn-primary"
               @click="handleSubmit"
-              :disabled="uploading"
+              :disabled="uploading || submitting"
             >
-              {{ uploading ? "处理中..." : "确认保存" }}
+              {{ submitting ? "提交中..." : (uploading ? "处理中..." : "确认保存") }}
             </button>
           </div>
         </template>
@@ -412,6 +414,7 @@ import { getCategories } from "@/api/product";
 import { createProduct, updateProduct, deleteProduct, getAdminProductList } from "@/api/admin";
 import request from "@/utils/request";
 import { ElMessage } from "element-plus";
+import { hasPermission } from "@/utils/permission";
 import {
   ArrowLeft,
   Plus,
@@ -420,11 +423,14 @@ import {
   Loading,
 } from "@element-plus/icons-vue";
 
+const userRole = ref(JSON.parse(localStorage.getItem('userInfo') || '{}').role || '');
+
 const products = ref([]);
 const categories = ref([]);
 const showModal = ref(false);
 const isEdit = ref(false);
 const uploading = ref(false);
+const submitting = ref(false);
 const loadingData = ref(false);
 const total = ref(0);
 const page = ref(1);
@@ -561,6 +567,7 @@ const openModal = (product = null) => {
 };
 
 const handleSubmit = async () => {
+  if (submitting.value) return;
   if (!form.value.name) return ElMessage.error("请输入商品名称");
   if (
     form.value.original_price > 0 &&
@@ -569,6 +576,7 @@ const handleSubmit = async () => {
     return ElMessage.error("实际售价不能高于市场原价");
   }
 
+  submitting.value = true;
   try {
     form.value.category_id = Number(form.value.category_id);
 
@@ -585,6 +593,8 @@ const handleSubmit = async () => {
     ElMessage.error(
       "操作失败: " + (error.response?.data?.msg || error.message),
     );
+  } finally {
+    submitting.value = false;
   }
 };
 

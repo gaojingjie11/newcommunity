@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"smartcommunity-microservices/app/workorder/rpc/internal/model"
 	"smartcommunity-microservices/app/workorder/rpc/internal/svc"
@@ -57,17 +56,6 @@ func (l *CreateWorkorderLogic) CreateWorkorder(in *workorder.CreateWorkorderReq)
 	if err := l.svcCtx.WorkorderRepo.Create(item); err != nil {
 		return nil, err
 	}
-
-	// Publish Event to RabbitMQ
-	event := wType + ".created"
-	l.svcCtx.EventBus.Publish(l.ctx, event, map[string]interface{}{
-		"id":          item.ID,
-		"type":        item.Type,
-		"user_id":     item.UserID,
-		"category":    item.Category,
-		"description": item.Description,
-		"created_at":  item.CreatedAt.Format(time.RFC3339),
-	})
 
 	return &workorder.BaseResp{Code: 0, Message: "success"}, nil
 }

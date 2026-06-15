@@ -29,6 +29,14 @@ func (l *GetCommunityOverviewLogic) GetCommunityOverview(in *stats.BaseResp) (*s
 		return nil, err
 	}
 
+	var repairStats []*stats.RepairStatInfo
+	for _, r := range ov.RepairStats {
+		repairStats = append(repairStats, &stats.RepairStatInfo{
+			Name:  r.Name,
+			Value: r.Value,
+		})
+	}
+
 	return &stats.CommunityOverviewResp{
 		UserCount:      ov.UserCount,
 		OrderCount:     ov.OrderCount,
@@ -37,5 +45,14 @@ func (l *GetCommunityOverviewLogic) GetCommunityOverview(in *stats.BaseResp) (*s
 		ComplaintCount: ov.ComplaintCount,
 		FeeCount:       ov.FeeCount,
 		FeePaidCount:   ov.FeePaidCount,
+
+		TotalUsers:     ov.TotalUsers,
+		TodayOrders:    ov.TodayOrders,
+		ParkingRate:    ov.ParkingRate,
+		MonthIncome:    ov.MonthIncome,
+		RepairStats:    repairStats,
+		IncomeDates:    ov.IncomeDates,
+		IncomeTrend:    ov.IncomeTrend,
+		CostStructure:  ov.CostStructure,
 	}, nil
 }

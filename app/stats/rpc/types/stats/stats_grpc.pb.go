@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.0
-// source: app/stats/rpc/stats.proto
+// source: stats.proto
 
 package stats
 
@@ -28,6 +28,7 @@ const (
 	StatsRpc_GetLatestAIReport_FullMethodName     = "/stats.StatsRpc/GetLatestAIReport"
 	StatsRpc_ListAIReports_FullMethodName         = "/stats.StatsRpc/ListAIReports"
 	StatsRpc_GetAIReportDetail_FullMethodName     = "/stats.StatsRpc/GetAIReportDetail"
+	StatsRpc_GetEcoLeaderboard_FullMethodName     = "/stats.StatsRpc/GetEcoLeaderboard"
 )
 
 // StatsRpcClient is the client API for StatsRpc service.
@@ -43,6 +44,7 @@ type StatsRpcClient interface {
 	GetLatestAIReport(ctx context.Context, in *BaseResp, opts ...grpc.CallOption) (*ReportResp, error)
 	ListAIReports(ctx context.Context, in *ListReportsReq, opts ...grpc.CallOption) (*ReportListResp, error)
 	GetAIReportDetail(ctx context.Context, in *ReportIDReq, opts ...grpc.CallOption) (*ReportResp, error)
+	GetEcoLeaderboard(ctx context.Context, in *BaseResp, opts ...grpc.CallOption) (*EcoStatsResp, error)
 }
 
 type statsRpcClient struct {
@@ -143,6 +145,16 @@ func (c *statsRpcClient) GetAIReportDetail(ctx context.Context, in *ReportIDReq,
 	return out, nil
 }
 
+func (c *statsRpcClient) GetEcoLeaderboard(ctx context.Context, in *BaseResp, opts ...grpc.CallOption) (*EcoStatsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EcoStatsResp)
+	err := c.cc.Invoke(ctx, StatsRpc_GetEcoLeaderboard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StatsRpcServer is the server API for StatsRpc service.
 // All implementations must embed UnimplementedStatsRpcServer
 // for forward compatibility.
@@ -156,6 +168,7 @@ type StatsRpcServer interface {
 	GetLatestAIReport(context.Context, *BaseResp) (*ReportResp, error)
 	ListAIReports(context.Context, *ListReportsReq) (*ReportListResp, error)
 	GetAIReportDetail(context.Context, *ReportIDReq) (*ReportResp, error)
+	GetEcoLeaderboard(context.Context, *BaseResp) (*EcoStatsResp, error)
 	mustEmbedUnimplementedStatsRpcServer()
 }
 
@@ -192,6 +205,9 @@ func (UnimplementedStatsRpcServer) ListAIReports(context.Context, *ListReportsRe
 }
 func (UnimplementedStatsRpcServer) GetAIReportDetail(context.Context, *ReportIDReq) (*ReportResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAIReportDetail not implemented")
+}
+func (UnimplementedStatsRpcServer) GetEcoLeaderboard(context.Context, *BaseResp) (*EcoStatsResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEcoLeaderboard not implemented")
 }
 func (UnimplementedStatsRpcServer) mustEmbedUnimplementedStatsRpcServer() {}
 func (UnimplementedStatsRpcServer) testEmbeddedByValue()                  {}
@@ -376,6 +392,24 @@ func _StatsRpc_GetAIReportDetail_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StatsRpc_GetEcoLeaderboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BaseResp)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatsRpcServer).GetEcoLeaderboard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatsRpc_GetEcoLeaderboard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatsRpcServer).GetEcoLeaderboard(ctx, req.(*BaseResp))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StatsRpc_ServiceDesc is the grpc.ServiceDesc for StatsRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -419,7 +453,11 @@ var StatsRpc_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetAIReportDetail",
 			Handler:    _StatsRpc_GetAIReportDetail_Handler,
 		},
+		{
+			MethodName: "GetEcoLeaderboard",
+			Handler:    _StatsRpc_GetEcoLeaderboard_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "app/stats/rpc/stats.proto",
+	Metadata: "stats.proto",
 }

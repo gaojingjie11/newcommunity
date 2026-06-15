@@ -18,6 +18,11 @@ cleanup() {
 # 捕获 Ctrl+C (SIGINT) 和 退出 (SIGTERM) 信号，一旦按下 Ctrl+C 则自动释放所有后台占用的端口
 trap cleanup SIGINT SIGTERM
 
+# Load environment variables if .env exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 echo "=== 1. Stopping Docker Containers to Release Ports ==="
 docker compose down
 
@@ -47,18 +52,15 @@ go run app/stats/rpc/stats.go -f app/stats/rpc/etc/stats-rpc.yaml &
 pids+=($!)
 sleep 0.5
 
+echo "Starting agent-rpc (Port 9006)..."
+go run app/agent/rpc/agent.go -f app/agent/rpc/etc/agent.yaml &
+pids+=($!)
+sleep 0.5
+
 echo "Starting gateway-api (Port 8000)..."
 go run app/gateway/api/gateway.go -f app/gateway/api/etc/gateway-api.yaml &
 pids+=($!)
 sleep 1.5
-
-echo "=== 3. Starting Python Agent Service (Port 9100) ==="
-cd services/agent-service
-pip3 install -r requirements.txt --quiet
-uvicorn app.main:app --host 0.0.0.0 --port 9100 &
-pids+=($!)
-cd ../..
-sleep 1
 
 echo "=== 4. Starting Vue Frontend Dev Server (Vite) ==="
 cd frontend

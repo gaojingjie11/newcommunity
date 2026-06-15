@@ -41,5 +41,13 @@ func (l *CreateNoticeLogic) CreateNotice(in *community.CreateNoticeReq) (*commun
 		return nil, err
 	}
 
+	// Evict notice list cache
+	if l.svcCtx.Redis != nil {
+		keys, err := l.svcCtx.Redis.Keys(l.ctx, "community:notices:list:*").Result()
+		if err == nil && len(keys) > 0 {
+			_ = l.svcCtx.Redis.Del(l.ctx, keys...).Err()
+		}
+	}
+
 	return &community.BaseResp{Code: 0, Message: "success"}, nil
 }

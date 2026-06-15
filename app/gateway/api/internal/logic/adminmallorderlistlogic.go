@@ -26,11 +26,17 @@ func NewAdminMallOrderListLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *AdminMallOrderListLogic) AdminMallOrderList(req *types.AdminListOrdersReq) (resp *types.OrderListResp, err error) {
+	var storeIds []int64
+	if req.StoreId > 0 {
+		storeIds = []int64{req.StoreId}
+	}
+
 	rpcResp, err := l.svcCtx.MallRpc.AdminListOrders(l.ctx, &mall.AdminListOrdersReq{
-		Page:    req.Page,
-		Size:    req.Size,
-		OrderNo: req.OrderNo,
-		Status:  req.Status,
+		Page:     req.Page,
+		Size:     req.Size,
+		OrderNo:  req.OrderNo,
+		Status:   req.Status,
+		StoreIds: storeIds,
 	})
 	if err != nil {
 		return nil, err

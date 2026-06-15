@@ -54,12 +54,16 @@ func (l *AlipayNotifyLogic) AlipayNotify(in *mall.AlipayNotifyReq) (*mall.Alipay
 
 	// 2.1 Handle Recharge Callback if prefix is RECH_
 	if strings.HasPrefix(outTradeNo, "RECH_") {
+		var userID int64
+		var amount int64
 		err := l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
 			paymentRepo := l.svcCtx.PaymentRepo.WithTx(tx)
 			record, err := paymentRepo.FindByOrderNo(outTradeNo)
 			if err != nil {
 				return fmt.Errorf("未找到对应充值记录: %s", outTradeNo)
 			}
+			userID = record.UserID
+			amount = record.Amount
 
 			if record.Status == consts.PaymentStatusSuccess {
 				l.Infof("充值记录 %s 已经是成功状态，忽略此次回调", outTradeNo)
@@ -95,6 +99,9 @@ func (l *AlipayNotifyLogic) AlipayNotify(in *mall.AlipayNotifyReq) (*mall.Alipay
 		}
 
 		l.Infof("成功处理支付宝充值回调, orderNo=%s, tradeNo=%s", outTradeNo, tradeNo)
+		if l.svcCtx.EventBus != nil {
+			l.svcCtx.EventBus.PublishWalletRecharged(userID, amount, outTradeNo)
+		}
 		return &mall.AlipayNotifyResp{Success: true}, nil
 	}
 

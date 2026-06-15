@@ -8,24 +8,12 @@ type Notice struct {
 	Content   string    `gorm:"type:text;not null" json:"content"`
 	Publisher string    `gorm:"size:50;not null;default:''" json:"publisher"`
 	ViewCount int64     `gorm:"not null;default:0" json:"view_count"`
-	Status    int       `gorm:"not null;default:1" json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	Status    int       `gorm:"not null;default:1;index:idx_notices_status_created,priority:1" json:"status"`
+	CreatedAt time.Time `gorm:"index:idx_notices_status_created,priority:2" json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (Notice) TableName() string { return "notices" }
-
-type NoticeViewLog struct {
-	ID        int64      `gorm:"primaryKey" json:"id"`
-	NoticeID  int64      `gorm:"not null;index:idx_notice_user,unique" json:"notice_id"`
-	UserID    int64      `gorm:"not null;index:idx_notice_user,unique" json:"user_id"`
-	ViewedAt  time.Time  `gorm:"not null" json:"viewed_at"`
-	ReadAt    *time.Time `json:"read_at"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-}
-
-func (NoticeViewLog) TableName() string { return "notice_view_logs" }
 
 type Visitor struct {
 	ID           int64      `gorm:"primaryKey" json:"id"`
@@ -38,7 +26,7 @@ type Visitor struct {
 	Status       int        `gorm:"not null;default:0;index" json:"status"` // 0 pending, 1 approved, 2 rejected
 	AuditRemark  string     `gorm:"size:255;not null;default:''" json:"audit_remark"`
 	AuditAt      *time.Time `json:"audit_at"`
-	CreatedAt    time.Time  `json:"created_at"`
+	CreatedAt    time.Time  `gorm:"index" json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
@@ -104,9 +92,9 @@ type PropertyFee struct {
 	UserID    int64      `gorm:"not null;index" json:"user_id"`
 	Month     string     `gorm:"size:20;not null;index" json:"month"`
 	Amount    int64      `gorm:"not null" json:"amount"`                 // cents
-	Status    int        `gorm:"not null;default:0;index" json:"status"` // 0 unpaid, 1 paid
+	Status    int        `gorm:"not null;default:0;index:idx_property_fees_paid_at,priority:1" json:"status"` // 0 unpaid, 1 paid
 	DueDate   *time.Time `json:"due_date"`
-	PaidAt    *time.Time `json:"paid_at"`
+	PaidAt    *time.Time `gorm:"index:idx_property_fees_paid_at,priority:2" json:"paid_at"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 }

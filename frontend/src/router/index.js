@@ -3,8 +3,8 @@ import { useUserStore } from '@/stores/user'
 
 const routes = [
   { path: '/', redirect: '/home' },
-  { path: '/data', name: 'DataScreen', component: () => import('@/views/admin/DataScreen.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
-  { path: '/data/floor', name: 'FloorDetail', component: () => import('@/views/admin/FloorDetail.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
+  { path: '/data', name: 'DataScreen', component: () => import('@/views/admin/DataScreen.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'statistics:community:overview' } },
+  { path: '/data/floor', name: 'FloorDetail', component: () => import('@/views/admin/FloorDetail.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'statistics:community:overview' } },
   { path: '/login', name: 'Login', component: () => import('@/views/auth/Login.vue'), meta: { hideNav: true } },
   { path: '/register', name: 'Register', component: () => import('@/views/auth/Register.vue'), meta: { hideNav: true } },
   { path: '/app-download', name: 'AppDownload', component: () => import('@/views/public/Download.vue'), meta: { hideNav: true, requiresAuth: false } },
@@ -25,20 +25,21 @@ const routes = [
   { path: '/service/community-chat', name: 'CommunityChat', component: () => import('@/views/service/CommunityChat.vue'), meta: { requiresAuth: true } },
   { path: '/agent', name: 'AgentService', component: () => import('@/views/agent/Index.vue'), meta: { requiresAuth: false } },
   { path: '/profile', name: 'Profile', component: () => import('@/views/profile/Index.vue'), meta: { requiresAuth: true } },
-  { path: '/admin', name: 'Admin', component: () => import('@/views/admin/Index.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'store', 'property'] } },
+  { path: '/admin', name: 'Admin', component: () => import('@/views/admin/Index.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/user/favorites', name: 'FavoriteList', component: () => import('@/views/user/FavoriteList.vue'), meta: { requiresAuth: true } },
   { path: '/user/transactions', name: 'TransactionList', component: () => import('@/views/user/TransactionList.vue'), meta: { requiresAuth: true } },
-  { path: '/admin/users', name: 'AdminUserList', component: () => import('@/views/admin/UserList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin'] } },
-  { path: '/admin/products', name: 'AdminProductList', component: () => import('@/views/admin/ProductList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'store'] } },
-  { path: '/admin/orders', name: 'AdminOrderList', component: () => import('@/views/admin/OrderList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'store'] } },
-  { path: '/admin/stores', name: 'AdminStoreList', component: () => import('@/views/admin/StoreList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'store'] } },
-  { path: '/admin/notices', name: 'AdminNoticeList', component: () => import('@/views/admin/NoticeList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
-  { path: '/admin/repairs', name: 'AdminRepairList', component: () => import('@/views/admin/RepairList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
-  { path: '/admin/visitors', name: 'AdminVisitorList', component: () => import('@/views/admin/VisitorList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
-  { path: '/admin/parking', name: 'AdminParkingList', component: () => import('@/views/admin/ParkingList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
-  { path: '/admin/property-fee', name: 'AdminPropertyFeeList', component: () => import('@/views/admin/PropertyFeeList.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] } },
-  { path: '/admin/ai-report', name: 'AdminAIReport', component: () => import('@/views/admin/AIReport.vue'), meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin'] } },
-  { path: '/chat', name: 'Chat', component: () => import('@/views/chat/Index.vue'), meta: { requiresAuth: true } },
+  { path: '/admin/users', name: 'AdminUserList', component: () => import('@/views/admin/UserList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'rbac:user:list' } },
+  { path: '/admin/roles', name: 'AdminRoleList', component: () => import('@/views/admin/RoleList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'rbac:role:list' } },
+  { path: '/admin/products', name: 'AdminProductList', component: () => import('@/views/admin/ProductList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'mall:product:list' } },
+  { path: '/admin/orders', name: 'AdminOrderList', component: () => import('@/views/admin/OrderList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'mall:order:list' } },
+  { path: '/admin/stores', name: 'AdminStoreList', component: () => import('@/views/admin/StoreList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'mall:store:list' } },
+  { path: '/admin/notices', name: 'AdminNoticeList', component: () => import('@/views/admin/NoticeList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'community:notice:list' } },
+  { path: '/admin/repairs', name: 'AdminRepairList', component: () => import('@/views/admin/RepairList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'workorder:repair:list' } },
+  { path: '/admin/visitors', name: 'AdminVisitorList', component: () => import('@/views/admin/VisitorList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'community:visitor:list' } },
+  { path: '/admin/parking', name: 'AdminParkingList', component: () => import('@/views/admin/ParkingList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'community:parking:list' } },
+  { path: '/admin/property-fee', name: 'AdminPropertyFeeList', component: () => import('@/views/admin/PropertyFeeList.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'community:fee:list' } },
+  { path: '/admin/ai-report', name: 'AdminAIReport', component: () => import('@/views/admin/AIReport.vue'), meta: { requiresAuth: true, requiresAdmin: true, permission: 'statistics:ai_report:read' } },
+  { path: '/chat', name: 'Chat', component: () => import('@/views/agent/Index.vue'), meta: { requiresAuth: true } },
   { path: '/payment/result', name: 'PaymentResult', component: () => import('@/views/public/PaymentResult.vue'), meta: { requiresAuth: true } }
 ]
 
@@ -47,8 +48,16 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
+
+  if (userStore.isLoggedIn && !userStore.isInfoFetched) {
+    try {
+      await userStore.fetchUserInfo()
+    } catch (error) {
+      console.error('Failed to pre-fetch user info in router:', error)
+    }
+  }
 
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next({ path: '/login', query: { redirect: to.fullPath } })
@@ -56,12 +65,23 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.meta.requiresAdmin) {
-    const userRole = userStore.userInfo.role
-    const allowedRoles = to.meta.roles || ['admin', 'store', 'property']
-    if (!allowedRoles.includes(userRole)) {
-      window.alert('No permission to access this page')
-      next('/')
-      return
+    const isAdmin = userStore.userInfo?.role === 'admin'
+    const hasAnyPerm = userStore.permissions && userStore.permissions.length > 0
+    const requiredPermission = to.meta.permission
+
+    if (requiredPermission) {
+      if (!isAdmin && (!userStore.permissions || !userStore.permissions.includes(requiredPermission))) {
+        window.alert('无权访问此页面')
+        next('/')
+        return
+      }
+    } else {
+      // General admin dashboard requires at least one permission or admin role
+      if (!isAdmin && !hasAnyPerm) {
+        window.alert('无权访问此页面')
+        next('/')
+        return
+      }
     }
   }
 

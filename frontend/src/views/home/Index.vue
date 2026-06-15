@@ -75,7 +75,8 @@
               @click="$router.push(item.path)"
               v-if="
                 !item.requireAdmin ||
-                userStore.userInfo?.real_name === '系统管理员'
+                userStore.userInfo?.role === 'admin' ||
+                userStore.permissions?.includes('statistics:community:overview')
               "
             >
               <div class="quick-icon-wrap">
@@ -263,15 +264,22 @@ const playWave = () => {
 
   let maxTime = 0;
   const noticeCount = originalNotices.value.length;
-  // 公告越多，入场间隔越大，避免“扎堆冲屏”
-  const entryGap = noticeCount >= 12 ? 1.3 : noticeCount >= 8 ? 1.0 : noticeCount >= 5 ? 0.8 : 0.6;
+  // 增加基础时间间隔，避免密集扎堆，使弹幕发射更平缓
+  const entryGap = noticeCount >= 12 ? 2.6 : noticeCount >= 8 ? 2.2 : noticeCount >= 5 ? 1.8 : 1.5;
   
+  // 轨道分层配置，防垂直重叠碰撞
+  const lanes = [10, 22, 34, 46];
+
   // 把源数据包装为这一波要飞的弹幕
   currentBarrages.value = originalNotices.value.map((n, index) => {
-    // 按序号分批进入：基础间隔 + 小抖动
-    const delay = index * entryGap + Math.random() * 0.35;
-    const duration = 14 + Math.random() * 4; // 单条飞行时长控制在 14~18 秒
-    const top = 12 + Math.random() * 30; // 高度分布在 12% ~ 42% 之间
+    // 按序号分批进入：基础间隔 + 小抖动，间隔拉大防止同时飞出
+    const delay = index * entryGap + Math.random() * 0.4;
+    // 飞行时长控制在 18~23 秒（速度比之前 14~18s 减慢 20% 以上，更加平缓舒适）
+    const duration = 18 + Math.random() * 5; 
+    
+    // 轮流分配飞行轨道并加微调抖动，彻底避免上下重叠
+    const lane = lanes[index % lanes.length];
+    const top = lane + Math.random() * 4; 
     
     // 记录这波弹幕需要飞多久才能彻底清空屏幕
     if (delay + duration > maxTime) {
@@ -290,7 +298,7 @@ const playWave = () => {
   // 等这一波全部飞完，额外静默休息 4 秒钟，再发下一波
   waveTimer = setTimeout(() => {
     currentBarrages.value = []; // 清空 DOM 释放资源
-    setTimeout(playWave, 1200);  // 额外放慢换波节奏
+    setTimeout(playWave, 1500);  // 额外放慢换波节奏
   }, (maxTime + 4) * 1000);
 };
 
@@ -339,8 +347,8 @@ onMounted(async () => {
     // 底部卡片区只保留最新3条
     notices.value = list.slice(0, 3);
     
-    // 初始化弹幕源数据，并打开发射器
-    originalNotices.value = list;
+    // 初始化弹幕源数据，并打开发射器，只弹出最新的 6 条
+    originalNotices.value = list.slice(0, 6);
     playWave();
   } catch (error) {
     console.error(error);

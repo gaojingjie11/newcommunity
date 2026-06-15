@@ -29,6 +29,12 @@ func (r *PropertyFeeRepo) FindByID(id int64) (*model.PropertyFee, error) {
 }
 
 func (r *PropertyFeeRepo) ListByUser(userID int64, page, size int) ([]model.PropertyFee, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.PropertyFee
 	var total int64
 	q := r.db.Model(&model.PropertyFee{}).Where("user_id = ?", userID)
@@ -40,6 +46,12 @@ func (r *PropertyFeeRepo) ListByUser(userID int64, page, size int) ([]model.Prop
 }
 
 func (r *PropertyFeeRepo) ListAll(page, size int) ([]model.PropertyFee, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.PropertyFee
 	var total int64
 	q := r.db.Model(&model.PropertyFee{})
@@ -99,6 +111,12 @@ func (r *PropertyFeeRepo) Pay(userID, feeID int64, idempotencyKey string, wallet
 }
 
 func (r *PropertyFeeRepo) ListPaymentsByUser(userID int64, page, size int) ([]model.PropertyFeePayment, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.PropertyFeePayment
 	var total int64
 	q := r.db.Model(&model.PropertyFeePayment{}).Where("user_id = ?", userID)
@@ -110,6 +128,12 @@ func (r *PropertyFeeRepo) ListPaymentsByUser(userID int64, page, size int) ([]mo
 }
 
 func (r *PropertyFeeRepo) ListPayments(page, size int) ([]model.PropertyFeePayment, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.PropertyFeePayment
 	var total int64
 	q := r.db.Model(&model.PropertyFeePayment{})

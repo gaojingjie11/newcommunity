@@ -24,6 +24,13 @@ services:
     restart: always
     environment:
       - TZ=Asia/Shanghai
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
+      - SMTP_USE_TLS=${SMTP_USE_TLS}
     ports:
       - "9002:9002"
     networks:
@@ -66,6 +73,9 @@ services:
     restart: always
     environment:
       - TZ=Asia/Shanghai
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_MODEL=${LLM_MODEL}
     ports:
       - "9005:9005"
     networks:
@@ -80,6 +90,9 @@ services:
     restart: always
     environment:
       - TZ=Asia/Shanghai
+      - LLM_IMAGE_VISION_API_KEY=${LLM_IMAGE_VISION_API_KEY}
+      - LLM_IMAGE_VISION_BASE_URL=${LLM_IMAGE_VISION_BASE_URL}
+      - LLM_IMAGE_VISION_MODEL=${LLM_IMAGE_VISION_MODEL}
     ports:
       - "8000:8000"
     networks:
@@ -90,22 +103,37 @@ services:
       - community-rpc
       - workorder-rpc
       - stats-rpc
+      - agent-rpc
 
-  # Agent Service (FastAPI)
-  agent-service:
+  # Agent RPC Service (Go/Eino)
+  agent-rpc:
     build:
       context: .
-      dockerfile: services/agent-service/Dockerfile
-    container_name: sc-agent-service
+      dockerfile: app/agent/rpc/Dockerfile
+    container_name: sc-agent-rpc
     restart: always
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9100"]
     environment:
       - TZ=Asia/Shanghai
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_BASE_URL=${LLM_BASE_URL}
       - LLM_MODEL=${LLM_MODEL}
+      - LLM_CHAT_DEFAULT_API_KEY=${LLM_CHAT_DEFAULT_API_KEY}
+      - LLM_CHAT_DEFAULT_BASE_URL=${LLM_CHAT_DEFAULT_BASE_URL}
+      - LLM_CHAT_DEFAULT_MODEL=${LLM_CHAT_DEFAULT_MODEL}
+      - LLM_AGENT_REASONING_API_KEY=${LLM_AGENT_REASONING_API_KEY}
+      - LLM_AGENT_REASONING_BASE_URL=${LLM_AGENT_REASONING_BASE_URL}
+      - LLM_AGENT_REASONING_MODEL=${LLM_AGENT_REASONING_MODEL}
+      - LLM_IMAGE_VISION_API_KEY=${LLM_IMAGE_VISION_API_KEY}
+      - LLM_IMAGE_VISION_BASE_URL=${LLM_IMAGE_VISION_BASE_URL}
+      - LLM_IMAGE_VISION_MODEL=${LLM_IMAGE_VISION_MODEL}
+      - LLM_ASR_API_KEY=${LLM_ASR_API_KEY}
+      - LLM_ASR_BASE_URL=${LLM_ASR_BASE_URL}
+      - LLM_ASR_MODEL=${LLM_ASR_MODEL}
+      - LLM_TTS_API_KEY=${LLM_TTS_API_KEY}
+      - LLM_TTS_BASE_URL=${LLM_TTS_BASE_URL}
+      - LLM_TTS_MODEL=${LLM_TTS_MODEL}
     ports:
-      - "9100:9100"
+      - "9006:9006"
     networks:
       - smart-network
 

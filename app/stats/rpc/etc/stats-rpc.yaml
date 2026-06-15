@@ -1,16 +1,19 @@
 Name: stats-rpc
 ListenOn: 0.0.0.0:9005
+Timeout: 30000
 Etcd:
   Hosts:
     - 101.42.34.232:2379
   Key: community/stats-rpc
 
-MySQL:
-  Host: 101.42.34.232
-  Port: 3306
+Postgres:
+  Host: 42.193.104.173
+  Port: 5432
   Database: smart_community
-  Username: root
-  Password: dsw123456
+  Username: admin
+  Password: sdl@admin
+  SSLMode: disable
+  TimeZone: Asia/Shanghai
 
 BizRedis:
   Host: 101.42.34.232
@@ -18,8 +21,22 @@ BizRedis:
   Password: dsw123456
   DB: 15
 
+RabbitMQ:
+  Host: 101.42.34.232
+  Port: 5672
+  Username: guest
+  Password: guest
+
 Agent:
   BaseUrl: http://agent-service:9100
-  LlmApiKey: ""
-  LlmBaseUrl: ""
-  LlmModel: ""
+  LlmApiKey: ${LLM_API_KEY}
+  LlmBaseUrl: ${LLM_BASE_URL}
+  LlmModel: ${LLM_MODEL}
+
+MinIO:
+  Endpoint: 101.42.34.232:9000
+  AccessKey: minioadmin
+  SecretKey: dsw123456
+  Bucket: smart-community
+  UseSSL: false
+

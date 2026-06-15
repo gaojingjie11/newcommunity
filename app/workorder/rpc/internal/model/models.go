@@ -14,7 +14,7 @@ const (
 
 type WorkOrder struct {
 	ID          int64      `gorm:"primaryKey" json:"id"`
-	Type        string     `gorm:"size:20;not null;index:idx_workorders_type_status" json:"type"`
+	Type        string     `gorm:"size:20;not null;index:idx_workorders_type_status;index:idx_workorders_created_at,priority:1" json:"type"`
 	UserID      int64      `gorm:"not null;index" json:"user_id"`
 	Category    string     `gorm:"size:50;not null" json:"category"`
 	Description string     `gorm:"type:text;not null" json:"description"`
@@ -22,7 +22,7 @@ type WorkOrder struct {
 	Result      string     `gorm:"size:500;not null;default:''" json:"result"`
 	ProcessorID int64      `gorm:"not null;default:0" json:"processor_id"`
 	ProcessedAt *time.Time `json:"processed_at"`
-	CreatedAt   time.Time  `json:"created_at"`
+	CreatedAt   time.Time  `gorm:"index:idx_workorders_created_at,priority:2" json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
 

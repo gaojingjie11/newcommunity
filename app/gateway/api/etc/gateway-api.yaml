@@ -1,7 +1,7 @@
 Name: gateway-api
 Host: 0.0.0.0
 Port: 8000
-Timeout: 10000
+Timeout: 60000
 
 Auth:
   AccessSecret: "dev-secret-change-me"
@@ -10,27 +10,32 @@ Auth:
 UserRpc:
   Endpoints:
     - user-rpc:9001
-  Timeout: 10000
+  Timeout: 30000
 
 MallRpc:
   Endpoints:
     - mall-rpc:9002
-  Timeout: 10000
+  Timeout: 30000
 
 CommunityRpc:
   Endpoints:
     - community-rpc:9003
-  Timeout: 10000
+  Timeout: 30000
 
 WorkorderRpc:
   Endpoints:
     - workorder-rpc:9004
-  Timeout: 10000
+  Timeout: 30000
 
 StatsRpc:
   Endpoints:
     - stats-rpc:9005
-  Timeout: 10000
+  Timeout: 30000
+
+AgentRpc:
+  Endpoints:
+    - agent-rpc:9006
+  Timeout: 60000
 
 BizRedis:
   Host: 101.42.34.232
@@ -46,5 +51,4 @@ MinIO:
 
 Gateway:
   InternalToken: "dev-internal-token-change-me"
-  Services:
-    agent-service: http://agent-service:9100
+  Services: {}

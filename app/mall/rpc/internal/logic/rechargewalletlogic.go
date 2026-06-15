@@ -38,6 +38,9 @@ func (l *RechargeWalletLogic) RechargeWallet(in *mall.RechargeWalletReq) (*mall.
 		if err != nil {
 			return &mall.RechargeWalletResp{Code: 500, Message: err.Error()}, nil
 		}
+		if l.svcCtx.EventBus != nil {
+			l.svcCtx.EventBus.PublishWalletRecharged(in.UserId, in.Amount, idempotencyKey)
+		}
 		return &mall.RechargeWalletResp{Code: 0, Message: "success"}, nil
 	}
 
@@ -64,7 +67,7 @@ func (l *RechargeWalletLogic) RechargeWallet(in *mall.RechargeWalletReq) (*mall.
 		return &mall.RechargeWalletResp{Code: 500, Message: "生成支付记录失败: " + err.Error()}, nil
 	}
 
-	payURL, err := l.svcCtx.AlipaySvc.GetPaymentURL(orderNo, in.Amount)
+	payURL, err := l.svcCtx.AlipaySvc.GetPaymentURL(orderNo, in.Amount, in.ReturnUrl)
 	if err != nil {
 		l.Errorf("获取支付宝支付链接失败, orderNo=%s, err=%v", orderNo, err)
 		return &mall.RechargeWalletResp{Code: 500, Message: "生成支付宝链接失败: " + err.Error()}, nil

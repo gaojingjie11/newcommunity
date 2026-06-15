@@ -8,7 +8,7 @@
           <el-icon class="back-icon"><ArrowLeft /></el-icon>
           <span>返回管理后台</span>
         </div>
-        <div class="header-actions">
+        <div class="header-actions" v-if="hasPermission('mall:store:create')">
           <button class="action-btn btn-primary" @click="openModal()">
             + 添加门店
           </button>
@@ -36,13 +36,14 @@
           <el-table-column label="操作" width="280" fixed="right" align="center">
             <template #default="{ row }">
               <div class="row-actions">
-                <button class="action-btn btn-sm btn-outline" @click="openModal(row)">
+                <button v-if="hasPermission('mall:store:update')" class="action-btn btn-sm btn-outline" @click="openModal(row)">
                   编辑
                 </button>
                 <button class="action-btn btn-sm btn-primary" @click="openStoreProducts(row)">
                   商品管理
                 </button>
                 <button
+                  v-if="hasPermission('mall:store:delete')"
                   class="action-btn btn-sm btn-danger-ghost"
                   @click="handleDelete(row.id)"
                 >
@@ -220,16 +221,15 @@ import {
   bindStoreProduct,
   unbindStoreProduct,
   updateStoreProductStatus,
-  updateStoreProductStock
+  updateStoreProductStock,
+  getAdminStores
 } from "@/api/admin";
 import { getProductList } from "@/api/product";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, ArrowLeft } from "@element-plus/icons-vue";
+import { hasPermission } from "@/utils/permission";
 
-// 临时补充 getStores，因为 api/service 里好像没暴露给admin用
-const getStores = () => {
-  return request({ url: "/mall/stores", method: "get" });
-};
+const userRole = ref(JSON.parse(localStorage.getItem('userInfo') || '{}').role || '');
 
 const stores = ref([]);
 const showModal = ref(false);
@@ -258,8 +258,8 @@ const bindForm = ref({
 
 const fetchStores = async () => {
   try {
-    const res = await getStores();
-    stores.value = res?.list || res || [];
+    const res = await getAdminStores({ page: 1, size: 1000 });
+    stores.value = res?.list || [];
   } catch (e) {
     console.error(e);
   }

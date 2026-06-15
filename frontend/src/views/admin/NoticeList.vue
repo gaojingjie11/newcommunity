@@ -211,7 +211,7 @@ onMounted(fetchNotices)
 .back-icon { margin-right: 6px; font-size: 16px; }
 
 /* 统一的高光标题与顶部动作区 */
-.page-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 32px; }
+.page-header { display: flex; justify-content: flex-end; align-items: center; padding: 16px 0 32px; }
 .page-title { display: inline-block; position: relative; font-size: 32px; color: #2c3e50; font-weight: 700; margin: 0; z-index: 1; }
 .page-title::after { content: ''; position: absolute; bottom: 4px; left: -5%; width: 110%; height: 14px; background-color: #2d597b; opacity: 0.15; border-radius: 6px; z-index: -1; transition: all 0.3s ease; }
 
@@ -230,7 +230,7 @@ onMounted(fetchNotices)
 .time-cell { display: flex; align-items: center; gap: 6px; color: #909399; }
 
 /* 定制化按钮 */
-.action-btn { padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; margin-left: 1000px;}
+.action-btn { padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; }
 .btn-sm { padding: 6px 16px; font-size: 13px; }
 
 .btn-primary { background: #2d597b; color: #ffffff; box-shadow: 0 4px 12px rgba(45, 89, 123, 0.2); }

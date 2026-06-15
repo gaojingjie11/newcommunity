@@ -24,7 +24,7 @@ func NewGetNoticeDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 }
 
 func (l *GetNoticeDetailLogic) GetNoticeDetail(in *community.NoticeIDReq) (*community.NoticeDetailResp, error) {
-	notice, err := l.svcCtx.NoticeRepo.View(in.Id, in.UserId)
+	notice, err := l.svcCtx.NoticeRepo.View(l.ctx, l.svcCtx.Redis, in.Id)
 	if err != nil {
 		return nil, err
 	}

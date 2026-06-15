@@ -31,6 +31,7 @@
 import { computed } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import { useUserStore } from '@/stores/user'
+import { hasPermission as checkPerm } from '@/utils/permission'
 import {
   User,
   Goods,
@@ -46,11 +47,6 @@ import {
 } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
-const role = computed(() => userStore.userInfo.role || 'user')
-
-function hasPermission(allowedRoles) {
-  return allowedRoles.includes(role.value)
-}
 
 const cards = [
   {
@@ -58,81 +54,88 @@ const cards = [
     name: '用户管理',
     desc: '冻结、解冻、分配角色、调整余额',
     icon: User,
-    roles: ['admin']
+    permission: 'rbac:user:list'
+  },
+  {
+    path: '/admin/roles',
+    name: '角色管理',
+    desc: '新增角色与权限配置分配',
+    icon: UserFilled,
+    permission: 'rbac:role:list'
   },
   {
     path: '/admin/products',
     name: '商品管理',
     desc: '维护商城商品与营销活动',
     icon: Goods,
-    roles: ['admin', 'store']
+    permission: 'mall:product:list'
   },
   {
     path: '/admin/orders',
     name: '订单管理',
     desc: '查看订单状态与发货进度',
     icon: List,
-    roles: ['admin', 'store']
+    permission: 'mall:order:list'
   },
   {
     path: '/admin/stores',
     name: '门店管理',
     desc: '维护社区门店与商品绑定',
     icon: Shop,
-    roles: ['admin', 'store']
+    permission: 'mall:store:list'
   },
   {
     path: '/admin/notices',
     name: '公告管理',
     desc: '发布和删除社区公告',
     icon: Bell,
-    roles: ['admin', 'property']
+    permission: 'community:notice:list'
   },
   {
     path: '/admin/repairs',
     name: '报修投诉管理',
     desc: '处理报修和投诉工单并跟踪完结情况',
     icon: Tools,
-    roles: ['admin', 'property']
+    permission: 'workorder:repair:list'
   },
   {
     path: '/admin/visitors',
     name: '访客管理',
     desc: '审核访客登记与通行状态',
     icon: UserFilled,
-    roles: ['admin', 'property']
+    permission: 'community:visitor:list'
   },
   {
     path: '/admin/parking',
     name: '车位管理',
     desc: '新增车位并维护绑定关系',
     icon: Van,
-    roles: ['admin', 'property']
+    permission: 'community:parking:list'
   },
   {
     path: '/admin/property-fee',
     name: '物业费管理',
     desc: '创建账单并查看混合支付明细',
     icon: Wallet,
-    roles: ['admin', 'property']
+    permission: 'community:fee:list'
   },
   {
     path: '/admin/ai-report',
     name: 'AI 报表中心',
     desc: '手动生成社区分析报表并支持列表刷新',
     icon: DataAnalysis,
-    roles: ['admin']
+    permission: 'statistics:ai_report:read'
   },
   {
     path: '/data',
     name: '智能数据大屏',
     desc: '查看营收趋势、排行榜与运营大盘',
     icon: Monitor,
-    roles: ['admin', 'property']
+    permission: 'statistics:community:overview'
   }
 ]
 
-const visibleCards = computed(() => cards.filter((item) => hasPermission(item.roles)))
+const visibleCards = computed(() => cards.filter((item) => checkPerm(item.permission)))
 </script>
 
 <style scoped>

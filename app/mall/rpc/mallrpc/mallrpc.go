@@ -23,6 +23,7 @@ type (
 	AlipayNotifyResp            = mall.AlipayNotifyResp
 	BaseResp                    = mall.BaseResp
 	BindStoreProductReq         = mall.BindStoreProductReq
+	BindUserStoresReq           = mall.BindUserStoresReq
 	CancelOrderReq              = mall.CancelOrderReq
 	CartItem                    = mall.CartItem
 	CartResp                    = mall.CartResp
@@ -74,6 +75,7 @@ type (
 	ServiceAreaListResp         = mall.ServiceAreaListResp
 	ShipOrderReq                = mall.ShipOrderReq
 	StoreDetailResp             = mall.StoreDetailResp
+	StoreIDListResp             = mall.StoreIDListResp
 	StoreIDReq                  = mall.StoreIDReq
 	StoreInfo                   = mall.StoreInfo
 	StoreListResp               = mall.StoreListResp
@@ -100,6 +102,8 @@ type (
 		GetPromotions(ctx context.Context, in *ListProductsReq, opts ...grpc.CallOption) (*ProductListResp, error)
 		ListStores(ctx context.Context, in *ListStoresReq, opts ...grpc.CallOption) (*StoreListResp, error)
 		GetStoreDetail(ctx context.Context, in *StoreIDReq, opts ...grpc.CallOption) (*StoreDetailResp, error)
+		BindUserStores(ctx context.Context, in *BindUserStoresReq, opts ...grpc.CallOption) (*BaseResp, error)
+		GetUserStores(ctx context.Context, in *UserIDReq, opts ...grpc.CallOption) (*StoreIDListResp, error)
 		ListCategories(ctx context.Context, in *ListCategoriesReq, opts ...grpc.CallOption) (*CategoryListResp, error)
 		GetCategoryDetail(ctx context.Context, in *CategoryIDReq, opts ...grpc.CallOption) (*CategoryDetailResp, error)
 		ListServiceAreas(ctx context.Context, in *ListServiceAreasReq, opts ...grpc.CallOption) (*ServiceAreaListResp, error)
@@ -191,6 +195,16 @@ func (m *defaultMallRpc) ListStores(ctx context.Context, in *ListStoresReq, opts
 func (m *defaultMallRpc) GetStoreDetail(ctx context.Context, in *StoreIDReq, opts ...grpc.CallOption) (*StoreDetailResp, error) {
 	client := mall.NewMallRpcClient(m.cli.Conn())
 	return client.GetStoreDetail(ctx, in, opts...)
+}
+
+func (m *defaultMallRpc) BindUserStores(ctx context.Context, in *BindUserStoresReq, opts ...grpc.CallOption) (*BaseResp, error) {
+	client := mall.NewMallRpcClient(m.cli.Conn())
+	return client.BindUserStores(ctx, in, opts...)
+}
+
+func (m *defaultMallRpc) GetUserStores(ctx context.Context, in *UserIDReq, opts ...grpc.CallOption) (*StoreIDListResp, error) {
+	client := mall.NewMallRpcClient(m.cli.Conn())
+	return client.GetUserStores(ctx, in, opts...)
 }
 
 func (m *defaultMallRpc) ListCategories(ctx context.Context, in *ListCategoriesReq, opts ...grpc.CallOption) (*CategoryListResp, error) {

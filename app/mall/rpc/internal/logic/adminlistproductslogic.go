@@ -24,10 +24,17 @@ func NewAdminListProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *AdminListProductsLogic) AdminListProducts(in *mall.AdminListProductsReq) (*mall.ProductListResp, error) {
-	products, total, err := l.svcCtx.ProductSvc.AdminList(int(in.Page), int(in.Size), in.Name, 0, nil)
+	var isPromotion *bool
+	if in.IsPromotion {
+		val := true
+		isPromotion = &val
+	}
+
+	products, total, err := l.svcCtx.ProductSvc.AdminList(int(in.Page), int(in.Size), in.Name, in.CategoryId, isPromotion)
 	if err != nil {
 		return nil, err
 	}
+
 	var list []*mall.ProductInfo
 	for _, p := range products {
 		list = append(list, toProtoProduct(&p))

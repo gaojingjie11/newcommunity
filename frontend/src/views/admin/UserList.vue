@@ -147,11 +147,19 @@
           </div>
 
           <el-form-item label="系统角色分配" required>
-             <el-select v-model="editForm.role" class="custom-select" style="width: 100%">
-                <el-option label="普通居民用户" value="user" />
-                <el-option label="社区物业人员" value="property" />
-                <el-option label="入驻商场店主" value="store" />
-                <el-option label="系统超级管理员" value="admin" />
+             <el-select v-model="editForm.roleIds" multiple placeholder="选择用户的系统角色（可多选）" class="custom-select" style="width: 100%">
+                <el-option
+                  v-for="r in systemRoles"
+                  :key="r.id"
+                  :label="r.name"
+                  :value="r.id"
+                />
+             </el-select>
+          </el-form-item>
+
+          <el-form-item label="绑定门店" v-if="isStoreSelected" required>
+             <el-select v-model="editForm.store_ids" multiple placeholder="选择该用户管理的门店（可多选）" class="custom-select" style="width: 100%">
+                <el-option v-for="item in allStores" :key="item.id" :label="item.name" :value="item.id" />
              </el-select>
           </el-form-item>
           
@@ -184,9 +192,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
-import { getUserList, freezeUser, assignRole, updateUserBalance } from '@/api/admin'
+import { getUserList, freezeUser, assignRole, updateUserBalance, getAdminStores, getUserStores, getRoles, getUserRoles } from '@/api/admin'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 // 引入图标
@@ -201,9 +209,22 @@ const loadingData = ref(false)
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
-const getRoleText = (role) => {
+const systemRoles = ref([])
+
+const fetchSystemRoles = async () => {
+  try {
+    const res = await getRoles()
+    systemRoles.value = res || []
+  } catch (e) {
+    console.error('获取系统角色失败', e)
+  }
+}
+
+const getRoleText = (roleCode) => {
+  const r = systemRoles.value.find(rl => rl.code === roleCode)
+  if (r) return r.name
   const map = { 'admin': '管理员', 'user': '普通用户', 'property': '物业管理', 'store': '合作商户' }
-  return map[role] || role
+  return map[roleCode] || roleCode
 }
 
 const handleSearch = () => {
@@ -244,25 +265,64 @@ const showModal = ref(false)
 const loading = ref(false)
 const currentUser = ref({})
 const editForm = reactive({
-  role: 'user',
-  balanceAmount: 0
+  roleIds: [],
+  balanceAmount: 0,
+  store_ids: []
+})
+const allStores = ref([])
+
+const isStoreSelected = computed(() => {
+  const storeRole = systemRoles.value.find(r => r.code === 'store')
+  return storeRole && editForm.roleIds.includes(storeRole.id)
 })
 
-const openEditModal = (user) => {
+const fetchAllStores = async () => {
+  if (allStores.value.length > 0) return
+  try {
+    const res = await getAdminStores({ page: 1, size: 1000 })
+    allStores.value = res.list || []
+  } catch (error) {
+    console.error('获取门店列表失败', error)
+  }
+}
+
+const openEditModal = async (user) => {
   currentUser.value = user
-  editForm.role = user.role
+  editForm.roleIds = []
   editForm.balanceAmount = 0
+  editForm.store_ids = []
+  
+  await fetchAllStores()
+
+  try {
+    const userRoles = await getUserRoles(user.id)
+    editForm.roleIds = userRoles || []
+  } catch (error) {
+    console.error('获取用户角色失败', error)
+  }
+
+  if (isStoreSelected.value) {
+    try {
+      const boundStores = await getUserStores(user.id)
+      editForm.store_ids = boundStores || []
+    } catch (error) {
+      console.error('获取绑定店铺失败', error)
+    }
+  }
   showModal.value = true
 }
 
 const saveEdit = async () => {
   loading.value = true
   try {
-    // 1. Update Role if changed
-    if (editForm.role !== currentUser.value.role) {
-      await assignRole({ user_id: currentUser.value.id, role_code: editForm.role })
-    }
-    // 2. Update Balance if entered
+    // Update multiple roles
+    await assignRole({ 
+      user_id: currentUser.value.id, 
+      role_ids: editForm.roleIds,
+      store_ids: editForm.store_ids
+    })
+
+    // Update Balance if entered
     if (editForm.balanceAmount !== 0) {
       await updateUserBalance({ user_id: currentUser.value.id, amount: editForm.balanceAmount })
     }
@@ -279,6 +339,7 @@ const saveEdit = async () => {
 }
 
 onMounted(() => {
+  fetchSystemRoles()
   fetchUsers()
 })
 </script>

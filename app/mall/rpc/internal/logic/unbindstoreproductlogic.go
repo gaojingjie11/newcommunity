@@ -24,6 +24,9 @@ func NewUnbindStoreProductLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *UnbindStoreProductLogic) UnbindStoreProduct(in *mall.UnbindStoreProductReq) (*mall.BaseResp, error) {
+	if err := checkStoreAccess(l.ctx, in.StoreId); err != nil {
+		return nil, err
+	}
 	err := l.svcCtx.StoreSvc.UnbindProduct(in.StoreId, in.ProductId)
 	if err != nil {
 		return &mall.BaseResp{Code: 500, Message: err.Error()}, nil

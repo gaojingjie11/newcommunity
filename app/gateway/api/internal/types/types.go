@@ -67,12 +67,20 @@ type AdminListOrdersReq struct {
 	Size    int32  `form:"size,optional"`
 	OrderNo string `form:"order_no,optional"`
 	Status  int32  `form:"status,optional"`
+	StoreId int64  `form:"store_id,optional"`
+}
+
+type AdminListStoresReq struct {
+	Page int32 `form:"page,optional"`
+	Size int32 `form:"size,optional"`
 }
 
 type AdminProductListReq struct {
-	Page int32  `form:"page,optional"`
-	Size int32  `form:"size,optional"`
-	Name string `form:"name,optional"`
+	Page        int32  `form:"page,optional"`
+	Size        int32  `form:"size,optional"`
+	Name        string `form:"name,optional"`
+	CategoryId  int64  `form:"category_id,optional"`
+	IsPromotion bool   `form:"is_promotion,optional"`
 }
 
 type AdminShipOrderReq struct {
@@ -117,6 +125,26 @@ type AdminUpdateStoreReq struct {
 	Latitude  float64 `json:"latitude,optional"`
 	Longitude float64 `json:"longitude,optional"`
 	Status    int32   `json:"status"`
+}
+
+type ApproveActionData struct {
+	PayUrl  string `json:"pay_url,optional"`
+	OrderId int64  `json:"order_id,optional"`
+}
+
+type ApproveActionReq struct {
+	ConversationId  string `path:"id"`
+	ActionId        string `path:"actionId"`
+	PaymentPassword string `json:"payment_password,optional"`
+	FaceImageUrl    string `json:"face_image_url,optional"`
+	PayType         string `json:"pay_type,optional"`
+	ReturnUrl       string `json:"return_url,optional"`
+}
+
+type ApproveActionResp struct {
+	Code    int               `json:"code"`
+	Message string            `json:"message"`
+	Data    ApproveActionData `json:"data"`
 }
 
 type AssignParkingReq struct {
@@ -185,6 +213,30 @@ type ChangePasswordReq struct {
 	NewPassword string `json:"new_password"`
 }
 
+type ChatHistoryResp struct {
+	List []ChatMessageInfo `json:"list"`
+}
+
+type ChatMessageInfo struct {
+	Id             string `json:"id"`
+	Role           string `json:"role"`
+	Content        string `json:"content"`
+	CreatedAt      string `json:"created_at"`
+	EventType      string `json:"event_type,optional"`
+	EventPayload   string `json:"event_payload,optional"`
+	ActionResolved string `json:"action_resolved,optional"`
+	ResultPayload  string `json:"result_payload,optional"`
+}
+
+type ChatStreamReq struct {
+	ConversationId  string `json:"conversation_id"`
+	Message         string `json:"message"`
+	Mode            string `json:"mode,optional"`
+	PayType         string `json:"pay_type,optional"`
+	PaymentPassword string `json:"payment_password,optional"`
+	FaceImageUrl    string `json:"face_image_url,optional"`
+}
+
 type CheckFavoriteReq struct {
 	ProductId int64 `path:"productId"`
 }
@@ -210,19 +262,47 @@ type CommentListResp struct {
 }
 
 type CommunityOverviewResp struct {
-	UserCount      int64   `json:"user_count"`
-	OrderCount     int64   `json:"order_count"`
-	PaidAmount     float64 `json:"paid_amount"`
-	RepairCount    int64   `json:"repair_count"`
-	ComplaintCount int64   `json:"complaint_count"`
-	FeeCount       int64   `json:"fee_count"`
-	FeePaidCount   int64   `json:"fee_paid_count"`
+	UserCount      int64            `json:"user_count"`
+	OrderCount     int64            `json:"order_count"`
+	PaidAmount     float64          `json:"paid_amount"`
+	RepairCount    int64            `json:"repair_count"`
+	ComplaintCount int64            `json:"complaint_count"`
+	FeeCount       int64            `json:"fee_count"`
+	FeePaidCount   int64            `json:"fee_paid_count"`
+	TotalUsers     int64            `json:"totalUsers"`
+	TodayOrders    int64            `json:"todayOrders"`
+	ParkingRate    string           `json:"parkingRate"`
+	MonthIncome    float64          `json:"monthIncome"`
+	RepairStats    []RepairStatInfo `json:"repairStats"`
+	IncomeDates    []string         `json:"incomeDates"`
+	IncomeTrend    []float64        `json:"incomeTrend"`
+	CostStructure  []float64        `json:"costStructure"`
+}
+
+type ConversationIDReq struct {
+	Id string `path:"id"`
+}
+
+type ConversationInfo struct {
+	Id        string `json:"id"`
+	Title     string `json:"title"`
+	Summary   string `json:"summary"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 type CreateCommentReq struct {
 	ProductId int64  `json:"product_id"`
 	Content   string `json:"content"`
 	Rating    int32  `json:"rating"`
+}
+
+type CreateConversationReq struct {
+	Title string `json:"title,optional"`
+}
+
+type CreateConversationResp struct {
+	Id string `json:"id"`
 }
 
 type CreateNoticeReq struct {
@@ -269,6 +349,19 @@ type DeleteFavoriteReq struct {
 	ProductId int64 `path:"productId"`
 }
 
+type EcoLeaderboardInfo struct {
+	UserId   int64  `json:"user_id"`
+	Username string `json:"username"`
+	RealName string `json:"real_name"`
+	Nickname string `json:"nickname"`
+	Points   int64  `json:"points"`
+}
+
+type EcoStatsResp struct {
+	List              []EcoLeaderboardInfo `json:"list"`
+	TotalPointsIssued int64                `json:"total_points_issued"`
+}
+
 type FavoriteInfo struct {
 	Id        int64       `json:"id"`
 	UserId    int64       `json:"user_id"`
@@ -290,6 +383,10 @@ type ListCommentsReq struct {
 	ProductId int64 `form:"product_id"`
 	Page      int32 `form:"page,optional"`
 	Size      int32 `form:"size,optional"`
+}
+
+type ListConversationsResp struct {
+	List []ConversationInfo `json:"list"`
 }
 
 type ListMessagesReq struct {
@@ -435,6 +532,9 @@ type OrderInfo struct {
 	UsedBalance      float64         `json:"used_balance"`
 	ExpireAt         string          `json:"expire_at"`
 	ExpiresInSeconds int64           `json:"expires_in_seconds"`
+	UsedPoints       int32           `json:"used_points"`
+	StoreAddress     string          `json:"store_address"`
+	StorePhone       string          `json:"store_phone"`
 }
 
 type OrderItemInfo struct {
@@ -497,6 +597,7 @@ type PayOrderReq struct {
 	Password       string `json:"password,optional"`
 	FaceImageUrl   string `json:"face_image_url,optional"`
 	IdempotencyKey string `json:"idempotency_key,optional"`
+	ReturnUrl      string `json:"return_url,optional"`
 }
 
 type PayOrderResp struct {
@@ -544,6 +645,7 @@ type ProductInfo struct {
 	Version       int32   `json:"version"`
 	CreatedAt     string  `json:"created_at"`
 	CategoryId    int64   `json:"category_id"`
+	ViewCount     int64   `json:"view_count"`
 }
 
 type ProductListResp struct {
@@ -586,8 +688,9 @@ type ReceiveOrderReq struct {
 }
 
 type RechargeWalletReq struct {
-	Amount  float64 `json:"amount"`
-	PayType string  `json:"pay_type,optional"`
+	Amount    float64 `json:"amount"`
+	PayType   string  `json:"pay_type,optional"`
+	ReturnUrl string  `json:"return_url,optional"`
 }
 
 type RechargeWalletResp struct {
@@ -607,6 +710,16 @@ type RegisterReq struct {
 
 type RegisterResp struct {
 	UserId int64 `json:"user_id"`
+}
+
+type RejectActionReq struct {
+	ConversationId string `path:"id"`
+	ActionId       string `path:"actionId"`
+}
+
+type RepairStatInfo struct {
+	Name  string `json:"name"`
+	Value int64  `json:"value"`
 }
 
 type ReportIDReq struct {
@@ -696,23 +809,31 @@ type UpdateProfileReq struct {
 	Age      *int32  `json:"age,optional"`
 }
 
+type UploadGarbageResp struct {
+	Points      int32  `json:"points"`
+	Reason      string `json:"reason"`
+	GreenPoints int32  `json:"green_points"`
+}
+
 type UploadResp struct {
 	Url string `json:"url"`
 	Key string `json:"key"`
 }
 
 type UserInfo struct {
-	Id             int64   `json:"id"`
-	Username       string  `json:"username"`
-	RealName       string  `json:"real_name"`
-	Mobile         string  `json:"mobile"`
-	Avatar         string  `json:"avatar"`
-	GreenPoints    int32   `json:"green_points"`
-	Role           string  `json:"role"`
-	Status         int32   `json:"status"`
-	FaceRegistered bool    `json:"face_registered"`
-	FaceImageUrl   string  `json:"face_image_url"`
-	Balance        float64 `json:"balance"`
+	Id             int64    `json:"id"`
+	Username       string   `json:"username"`
+	RealName       string   `json:"real_name"`
+	Mobile         string   `json:"mobile"`
+	Avatar         string   `json:"avatar"`
+	GreenPoints    int32    `json:"green_points"`
+	Role           string   `json:"role"`
+	RoleName       string   `json:"role_name"`
+	Status         int32    `json:"status"`
+	FaceRegistered bool     `json:"face_registered"`
+	FaceImageUrl   string   `json:"face_image_url"`
+	Balance        float64  `json:"balance"`
+	Permissions    []string `json:"permissions"`
 }
 
 type ViewRankInfo struct {

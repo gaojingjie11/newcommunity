@@ -29,6 +29,15 @@ func (l *StatsCommunityOverviewLogic) StatsCommunityOverview() (resp *types.Comm
 	if err != nil {
 		return nil, err
 	}
+
+	var repairStats []types.RepairStatInfo
+	for _, item := range rpcResp.RepairStats {
+		repairStats = append(repairStats, types.RepairStatInfo{
+			Name:  item.Name,
+			Value: item.Value,
+		})
+	}
+
 	return &types.CommunityOverviewResp{
 		UserCount:      rpcResp.UserCount,
 		OrderCount:     rpcResp.OrderCount,
@@ -37,5 +46,14 @@ func (l *StatsCommunityOverviewLogic) StatsCommunityOverview() (resp *types.Comm
 		ComplaintCount: rpcResp.ComplaintCount,
 		FeeCount:       rpcResp.FeeCount,
 		FeePaidCount:   rpcResp.FeePaidCount,
+
+		TotalUsers:     rpcResp.TotalUsers,
+		TodayOrders:    rpcResp.TodayOrders,
+		ParkingRate:    rpcResp.ParkingRate,
+		MonthIncome:    rpcResp.MonthIncome,
+		RepairStats:    repairStats,
+		IncomeDates:    rpcResp.IncomeDates,
+		IncomeTrend:    rpcResp.IncomeTrend,
+		CostStructure:  rpcResp.CostStructure,
 	}, nil
 }

@@ -65,6 +65,30 @@ func (c *Client) PublishEvent(ctx context.Context, queue string, body []byte) er
 	})
 }
 
+func (c *Client) PublishDelayEvent(ctx context.Context, delayQueue string, targetQueue string, delayMs int64, body []byte) error {
+	if c == nil || c.ch == nil {
+		return nil
+	}
+	args := amqp.Table{
+		"x-message-ttl":             delayMs,
+		"x-dead-letter-exchange":    "", // default exchange
+		"x-dead-letter-routing-key": targetQueue,
+	}
+	if _, err := c.ch.QueueDeclare(delayQueue, true, false, false, false, args); err != nil {
+		return err
+	}
+	if _, err := c.ch.QueueDeclare(targetQueue, true, false, false, false, nil); err != nil {
+		return err
+	}
+	return c.ch.PublishWithContext(ctx, "", delayQueue, false, false, amqp.Publishing{
+		ContentType:  "application/json",
+		DeliveryMode: amqp.Persistent,
+		Timestamp:    time.Now(),
+		Body:         body,
+	})
+}
+
+
 func (c *Client) ConsumeEvents(queue string, handler func(amqp.Delivery)) error {
 	if c == nil || c.ch == nil {
 		return nil

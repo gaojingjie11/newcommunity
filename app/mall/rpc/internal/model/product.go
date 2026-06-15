@@ -13,10 +13,11 @@ type Product struct {
 	ImageURL      string    `gorm:"column:image_url;type:varchar(255)" json:"image_url"`
 	IsPromotion   int       `json:"is_promotion"`
 	Sales         int       `json:"sales"`
-	Status        int       `json:"status"`
+	Status        int       `gorm:"index" json:"status"`
 	Version       int       `gorm:"not null;default:0" json:"version"`
+	ViewCount     int64     `gorm:"not null;default:0" json:"view_count"`
 	CreatedAt     time.Time `json:"created_at"`
-	CategoryID    int64     `json:"category_id"`
+	CategoryID    int64     `gorm:"index" json:"category_id"`
 }
 
 func (Product) TableName() string { return "pms_product" }

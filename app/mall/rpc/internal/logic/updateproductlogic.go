@@ -25,6 +25,9 @@ func NewUpdateProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upd
 }
 
 func (l *UpdateProductLogic) UpdateProduct(in *mall.UpdateProductReq) (*mall.BaseResp, error) {
+	if err := checkProductAccess(l.ctx, l.svcCtx.DB, in.Id); err != nil {
+		return nil, err
+	}
 	err := l.svcCtx.ProductSvc.Update(&model.Product{
 		ID:            in.Id,
 		CategoryID:    in.CategoryId,

@@ -2,6 +2,7 @@ package config
 
 import (
 	"smartcommunity-microservices/common/db"
+	"smartcommunity-microservices/common/mq"
 	"smartcommunity-microservices/common/redis"
 
 	"github.com/zeromicro/go-zero/zrpc"
@@ -9,7 +10,9 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	MySQL    db.MySQLConfig
+	Postgres db.PostgresConfig
 	BizRedis redis.RedisConfig
 	MallRpc  zrpc.RpcClientConf
+	RabbitMQ mq.RabbitMQConfig
 }
+

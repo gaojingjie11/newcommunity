@@ -10,15 +10,6 @@ import (
 	"smartcommunity-microservices/app/mall/rpc/internal/model"
 )
 
-type OrderCreatedEvent struct {
-	Event     string `json:"event"`
-	OrderID   int64  `json:"order_id"`
-	OrderNo   string `json:"order_no"`
-	UserID    int64  `json:"user_id"`
-	Amount    int64  `json:"amount"`
-	CreatedAt string `json:"created_at"`
-}
-
 type OrderPaidEvent struct {
 	Event   string `json:"event"`
 	OrderID int64  `json:"order_id"`
@@ -26,6 +17,14 @@ type OrderPaidEvent struct {
 	UserID  int64  `json:"user_id"`
 	Amount  int64  `json:"amount"`
 	PaidAt  string `json:"paid_at"`
+}
+
+type WalletRechargedEvent struct {
+	Event          string `json:"event"`
+	UserID         int64  `json:"user_id"`
+	Amount         int64  `json:"amount"`
+	IdempotencyKey string `json:"idempotency_key"`
+	RechargedAt    string `json:"recharged_at"`
 }
 
 type OrderCancelledEvent struct {
@@ -38,9 +37,10 @@ type OrderCancelledEvent struct {
 }
 
 const (
-	QueueOrderCreated   = "order.created"
-	QueueOrderPaid      = "order.paid"
-	QueueOrderCancelled = "order.cancelled"
+	QueueOrderPaid       = "order.paid"
+	QueueOrderCancelled  = "order.cancelled"
+	QueueOrderDelay      = "order.delay"
+	QueueWalletRecharged = "wallet.recharged"
 )
 
 type EventBus struct {
@@ -52,19 +52,34 @@ func NewEventBus(mqClient *mq.Client, log *slog.Logger) *EventBus {
 	return &EventBus{mq: mqClient, log: log}
 }
 
-func (b *EventBus) PublishOrderCreated(order *model.Order) {
+func (b *EventBus) PublishOrderDelayCancel(order *model.Order) {
 	if b == nil || b.mq == nil {
 		return
 	}
-	event := OrderCreatedEvent{
-		Event:     QueueOrderCreated,
-		OrderID:   order.ID,
-		OrderNo:   order.OrderNo,
-		UserID:    order.UserID,
-		Amount:    order.TotalAmount,
-		CreatedAt: order.CreatedAt.Format(time.RFC3339),
+	event := OrderCancelledEvent{
+		Event:   QueueOrderCancelled,
+		OrderID: order.ID,
+		OrderNo: order.OrderNo,
+		UserID:  order.UserID,
+		Reason:  "订单超时自动取消",
 	}
-	b.publish(QueueOrderCreated, event)
+	body, err := json.Marshal(event)
+	if err != nil {
+		b.log.Warn("marshal event failed", "queue", QueueOrderDelay, "error", err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	delayMs := order.ExpireAt.Sub(time.Now()).Milliseconds()
+	if delayMs < 0 {
+		delayMs = 0
+	}
+
+	b.log.Info("publishing order delay cancel event", "order_id", order.ID, "delay_ms", delayMs)
+	if err := b.mq.PublishDelayEvent(ctx, QueueOrderDelay, QueueOrderCancelled, delayMs, body); err != nil {
+		b.log.Warn("publish delay event failed", "queue", QueueOrderDelay, "error", err)
+	}
 }
 
 func (b *EventBus) PublishOrderPaid(order *model.Order) {
@@ -101,6 +116,20 @@ func (b *EventBus) PublishOrderCancelled(order *model.Order, reason string) {
 	b.publish(QueueOrderCancelled, event)
 }
 
+func (b *EventBus) PublishWalletRecharged(userID int64, amount int64, idempotencyKey string) {
+	if b == nil || b.mq == nil {
+		return
+	}
+	event := WalletRechargedEvent{
+		Event:          QueueWalletRecharged,
+		UserID:         userID,
+		Amount:         amount,
+		IdempotencyKey: idempotencyKey,
+		RechargedAt:    time.Now().Format(time.RFC3339),
+	}
+	b.publish(QueueWalletRecharged, event)
+}
+
 func (b *EventBus) publish(queue string, payload interface{}) {
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -113,3 +142,12 @@ func (b *EventBus) publish(queue string, payload interface{}) {
 		b.log.Warn("publish event failed", "queue", queue, "error", err)
 	}
 }
+
+func (b *EventBus) PublishFileCleanup(url string) {
+	if b == nil || b.mq == nil || url == "" {
+		return
+	}
+	event := map[string]string{"url": url}
+	b.publish("file.cleanup", event)
+}
+

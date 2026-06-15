@@ -14,14 +14,14 @@ func NewStoreService(storeRepo *repository.StoreRepo, spRepo *repository.StorePr
 	return &StoreService{storeRepo: storeRepo, spRepo: spRepo}
 }
 
-func (s *StoreService) List(page, size int, areaID int64) ([]model.Store, int64, error) {
+func (s *StoreService) List(page, size int, areaID int64, storeIDs []int64) ([]model.Store, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if size < 1 || size > 100 {
 		size = 20
 	}
-	return s.storeRepo.List(page, size, areaID)
+	return s.storeRepo.List(page, size, areaID, storeIDs)
 }
 
 func (s *StoreService) GetDetail(id int64) (*model.Store, error) {

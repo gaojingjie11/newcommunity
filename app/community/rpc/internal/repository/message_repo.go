@@ -17,6 +17,12 @@ func NewMessageRepo(db *gorm.DB) *MessageRepo {
 }
 
 func (r *MessageRepo) List(page, size int) ([]model.CommunityMessage, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.CommunityMessage
 	var total int64
 
@@ -25,8 +31,8 @@ func (r *MessageRepo) List(page, size int) ([]model.CommunityMessage, int64, err
 		return nil, 0, err
 	}
 
-	// Fetch messages ordered by created_at ASC (chat chronological order)
-	if err := q.Order("created_at ASC").Offset((page - 1) * size).Limit(size).Find(&items).Error; err != nil {
+	// Fetch messages ordered by created_at DESC (chat chronological order when reversed)
+	if err := q.Order("created_at DESC").Offset((page - 1) * size).Limit(size).Find(&items).Error; err != nil {
 		return nil, 0, err
 	}
 

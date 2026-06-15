@@ -208,8 +208,9 @@
           </div>
           <div class="ranking-wrap ranking-wrap-glass">
             <dv-scroll-ranking-board
-              v-if="rankingView === 'datav' && rankingBoardConfig.data.length"
+              v-if="rankingView === 'datav' && leaderboardList.length"
               :config="rankingBoardConfig"
+              :key="leaderboardList.length"
               style="width: 100%; height: 100%"
             />
 
@@ -241,8 +242,8 @@
               <el-table-column
                 prop="points"
                 label="环保积分"
-                width="85"
-                align="right"
+                width="110"
+                align="center"
               >
                 <template #default="scope">
                   <strong style="color: #00f2fe">{{ scope.row.points }}</strong>
@@ -298,7 +299,7 @@
             </div>
             <div class="report-content custom-scrollbar">
               <p class="ai-text line-clamp">
-                {{ aiReport?.report || "正在实时诊断社区运营数据，请稍候..." }}
+                {{ aiReport?.report_markdown || "正在实时诊断社区运营数据，请稍候..." }}
               </p>
               <div class="ai-tags" v-if="aiReport">
                 <span
@@ -368,9 +369,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
+import { hasPermission } from "@/utils/permission";
+
 const router = useRouter();
 const userStore = useUserStore();
-const isAdmin = ref(userStore.userInfo?.role === "admin");
+const canReadReport = computed(() => hasPermission('statistics:ai_report:read'));
 
 const viewMode = ref("building");
 
@@ -434,9 +437,9 @@ const leaderboardList = ref([]);
 const dialogVisible = ref(false);
 
 const parsedReport = computed(() => {
-  if (!aiReport.value?.report)
+  if (!aiReport.value?.report_markdown)
     return '<div style="color:#a0cfff;">暂无详细数据</div>';
-  let html = aiReport.value.report;
+  let html = aiReport.value.report_markdown;
   html = html.replace(/### (.*)/g, '<h4 class="md-title">$1</h4>');
   html = html.replace(/## (.*)/g, '<h3 class="md-title">$1</h3>');
   html = html.replace(/\*\*(.*?)\*\*/g, '<span class="md-bold">$1</span>');
@@ -920,16 +923,16 @@ const handleThreeResize = () => {
 };
 
 // DataV 翻牌器
-const flopIncomeConfig = reactive({
+const flopIncomeConfig = ref({
   number: [0],
   content: "¥ {nt}",
   style: { fontSize: 36, fill: "#00f2fe", fontWeight: "bold" },
 });
-const flopUserConfig = reactive({
+const flopUserConfig = ref({
   number: [0],
   style: { fontSize: 36, fill: "#00f2fe", fontWeight: "bold" },
 });
-const rankingBoardConfig = reactive({
+const rankingBoardConfig = ref({
   data: [],
   rowNum: 6,
   waitTime: 3000,
@@ -945,16 +948,28 @@ const fetchAllData = async () => {
       getGreenPointsLeaderboard({ limit: 15 }),
     ]);
     stats.value = dashboardRes || {};
-    flopIncomeConfig.number = [parseFloat(stats.value.monthIncome || 0)];
-    flopUserConfig.number = [stats.value.totalUsers || 0];
+    flopIncomeConfig.value = {
+      ...flopIncomeConfig.value,
+      number: [parseFloat(stats.value.monthIncome || 0)],
+    };
+    flopUserConfig.value = {
+      ...flopUserConfig.value,
+      number: [stats.value.totalUsers || 0],
+    };
     if (leaderboardRes?.list) {
       leaderboardList.value = leaderboardRes.list;
-      rankingBoardConfig.data = leaderboardRes.list.map((i) => ({
-        name: i.nickname || i.username || `用户${i.user_id}`,
-        value: i.points || 0,
-      }));
+      rankingBoardConfig.value = {
+        ...rankingBoardConfig.value,
+        data: leaderboardRes.list.map((i) => ({
+          name: i.nickname || i.username || `用户${i.user_id}`,
+          value: i.points || 0,
+        })),
+      };
     }
-    if (isAdmin.value) aiReport.value = await getAIReport();
+    if (canReadReport.value) {
+      const res = await getAIReport();
+      aiReport.value = res.report;
+    }
     await nextTick();
     renderCharts();
   } catch (e) {
@@ -1070,7 +1085,7 @@ const renderCharts = () => {
     },
     xAxis: {
       type: "category",
-      data: ["物业费", "停车费", "商城消费", "场馆预约"],
+      data: ["物业费", "停车费", "商城消费"],
       axisLabel: { color: "#a0cfff" },
       axisLine: { lineStyle: { color: "rgba(255,255,255,0.1)" } },
     },
@@ -1092,7 +1107,7 @@ const renderCharts = () => {
           ]),
           borderRadius: [4, 4, 0, 0],
         },
-        data: stats.value.costStructure || [3200, 1800, 4500, 1200],
+        data: stats.value.costStructure || [3200, 1800, 4500],
       },
     ],
   });
@@ -1108,6 +1123,8 @@ const handleResize = () => {
 const goBack = () => router.push("/home");
 
 onMounted(() => {
+  document.documentElement.classList.add('data-screen-active');
+  document.body.classList.add('data-screen-active');
   clockTimer = setInterval(
     () => (currentTime.value = dayjs().format("YYYY-MM-DD HH:mm:ss")),
     1000,
@@ -1119,6 +1136,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  document.documentElement.classList.remove('data-screen-active');
+  document.body.classList.remove('data-screen-active');
   clearInterval(clockTimer);
   window.removeEventListener("resize", handleResize);
   window.removeEventListener("resize", handleThreeResize);
@@ -1362,8 +1381,8 @@ onUnmounted(() => {
   z-index: 999;
 }
 
-:global(html),
-:global(body) {
+:global(html.data-screen-active),
+:global(body.data-screen-active) {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
@@ -1372,7 +1391,7 @@ onUnmounted(() => {
   background-color: #26282a !important; /* 统一底色为大屏深灰，防止加载或边缘出现白色缝隙 */
 }
 
-:global(#app) {
+:global(.data-screen-active #app) {
   max-width: none !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -1523,6 +1542,7 @@ onUnmounted(() => {
 
 /* ranking-wrap 在 glass-card 里的内嵌调整 */
 .ranking-wrap-glass {
+  position: absolute !important;
   top: 46px;
   left: 10px;
   right: 10px;

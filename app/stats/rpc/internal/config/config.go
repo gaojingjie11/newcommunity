@@ -2,7 +2,9 @@ package config
 
 import (
 	"smartcommunity-microservices/common/db"
+	"smartcommunity-microservices/common/mq"
 	"smartcommunity-microservices/common/redis"
+	"smartcommunity-microservices/common/storage"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -16,7 +18,10 @@ type AgentConfig struct {
 
 type Config struct {
 	zrpc.RpcServerConf
-	MySQL    db.MySQLConfig
+	Postgres db.PostgresConfig
 	BizRedis redis.RedisConfig
-	Agent    AgentConfig `json:",optional"`
+	Agent    AgentConfig       `json:",optional"`
+	RabbitMQ mq.RabbitMQConfig `json:",optional"`
+	MinIO    storage.MinIOConfig `json:",optional"`
 }
+

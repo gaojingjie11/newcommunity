@@ -38,6 +38,17 @@ func (l *GetMeLogic) GetMe() (resp *types.UserInfo, err error) {
 		return nil, err
 	}
 
+	// Fetch permissions
+	permResp, err := l.svcCtx.UserRpc.GetUserPermissions(l.ctx, &user.UserIDReq{
+		UserId: userID,
+	})
+	var permissions []string
+	if err == nil && permResp != nil {
+		permissions = permResp.Permissions
+	} else {
+		permissions = make([]string, 0)
+	}
+
 	return &types.UserInfo{
 		Id:             rpcResp.Id,
 		Username:       rpcResp.Username,
@@ -46,9 +57,11 @@ func (l *GetMeLogic) GetMe() (resp *types.UserInfo, err error) {
 		Avatar:         rpcResp.Avatar,
 		GreenPoints:    rpcResp.GreenPoints,
 		Role:           rpcResp.Role,
+		RoleName:       rpcResp.RoleName,
 		Status:         rpcResp.Status,
 		FaceRegistered: rpcResp.FaceRegistered,
 		FaceImageUrl:   rpcResp.FaceImageUrl,
 		Balance:        rpcResp.Balance,
+		Permissions:    permissions,
 	}, nil
 }

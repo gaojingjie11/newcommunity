@@ -22,8 +22,11 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
 	ctx := svc.NewServiceContext(c)
+
+	// Start RabbitMQ File Cleanup Consumer in background
+	go svc.StartFileCleanupConsumer(ctx)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		user.RegisterUserRpcServer(grpcServer, server.NewUserRpcServer(ctx))

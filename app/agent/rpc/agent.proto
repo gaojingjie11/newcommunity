@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package agent;
+option go_package = "./agent";
+
+message BaseResp {
+  int32 code = 1;
+  string message = 2;
+}
+
+message ConversationInfo {
+  string id = 1;
+  string title = 2;
+  string summary = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+message MessageInfo {
+  string id = 1;
+  string role = 2;
+  string content = 3;
+  string created_at = 4;
+  string event_type = 5;
+  string event_payload = 6;
+  string action_resolved = 7;
+  string result_payload = 8;
+}
+
+message CreateConversationReq {
+  int64 user_id = 1;
+  string title = 2;
+}
+
+message DeleteConversationReq {
+  int64 user_id = 1;
+  string id = 2;
+}
+
+message ListConversationsReq {
+  int64 user_id = 1;
+}
+
+message ListConversationsResp {
+  repeated ConversationInfo list = 1;
+}
+
+message GetChatHistoryReq {
+  int64 user_id = 1;
+  string conversation_id = 2;
+}
+
+message GetChatHistoryResp {
+  repeated MessageInfo list = 1;
+}
+
+message ChatReq {
+  int64 user_id = 1;
+  string conversation_id = 2;
+  string message = 3;
+  string pay_type = 4;
+  string payment_password = 5;
+  string face_image_url = 6;
+}
+
+message ChatResp {
+  string chunk = 1;
+  bool done = 2;
+  string full_reply = 3;
+  string event_type = 4;    // message_delta, tool_call_start, tool_call_end, approval_required, session_finished
+  string event_payload = 5; // JSON payload
+}
+
+message ApproveActionReq {
+  int64 user_id = 1;
+  string conversation_id = 2;
+  string action_id = 3;
+  string payment_password = 4;
+  string face_image_url = 5;
+  string pay_type = 6;
+  string return_url = 7;
+}
+
+message ApproveActionResp {
+  int32 code = 1;
+  string message = 2;
+  string pay_url = 3;
+  int64 order_id = 4;
+}
+
+message RejectActionReq {
+  int64 user_id = 1;
+  string conversation_id = 2;
+  string action_id = 3;
+}
+
+service AgentRpc {
+  rpc CreateConversation(CreateConversationReq) returns (ConversationInfo);
+  rpc DeleteConversation(DeleteConversationReq) returns (BaseResp);
+  rpc ListConversations(ListConversationsReq) returns (ListConversationsResp);
+  rpc GetChatHistory(GetChatHistoryReq) returns (GetChatHistoryResp);
+  rpc ChatStream(ChatReq) returns (stream ChatResp);
+  rpc ApproveAction(ApproveActionReq) returns (ApproveActionResp);
+  rpc RejectAction(RejectActionReq) returns (BaseResp);
+}

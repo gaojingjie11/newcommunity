@@ -155,6 +155,9 @@ async function submitFeePay(authPayload) {
   paySubmitting.value = true
   payingId.value = pendingFee.value.id
   try {
+    // Invoke the actual payment API
+    await payPropertyFee(pendingFee.value.id, authPayload)
+
     const preview = getPreview(pendingFee.value.amount)
     ElMessage.success(`支付成功，使用积分 ${preview.points}，余额 ￥${formatAmount(preview.balance)}`)
     showPayAuth.value = false

@@ -31,9 +31,15 @@ func (l *LoginLogic) Login(in *user.LoginReq) (*user.LoginResp, error) {
 
 	profileCompleted := !(u.RealName == "" || u.RealName == "未完善资料" || u.Age <= 1)
 
+	roles, _ := l.svcCtx.AdminService.ListRoles()
+	roleMap := make(map[string]string)
+	for _, r := range roles {
+		roleMap[r.Code] = r.Name
+	}
+
 	return &user.LoginResp{
 		Token:            token,
-		UserInfo:         mapUserInfo(u),
+		UserInfo:         mapUserInfo(u, roleMap),
 		IsNewUser:        false,
 		ProfileCompleted: profileCompleted,
 	}, nil

@@ -51,6 +51,7 @@ type (
 	UpdateProfileReq       = user.UpdateProfileReq
 	UpdateRoleReq          = user.UpdateRoleReq
 	UpdateUserBalanceReq   = user.UpdateUserBalanceReq
+	UpdateUserPointsReq    = user.UpdateUserPointsReq
 	UserIDReq              = user.UserIDReq
 	UserInfo               = user.UserInfo
 
@@ -91,6 +92,8 @@ type (
 		// Audit Logs
 		QueryUserLoginLogs(ctx context.Context, in *QueryLoginLogsReq, opts ...grpc.CallOption) (*QueryLoginLogsResp, error)
 		QueryAdminLoginLogs(ctx context.Context, in *QueryLoginLogsReq, opts ...grpc.CallOption) (*QueryLoginLogsResp, error)
+		// Points Management
+		UpdateUserPoints(ctx context.Context, in *UpdateUserPointsReq, opts ...grpc.CallOption) (*BaseResp, error)
 	}
 
 	defaultUserRpc struct {
@@ -262,4 +265,10 @@ func (m *defaultUserRpc) QueryUserLoginLogs(ctx context.Context, in *QueryLoginL
 func (m *defaultUserRpc) QueryAdminLoginLogs(ctx context.Context, in *QueryLoginLogsReq, opts ...grpc.CallOption) (*QueryLoginLogsResp, error) {
 	client := user.NewUserRpcClient(m.cli.Conn())
 	return client.QueryAdminLoginLogs(ctx, in, opts...)
+}
+
+// Points Management
+func (m *defaultUserRpc) UpdateUserPoints(ctx context.Context, in *UpdateUserPointsReq, opts ...grpc.CallOption) (*BaseResp, error) {
+	client := user.NewUserRpcClient(m.cli.Conn())
+	return client.UpdateUserPoints(ctx, in, opts...)
 }

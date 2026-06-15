@@ -30,6 +30,11 @@ message ViewRankResp {
   repeated ViewRankInfo list = 1;
 }
 
+message RepairStatInfo {
+  string name = 1;
+  int64 value = 2;
+}
+
 message CommunityOverviewResp {
   int64 user_count = 1;
   int64 order_count = 2;
@@ -38,6 +43,28 @@ message CommunityOverviewResp {
   int64 complaint_count = 5;
   int64 fee_count = 6;
   int64 fee_paid_count = 7;
+
+  int64 total_users = 8;
+  int64 today_orders = 9;
+  string parking_rate = 10;
+  double month_income = 11;
+  repeated RepairStatInfo repair_stats = 12;
+  repeated string income_dates = 13;
+  repeated double income_trend = 14;
+  repeated double cost_structure = 15;
+}
+
+message EcoLeaderboardInfo {
+  int64 user_id = 1;
+  string username = 2;
+  string real_name = 3;
+  string nickname = 4;
+  int64 points = 5;
+}
+
+message EcoStatsResp {
+  repeated EcoLeaderboardInfo list = 1;
+  int64 total_points_issued = 2;
 }
 
 message OrderSummaryInfo {
@@ -121,4 +148,5 @@ service StatsRpc {
   rpc GetLatestAIReport(BaseResp) returns (ReportResp);
   rpc ListAIReports(ListReportsReq) returns (ReportListResp);
   rpc GetAIReportDetail(ReportIDReq) returns (ReportResp);
+  rpc GetEcoLeaderboard(BaseResp) returns (EcoStatsResp);
 }

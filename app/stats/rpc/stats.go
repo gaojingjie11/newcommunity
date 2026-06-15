@@ -22,8 +22,9 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
 	ctx := svc.NewServiceContext(c)
+	go svc.StartStatsConsumer(ctx)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		stats.RegisterStatsRpcServer(grpcServer, server.NewStatsRpcServer(ctx))

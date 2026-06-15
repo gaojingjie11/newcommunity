@@ -355,6 +355,9 @@ const enrolling = ref(false);
 let faceStream = null;
 
 const roleText = computed(() => {
+  if (userInfo.value.role_name) {
+    return userInfo.value.role_name;
+  }
   const map = {
     admin: "系统管理员",
     store: "商户",

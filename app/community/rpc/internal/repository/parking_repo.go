@@ -7,7 +7,7 @@ import (
 
 	"smartcommunity-microservices/app/community/rpc/internal/model"
 
-	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -21,6 +21,12 @@ func NewParkingRepo(db *gorm.DB) *ParkingRepo {
 }
 
 func (r *ParkingRepo) List(page, size int) ([]model.ParkingSpaceAdminView, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	var items []model.ParkingSpaceAdminView
 	var total int64
 	q := r.db.Model(&model.ParkingSpace{})
@@ -155,6 +161,6 @@ func (r *ParkingRepo) Stats() (map[string]int64, error) {
 }
 
 func isDuplicateEntry(err error) bool {
-	var mysqlErr *mysql.MySQLError
-	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }

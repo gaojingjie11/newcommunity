@@ -26,9 +26,10 @@ func NewMallRechargeWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 
 func (l *MallRechargeWalletLogic) MallRechargeWallet(req *types.RechargeWalletReq) (resp *types.RechargeWalletResp, err error) {
 	rpcResp, err := l.svcCtx.MallRpc.RechargeWallet(l.ctx, &mall.RechargeWalletReq{
-		UserId:  getUserIDFromCtx(l.ctx),
-		Amount:  int64(req.Amount * 100),
-		PayType: req.PayType,
+		UserId:    getUserIDFromCtx(l.ctx),
+		Amount:    int64(req.Amount * 100),
+		PayType:   req.PayType,
+		ReturnUrl: req.ReturnUrl,
 	})
 	if err != nil {
 		return nil, err

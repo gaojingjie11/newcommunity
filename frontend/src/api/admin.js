@@ -53,20 +53,6 @@ export function freezeUser(data) {
   })
 }
 
-export function getRoleList() {
-  return request({
-    url: '/admin/roles',
-    method: 'get'
-  })
-}
-
-export function createRole(data) {
-  return request({
-    url: '/admin/roles',
-    method: 'post',
-    data
-  })
-}
 
 export function getMenuList() {
   return request({
@@ -143,6 +129,31 @@ export function getAdminOrderList(params) {
     url: '/admin/mall/orders',
     method: 'get',
     params
+  }).then((res) => {
+    const list = res?.list || res || [];
+    const mapItems = (items) => (items || []).map(item => ({
+      ...item,
+      product: {
+        id: item.product_id,
+        name: item.product_name,
+        image_url: item.product_image
+      }
+    }));
+    
+    if (res && res.list) {
+      return {
+        ...res,
+        list: list.map(order => ({
+          ...order,
+          items: mapItems(order.items)
+        }))
+      };
+    }
+    
+    return list.map(order => ({
+      ...order,
+      items: mapItems(order.items)
+    }));
   })
 }
 
@@ -197,6 +208,14 @@ export function assignRole(data) {
     url: '/admin/users/assign-role',
     method: 'post',
     data
+  })
+}
+
+export function getUserRoles(userId) {
+  return request({
+    url: '/admin/users/roles',
+    method: 'get',
+    params: { user_id: userId }
   })
 }
 
@@ -291,5 +310,72 @@ export function updateStoreProductStock(data) {
     url: '/admin/mall/store-products/stock',
     method: 'put',
     data
+  })
+}
+
+export function getAdminStores(params) {
+  return request({
+    url: '/admin/mall/stores',
+    method: 'get',
+    params
+  })
+}
+
+export function getUserStores(userId) {
+  return request({
+    url: `/admin/users/${userId}/stores`,
+    method: 'get'
+  })
+}
+
+export function getRoles() {
+  return request({
+    url: '/admin/roles',
+    method: 'get'
+  })
+}
+
+export function createRole(data) {
+  return request({
+    url: '/admin/roles',
+    method: 'post',
+    data
+  })
+}
+
+export function updateRole(data) {
+  return request({
+    url: '/admin/roles',
+    method: 'put',
+    data
+  })
+}
+
+export function deleteRole(id) {
+  return request({
+    url: `/admin/roles?id=${id}`,
+    method: 'delete'
+  })
+}
+
+export function getRolePermissions(roleId) {
+  return request({
+    url: `/admin/roles/${roleId}/permissions`,
+    method: 'get'
+  })
+}
+
+export function bindRolePermissions(roleId, permissions) {
+  return request({
+    url: `/admin/roles/${roleId}/permissions`,
+    method: 'post',
+    data: { permissions }
+  })
+}
+
+export function getAllPermissions() {
+  return request({
+    url: '/admin/permissions',
+    method: 'get'
   })
 }

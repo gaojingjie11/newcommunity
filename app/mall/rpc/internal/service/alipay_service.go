@@ -38,7 +38,7 @@ func NewAlipayService(cfg config.Config) (*AlipayService, error) {
 	}, nil
 }
 
-func (s *AlipayService) GetPaymentURL(orderNo string, amountCents int64) (string, error) {
+func (s *AlipayService) GetPaymentURL(orderNo string, amountCents int64, customReturnURL string) (string, error) {
 	amountYuan := fmt.Sprintf("%.2f", float64(amountCents)/100.0)
 
 	subject := fmt.Sprintf("智慧社区商品订单 #%s", orderNo)
@@ -48,7 +48,11 @@ func (s *AlipayService) GetPaymentURL(orderNo string, amountCents int64) (string
 
 	var p alipay.TradePagePay
 	p.NotifyURL = s.notifyURL
-	p.ReturnURL = s.returnURL
+	if customReturnURL != "" {
+		p.ReturnURL = customReturnURL
+	} else {
+		p.ReturnURL = s.returnURL
+	}
 	p.Subject = subject
 	p.OutTradeNo = orderNo
 	p.TotalAmount = amountYuan

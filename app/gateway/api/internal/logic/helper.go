@@ -48,6 +48,7 @@ func toAPIProductInfo(p *mall.ProductInfo) types.ProductInfo {
 		Version:       p.Version,
 		CreatedAt:     p.CreatedAt,
 		CategoryId:    p.CategoryId,
+		ViewCount:     p.ViewCount,
 	}
 }
 
@@ -158,6 +159,9 @@ func toAPIOrderInfo(o *mall.OrderInfo) types.OrderInfo {
 		UsedBalance:      float64(o.UsedBalance) / 100.0,
 		ExpireAt:         o.ExpireAt,
 		ExpiresInSeconds: o.ExpiresInSeconds,
+		UsedPoints:       o.UsedPoints,
+		StoreAddress:     o.StoreAddress,
+		StorePhone:       o.StorePhone,
 	}
 }
 

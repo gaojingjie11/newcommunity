@@ -182,3 +182,9 @@ func (s *UserRpcServer) QueryAdminLoginLogs(ctx context.Context, in *user.QueryL
 	l := logic.NewQueryAdminLoginLogsLogic(ctx, s.svcCtx)
 	return l.QueryAdminLoginLogs(in)
 }
+
+// Points Management
+func (s *UserRpcServer) UpdateUserPoints(ctx context.Context, in *user.UpdateUserPointsReq) (*user.BaseResp, error) {
+	l := logic.NewUpdateUserPointsLogic(ctx, s.svcCtx)
+	return l.UpdateUserPoints(in)
+}

@@ -10,8 +10,10 @@ type SysUser struct {
 	RealName       string `gorm:"column:real_name;type:varchar(64)" json:"real_name"`
 	Role           string `gorm:"type:varchar(32)" json:"role"`
 	Status         int    `json:"status"`
+	GreenPoints    int    `gorm:"column:green_points;not null;default:0" json:"green_points"`
 	FaceRegistered bool   `gorm:"column:face_registered" json:"face_registered"`
 	FaceImageURL   string `gorm:"column:face_image_url;type:varchar(512)" json:"face_image_url"`
+	Email          string `gorm:"type:varchar(128)" json:"email"`
 }
 
 func (SysUser) TableName() string { return "sys_user" }

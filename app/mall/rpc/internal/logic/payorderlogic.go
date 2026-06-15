@@ -59,7 +59,7 @@ func (l *PayOrderLogic) PayOrder(in *mall.PayOrderReq) (*mall.PayOrderResp, erro
 			}
 		}
 
-		payURL, err := l.svcCtx.AlipaySvc.GetPaymentURL(order.OrderNo, order.TotalAmount)
+		payURL, err := l.svcCtx.AlipaySvc.GetPaymentURL(order.OrderNo, order.TotalAmount, in.ReturnUrl)
 		if err != nil {
 			return &mall.PayOrderResp{Success: false}, err
 		}
@@ -67,12 +67,27 @@ func (l *PayOrderLogic) PayOrder(in *mall.PayOrderReq) (*mall.PayOrderResp, erro
 	}
 
 	// Default wallet pay path
+	// Use frontend-provided idempotency key to avoid duplicate payment
+	walletIdempotencyKey := in.IdempotencyKey
+	if walletIdempotencyKey == "" {
+		walletIdempotencyKey = fmt.Sprintf("pay:wallet:%d:%d", in.Id, in.UserId)
+	}
+
+	// Determine auth type - use what frontend provides
+	payType := in.PayType
+	if payType == "" || payType == "alipay" {
+		payType = "password"
+	}
+
 	_, err = l.svcCtx.PaymentSvc.PayOrder(in.Id, in.UserId, service.PayOrderRequest{
-		PayType:        "nopassword",
-		IdempotencyKey: fmt.Sprintf("pay:%d", in.Id),
+		PayType:        payType,
+		Password:       in.Password,
+		FaceImageURL:   in.FaceImageUrl,
+		IdempotencyKey: walletIdempotencyKey,
 	})
 	if err != nil {
 		return &mall.PayOrderResp{Success: false}, err
 	}
 	return &mall.PayOrderResp{Success: true, OrderNo: order.OrderNo}, nil
 }
+

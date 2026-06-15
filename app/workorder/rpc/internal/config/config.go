@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	MySQL    db.MySQLConfig
+	Postgres db.PostgresConfig
 	BizRedis redis.RedisConfig
 	RabbitMQ mq.RabbitMQConfig
 }

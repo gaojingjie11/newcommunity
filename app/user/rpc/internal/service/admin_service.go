@@ -73,12 +73,29 @@ func (s *AdminService) AssignUserRoles(userID int64, roleIDs []int64) error {
 	if err := s.roleRepo.BindUserRoles(userID, roleIDs); err != nil {
 		return err
 	}
-	// Sync legacy users.role field with first role code
+	// Sync legacy users.role field
 	if len(roleIDs) > 0 {
-		role, err := s.roleRepo.FindByID(roleIDs[0])
-		if err == nil {
-			_ = s.userRepo.UpdateRole(userID, role.Code)
+		var hasAdmin bool
+		var firstRoleCode string
+		for _, rid := range roleIDs {
+			role, err := s.roleRepo.FindByID(rid)
+			if err == nil {
+				if firstRoleCode == "" {
+					firstRoleCode = role.Code
+				}
+				if role.Code == "admin" {
+					hasAdmin = true
+				}
+			}
 		}
+		if hasAdmin {
+			_ = s.userRepo.UpdateRole(userID, "admin")
+		} else if firstRoleCode != "" {
+			_ = s.userRepo.UpdateRole(userID, firstRoleCode)
+		}
+	} else {
+		// Default to user if no roles assigned
+		_ = s.userRepo.UpdateRole(userID, "user")
 	}
 	s.invalidateUserPermissionCache(userID)
 	return nil

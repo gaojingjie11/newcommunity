@@ -466,6 +466,7 @@ type UserInfo struct {
 	FaceRegistered bool                   `protobuf:"varint,9,opt,name=face_registered,json=faceRegistered,proto3" json:"face_registered,omitempty"`
 	FaceImageUrl   string                 `protobuf:"bytes,10,opt,name=face_image_url,json=faceImageUrl,proto3" json:"face_image_url,omitempty"`
 	Balance        float64                `protobuf:"fixed64,11,opt,name=balance,proto3" json:"balance,omitempty"`
+	RoleName       string                 `protobuf:"bytes,12,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -575,6 +576,13 @@ func (x *UserInfo) GetBalance() float64 {
 		return x.Balance
 	}
 	return 0
+}
+
+func (x *UserInfo) GetRoleName() string {
+	if x != nil {
+		return x.RoleName
+	}
+	return ""
 }
 
 type SendCodeReq struct {
@@ -2265,6 +2273,58 @@ func (x *QueryLoginLogsResp) GetTotal() int64 {
 	return 0
 }
 
+type UpdateUserPointsReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Points        int32                  `protobuf:"varint,2,opt,name=points,proto3" json:"points,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserPointsReq) Reset() {
+	*x = UpdateUserPointsReq{}
+	mi := &file_app_user_rpc_user_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserPointsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserPointsReq) ProtoMessage() {}
+
+func (x *UpdateUserPointsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_app_user_rpc_user_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserPointsReq.ProtoReflect.Descriptor instead.
+func (*UpdateUserPointsReq) Descriptor() ([]byte, []int) {
+	return file_app_user_rpc_user_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *UpdateUserPointsReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *UpdateUserPointsReq) GetPoints() int32 {
+	if x != nil {
+		return x.Points
+	}
+	return 0
+}
+
 var File_app_user_rpc_user_proto protoreflect.FileDescriptor
 
 const file_app_user_rpc_user_proto_rawDesc = "" +
@@ -2298,7 +2358,7 @@ const file_app_user_rpc_user_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12+\n" +
 	"\tuser_info\x18\x02 \x01(\v2\x0e.user.UserInfoR\buserInfo\x12\x1e\n" +
 	"\vis_new_user\x18\x03 \x01(\bR\tisNewUser\x12+\n" +
-	"\x11profile_completed\x18\x04 \x01(\bR\x10profileCompleted\"\xbb\x02\n" +
+	"\x11profile_completed\x18\x04 \x01(\bR\x10profileCompleted\"\xd8\x02\n" +
 	"\bUserInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1b\n" +
@@ -2311,7 +2371,8 @@ const file_app_user_rpc_user_proto_rawDesc = "" +
 	"\x0fface_registered\x18\t \x01(\bR\x0efaceRegistered\x12$\n" +
 	"\x0eface_image_url\x18\n" +
 	" \x01(\tR\ffaceImageUrl\x12\x18\n" +
-	"\abalance\x18\v \x01(\x01R\abalance\"%\n" +
+	"\abalance\x18\v \x01(\x01R\abalance\x12\x1b\n" +
+	"\trole_name\x18\f \x01(\tR\broleName\"%\n" +
 	"\vSendCodeReq\x12\x16\n" +
 	"\x06mobile\x18\x01 \x01(\tR\x06mobile\"a\n" +
 	"\x10ResetPasswordReq\x12\x16\n" +
@@ -2429,7 +2490,10 @@ const file_app_user_rpc_user_proto_rawDesc = "" +
 	"\x04size\x18\x02 \x01(\x05R\x04size\"N\n" +
 	"\x12QueryLoginLogsResp\x12\"\n" +
 	"\x04list\x18\x01 \x03(\v2\x0e.user.LoginLogR\x04list\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x03R\x05total2\xeb\r\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total\"F\n" +
+	"\x13UpdateUserPointsReq\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x16\n" +
+	"\x06points\x18\x02 \x01(\x05R\x06points2\xaa\x0e\n" +
 	"\aUserRpc\x121\n" +
 	"\bRegister\x12\x11.user.RegisterReq\x1a\x12.user.RegisterResp\x12(\n" +
 	"\x05Login\x12\x0e.user.LoginReq\x1a\x0f.user.LoginResp\x124\n" +
@@ -2469,7 +2533,8 @@ const file_app_user_rpc_user_proto_rawDesc = "" +
 	"\x0fListPermissions\x12\x0e.user.EmptyReq\x1a\x18.user.PermissionListResp\x120\n" +
 	"\tListMenus\x12\x0e.user.EmptyReq\x1a\x13.user.ListMenusResp\x12G\n" +
 	"\x12QueryUserLoginLogs\x12\x17.user.QueryLoginLogsReq\x1a\x18.user.QueryLoginLogsResp\x12H\n" +
-	"\x13QueryAdminLoginLogs\x12\x17.user.QueryLoginLogsReq\x1a\x18.user.QueryLoginLogsRespB\bZ\x06./userb\x06proto3"
+	"\x13QueryAdminLoginLogs\x12\x17.user.QueryLoginLogsReq\x1a\x18.user.QueryLoginLogsResp\x12=\n" +
+	"\x10UpdateUserPoints\x12\x19.user.UpdateUserPointsReq\x1a\x0e.user.BaseRespB\bZ\x06./userb\x06proto3"
 
 var (
 	file_app_user_rpc_user_proto_rawDescOnce sync.Once
@@ -2483,7 +2548,7 @@ func file_app_user_rpc_user_proto_rawDescGZIP() []byte {
 	return file_app_user_rpc_user_proto_rawDescData
 }
 
-var file_app_user_rpc_user_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_app_user_rpc_user_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_app_user_rpc_user_proto_goTypes = []any{
 	(*BaseResp)(nil),               // 0: user.BaseResp
 	(*EmptyReq)(nil),               // 1: user.EmptyReq
@@ -2524,6 +2589,7 @@ var file_app_user_rpc_user_proto_goTypes = []any{
 	(*LoginLog)(nil),               // 36: user.LoginLog
 	(*QueryLoginLogsReq)(nil),      // 37: user.QueryLoginLogsReq
 	(*QueryLoginLogsResp)(nil),     // 38: user.QueryLoginLogsResp
+	(*UpdateUserPointsReq)(nil),    // 39: user.UpdateUserPointsReq
 }
 var file_app_user_rpc_user_proto_depIdxs = []int32{
 	8,  // 0: user.LoginResp.user_info:type_name -> user.UserInfo
@@ -2563,39 +2629,41 @@ var file_app_user_rpc_user_proto_depIdxs = []int32{
 	1,  // 34: user.UserRpc.ListMenus:input_type -> user.EmptyReq
 	37, // 35: user.UserRpc.QueryUserLoginLogs:input_type -> user.QueryLoginLogsReq
 	37, // 36: user.UserRpc.QueryAdminLoginLogs:input_type -> user.QueryLoginLogsReq
-	4,  // 37: user.UserRpc.Register:output_type -> user.RegisterResp
-	7,  // 38: user.UserRpc.Login:output_type -> user.LoginResp
-	7,  // 39: user.UserRpc.LoginByCode:output_type -> user.LoginResp
-	0,  // 40: user.UserRpc.SendLoginCode:output_type -> user.BaseResp
-	0,  // 41: user.UserRpc.SendResetCode:output_type -> user.BaseResp
-	0,  // 42: user.UserRpc.ResetPassword:output_type -> user.BaseResp
-	0,  // 43: user.UserRpc.Logout:output_type -> user.BaseResp
-	0,  // 44: user.UserRpc.ChangePassword:output_type -> user.BaseResp
-	15, // 45: user.UserRpc.CheckToken:output_type -> user.CheckTokenResp
-	8,  // 46: user.UserRpc.GetProfile:output_type -> user.UserInfo
-	0,  // 47: user.UserRpc.UpdateProfile:output_type -> user.BaseResp
-	0,  // 48: user.UserRpc.RegisterFace:output_type -> user.BaseResp
-	17, // 49: user.UserRpc.CreateRole:output_type -> user.Role
-	0,  // 50: user.UserRpc.UpdateRole:output_type -> user.BaseResp
-	0,  // 51: user.UserRpc.DeleteRole:output_type -> user.BaseResp
-	18, // 52: user.UserRpc.ListRoles:output_type -> user.RoleListResp
-	0,  // 53: user.UserRpc.BindRoleMenu:output_type -> user.BaseResp
-	0,  // 54: user.UserRpc.BindRolePermissions:output_type -> user.BaseResp
-	16, // 55: user.UserRpc.GetRolePermissions:output_type -> user.PermissionListResp
-	16, // 56: user.UserRpc.GetUserPermissions:output_type -> user.PermissionListResp
-	0,  // 57: user.UserRpc.AssignUserRoles:output_type -> user.BaseResp
-	31, // 58: user.UserRpc.GetUserRoles:output_type -> user.GetUserRolesResp
-	26, // 59: user.UserRpc.ListAdminUsers:output_type -> user.ListAdminUsersResp
-	0,  // 60: user.UserRpc.FreezeUser:output_type -> user.BaseResp
-	0,  // 61: user.UserRpc.AssignRole:output_type -> user.BaseResp
-	0,  // 62: user.UserRpc.UpdateUserBalance:output_type -> user.BaseResp
-	33, // 63: user.UserRpc.ListMembers:output_type -> user.ListMembersResp
-	16, // 64: user.UserRpc.ListPermissions:output_type -> user.PermissionListResp
-	35, // 65: user.UserRpc.ListMenus:output_type -> user.ListMenusResp
-	38, // 66: user.UserRpc.QueryUserLoginLogs:output_type -> user.QueryLoginLogsResp
-	38, // 67: user.UserRpc.QueryAdminLoginLogs:output_type -> user.QueryLoginLogsResp
-	37, // [37:68] is the sub-list for method output_type
-	6,  // [6:37] is the sub-list for method input_type
+	39, // 37: user.UserRpc.UpdateUserPoints:input_type -> user.UpdateUserPointsReq
+	4,  // 38: user.UserRpc.Register:output_type -> user.RegisterResp
+	7,  // 39: user.UserRpc.Login:output_type -> user.LoginResp
+	7,  // 40: user.UserRpc.LoginByCode:output_type -> user.LoginResp
+	0,  // 41: user.UserRpc.SendLoginCode:output_type -> user.BaseResp
+	0,  // 42: user.UserRpc.SendResetCode:output_type -> user.BaseResp
+	0,  // 43: user.UserRpc.ResetPassword:output_type -> user.BaseResp
+	0,  // 44: user.UserRpc.Logout:output_type -> user.BaseResp
+	0,  // 45: user.UserRpc.ChangePassword:output_type -> user.BaseResp
+	15, // 46: user.UserRpc.CheckToken:output_type -> user.CheckTokenResp
+	8,  // 47: user.UserRpc.GetProfile:output_type -> user.UserInfo
+	0,  // 48: user.UserRpc.UpdateProfile:output_type -> user.BaseResp
+	0,  // 49: user.UserRpc.RegisterFace:output_type -> user.BaseResp
+	17, // 50: user.UserRpc.CreateRole:output_type -> user.Role
+	0,  // 51: user.UserRpc.UpdateRole:output_type -> user.BaseResp
+	0,  // 52: user.UserRpc.DeleteRole:output_type -> user.BaseResp
+	18, // 53: user.UserRpc.ListRoles:output_type -> user.RoleListResp
+	0,  // 54: user.UserRpc.BindRoleMenu:output_type -> user.BaseResp
+	0,  // 55: user.UserRpc.BindRolePermissions:output_type -> user.BaseResp
+	16, // 56: user.UserRpc.GetRolePermissions:output_type -> user.PermissionListResp
+	16, // 57: user.UserRpc.GetUserPermissions:output_type -> user.PermissionListResp
+	0,  // 58: user.UserRpc.AssignUserRoles:output_type -> user.BaseResp
+	31, // 59: user.UserRpc.GetUserRoles:output_type -> user.GetUserRolesResp
+	26, // 60: user.UserRpc.ListAdminUsers:output_type -> user.ListAdminUsersResp
+	0,  // 61: user.UserRpc.FreezeUser:output_type -> user.BaseResp
+	0,  // 62: user.UserRpc.AssignRole:output_type -> user.BaseResp
+	0,  // 63: user.UserRpc.UpdateUserBalance:output_type -> user.BaseResp
+	33, // 64: user.UserRpc.ListMembers:output_type -> user.ListMembersResp
+	16, // 65: user.UserRpc.ListPermissions:output_type -> user.PermissionListResp
+	35, // 66: user.UserRpc.ListMenus:output_type -> user.ListMenusResp
+	38, // 67: user.UserRpc.QueryUserLoginLogs:output_type -> user.QueryLoginLogsResp
+	38, // 68: user.UserRpc.QueryAdminLoginLogs:output_type -> user.QueryLoginLogsResp
+	0,  // 69: user.UserRpc.UpdateUserPoints:output_type -> user.BaseResp
+	38, // [38:70] is the sub-list for method output_type
+	6,  // [6:38] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -2613,7 +2681,7 @@ func file_app_user_rpc_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_user_rpc_user_proto_rawDesc), len(file_app_user_rpc_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   39,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

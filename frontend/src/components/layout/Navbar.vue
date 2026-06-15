@@ -66,11 +66,7 @@
               <router-link
                 to="/admin"
                 class="dropdown-item"
-                v-if="
-                  ['admin', 'store', 'property'].includes(
-                    userStore.userInfo.role,
-                  )
-                "
+                v-if="hasAdminAccess"
               >
                 管理后台
               </router-link>
@@ -102,9 +98,9 @@ const router = useRouter();
 const userStore = useUserStore();
 const cartStore = useCartStore();
 const showUserMenu = ref(false);
-const hasAdminAccess = computed(() =>
-  ["admin", "store", "property"].includes(userStore.userInfo?.role),
-);
+const hasAdminAccess = computed(() => {
+  return userStore.userInfo?.role === "admin" || (userStore.permissions && userStore.permissions.length > 0);
+});
 
 const handleLogout = () => {
   userStore.logout();

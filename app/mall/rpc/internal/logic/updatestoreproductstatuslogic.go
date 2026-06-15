@@ -24,6 +24,9 @@ func NewUpdateStoreProductStatusLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *UpdateStoreProductStatusLogic) UpdateStoreProductStatus(in *mall.UpdateStoreProductStatusReq) (*mall.BaseResp, error) {
+	if err := checkStoreAccess(l.ctx, in.StoreId); err != nil {
+		return nil, err
+	}
 	err := l.svcCtx.StoreSvc.UpdateProductStatus(in.StoreId, in.ProductId, int(in.Status))
 	if err != nil {
 		return &mall.BaseResp{Code: 500, Message: err.Error()}, nil

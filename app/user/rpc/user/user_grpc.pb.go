@@ -50,6 +50,7 @@ const (
 	UserRpc_ListMenus_FullMethodName           = "/user.UserRpc/ListMenus"
 	UserRpc_QueryUserLoginLogs_FullMethodName  = "/user.UserRpc/QueryUserLoginLogs"
 	UserRpc_QueryAdminLoginLogs_FullMethodName = "/user.UserRpc/QueryAdminLoginLogs"
+	UserRpc_UpdateUserPoints_FullMethodName    = "/user.UserRpc/UpdateUserPoints"
 )
 
 // UserRpcClient is the client API for UserRpc service.
@@ -92,6 +93,8 @@ type UserRpcClient interface {
 	// Audit Logs
 	QueryUserLoginLogs(ctx context.Context, in *QueryLoginLogsReq, opts ...grpc.CallOption) (*QueryLoginLogsResp, error)
 	QueryAdminLoginLogs(ctx context.Context, in *QueryLoginLogsReq, opts ...grpc.CallOption) (*QueryLoginLogsResp, error)
+	// Points Management
+	UpdateUserPoints(ctx context.Context, in *UpdateUserPointsReq, opts ...grpc.CallOption) (*BaseResp, error)
 }
 
 type userRpcClient struct {
@@ -412,6 +415,16 @@ func (c *userRpcClient) QueryAdminLoginLogs(ctx context.Context, in *QueryLoginL
 	return out, nil
 }
 
+func (c *userRpcClient) UpdateUserPoints(ctx context.Context, in *UpdateUserPointsReq, opts ...grpc.CallOption) (*BaseResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BaseResp)
+	err := c.cc.Invoke(ctx, UserRpc_UpdateUserPoints_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserRpcServer is the server API for UserRpc service.
 // All implementations must embed UnimplementedUserRpcServer
 // for forward compatibility.
@@ -452,6 +465,8 @@ type UserRpcServer interface {
 	// Audit Logs
 	QueryUserLoginLogs(context.Context, *QueryLoginLogsReq) (*QueryLoginLogsResp, error)
 	QueryAdminLoginLogs(context.Context, *QueryLoginLogsReq) (*QueryLoginLogsResp, error)
+	// Points Management
+	UpdateUserPoints(context.Context, *UpdateUserPointsReq) (*BaseResp, error)
 	mustEmbedUnimplementedUserRpcServer()
 }
 
@@ -554,6 +569,9 @@ func (UnimplementedUserRpcServer) QueryUserLoginLogs(context.Context, *QueryLogi
 }
 func (UnimplementedUserRpcServer) QueryAdminLoginLogs(context.Context, *QueryLoginLogsReq) (*QueryLoginLogsResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryAdminLoginLogs not implemented")
+}
+func (UnimplementedUserRpcServer) UpdateUserPoints(context.Context, *UpdateUserPointsReq) (*BaseResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUserPoints not implemented")
 }
 func (UnimplementedUserRpcServer) mustEmbedUnimplementedUserRpcServer() {}
 func (UnimplementedUserRpcServer) testEmbeddedByValue()                 {}
@@ -1134,6 +1152,24 @@ func _UserRpc_QueryAdminLoginLogs_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserRpc_UpdateUserPoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserPointsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).UpdateUserPoints(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_UpdateUserPoints_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).UpdateUserPoints(ctx, req.(*UpdateUserPointsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserRpc_ServiceDesc is the grpc.ServiceDesc for UserRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1264,6 +1300,10 @@ var UserRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueryAdminLoginLogs",
 			Handler:    _UserRpc_QueryAdminLoginLogs_Handler,
+		},
+		{
+			MethodName: "UpdateUserPoints",
+			Handler:    _UserRpc_UpdateUserPoints_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
