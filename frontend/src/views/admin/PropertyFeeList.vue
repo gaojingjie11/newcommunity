@@ -21,9 +21,17 @@
         <el-table :data="list" class="custom-table" style="width: 100%" v-loading="loadingData" :empty-text="'暂无物业费账单记录'">
           <el-table-column prop="id" label="账单 ID" width="100" align="center" />
           
-          <el-table-column prop="user_id" label="绑定用户 ID" min-width="120" align="center">
+          <el-table-column label="业主信息" min-width="180">
             <template #default="{ row }">
-              <span class="user-id-text">{{ row.user_id }}</span>
+              <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                <div>
+                  <span class="user-id-text" style="margin-right: 6px;">ID: {{ row.user_id }}</span>
+                  <strong v-if="row.user_name" style="color: #2c3e50;">{{ row.user_name }}</strong>
+                </div>
+                <div v-if="row.user_mobile" style="font-size: 12px; color: #909399;">
+                  {{ row.user_mobile }}
+                </div>
+              </div>
             </template>
           </el-table-column>
           
@@ -50,11 +58,11 @@
              </template>
           </el-table-column>
           
-          <el-table-column prop="pay_time" label="支付完成时间" min-width="200">
+          <el-table-column prop="paid_at" label="支付完成时间" min-width="200">
             <template #default="{ row }">
-              <div class="time-cell" v-if="row.pay_time">
+              <div class="time-cell" v-if="row.paid_at">
                 <el-icon><Clock /></el-icon>
-                <span>{{ formatDate(row.pay_time) }}</span>
+                <span>{{ formatDate(row.paid_at) }}</span>
               </div>
               <span v-else class="text-secondary">-</span>
             </template>
@@ -85,11 +93,10 @@
         :close-on-click-modal="false"
       >
         <el-form label-position="top" class="premium-form">
-          <el-form-item label="用户 ID" required>
+          <el-form-item label="业主手机号 / 用户 ID" required>
              <el-input 
-               v-model.number="form.user_id" 
-               type="number" 
-               placeholder="请输入需要下发账单的用户 ID" 
+               v-model="form.user_id" 
+               placeholder="请输入要下发账单的业主手机号或用户 ID" 
                class="custom-input"
              />
           </el-form-item>
@@ -173,14 +180,20 @@ const openCreateModal = () => {
 }
 
 const saveCreate = async () => {
-  if (!form.user_id || !form.month || form.amount <= 0) {
+  const rawId = String(form.user_id).trim()
+  if (!rawId || !form.month || form.amount <= 0) {
     ElMessage.warning('请填写完整的账单信息')
+    return
+  }
+  const targetId = Number(rawId)
+  if (isNaN(targetId)) {
+    ElMessage.warning('业主手机号或用户 ID 格式不正确，只能输入纯数字')
     return
   }
   loading.value = true
   try {
     await createPropertyFee({
-      user_id: Number(form.user_id),
+      user_id: targetId,
       month: form.month,
       amount: Number(form.amount)
     })

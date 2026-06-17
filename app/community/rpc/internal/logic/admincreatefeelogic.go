@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"smartcommunity-microservices/app/community/rpc/internal/model"
@@ -31,9 +32,34 @@ func (l *AdminCreateFeeLogic) AdminCreateFee(in *community.CreatePropertyFeeReq)
 		return nil, errors.New("amount must be greater than 0")
 	}
 
+	targetUserID := in.UserId
+	// Check if in.UserId is an 11-digit mobile number (Chinese mobile range)
+	if in.UserId >= 10000000000 && in.UserId <= 20000000000 {
+		var resolvedID int64
+		mobileStr := fmt.Sprintf("%d", in.UserId)
+		err := l.svcCtx.DB.Table("sys_user").Where("mobile = ?", mobileStr).Pluck("id", &resolvedID).Error
+		if err != nil {
+			return nil, err
+		}
+		if resolvedID == 0 {
+			return nil, errors.New("未找到手机号为 " + mobileStr + " 的业主用户，请确认手机号是否正确")
+		}
+		targetUserID = resolvedID
+	} else {
+		// Verify if the user ID exists
+		var resolvedID int64
+		err := l.svcCtx.DB.Table("sys_user").Where("id = ?", in.UserId).Pluck("id", &resolvedID).Error
+		if err != nil {
+			return nil, err
+		}
+		if resolvedID == 0 {
+			return nil, errors.New("未找到ID为该数值的用户")
+		}
+	}
+
 	amountCents := int64(in.Amount * 100)
 	fee := &model.PropertyFee{
-		UserID: in.UserId,
+		UserID: targetUserID,
 		Month:  in.Month,
 		Amount: amountCents,
 		Status: 0,

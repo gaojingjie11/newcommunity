@@ -50,8 +50,8 @@
                 <span class="label">实扣余额</span>
                 <span class="value">￥{{ formatAmount(fee.used_balance ?? fee.amount ?? 0) }}</span>
               </div>
-              <div class="detail-row" v-if="fee.pay_time">
-                支付时间：{{ formatDate(fee.pay_time) }}
+              <div class="detail-row" v-if="fee.paid_at">
+                支付时间：{{ formatDate(fee.paid_at) }}
               </div>
             </div>
           </div>

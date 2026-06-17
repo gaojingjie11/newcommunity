@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.0
-// source: app/user/rpc/user.proto
+// source: user.proto
 
 package user
 
@@ -51,6 +51,7 @@ const (
 	UserRpc_QueryUserLoginLogs_FullMethodName  = "/user.UserRpc/QueryUserLoginLogs"
 	UserRpc_QueryAdminLoginLogs_FullMethodName = "/user.UserRpc/QueryAdminLoginLogs"
 	UserRpc_UpdateUserPoints_FullMethodName    = "/user.UserRpc/UpdateUserPoints"
+	UserRpc_VerifyPassword_FullMethodName      = "/user.UserRpc/VerifyPassword"
 )
 
 // UserRpcClient is the client API for UserRpc service.
@@ -95,6 +96,8 @@ type UserRpcClient interface {
 	QueryAdminLoginLogs(ctx context.Context, in *QueryLoginLogsReq, opts ...grpc.CallOption) (*QueryLoginLogsResp, error)
 	// Points Management
 	UpdateUserPoints(ctx context.Context, in *UpdateUserPointsReq, opts ...grpc.CallOption) (*BaseResp, error)
+	// Password Verification (no side effects)
+	VerifyPassword(ctx context.Context, in *VerifyPasswordReq, opts ...grpc.CallOption) (*VerifyPasswordResp, error)
 }
 
 type userRpcClient struct {
@@ -425,6 +428,16 @@ func (c *userRpcClient) UpdateUserPoints(ctx context.Context, in *UpdateUserPoin
 	return out, nil
 }
 
+func (c *userRpcClient) VerifyPassword(ctx context.Context, in *VerifyPasswordReq, opts ...grpc.CallOption) (*VerifyPasswordResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyPasswordResp)
+	err := c.cc.Invoke(ctx, UserRpc_VerifyPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserRpcServer is the server API for UserRpc service.
 // All implementations must embed UnimplementedUserRpcServer
 // for forward compatibility.
@@ -467,6 +480,8 @@ type UserRpcServer interface {
 	QueryAdminLoginLogs(context.Context, *QueryLoginLogsReq) (*QueryLoginLogsResp, error)
 	// Points Management
 	UpdateUserPoints(context.Context, *UpdateUserPointsReq) (*BaseResp, error)
+	// Password Verification (no side effects)
+	VerifyPassword(context.Context, *VerifyPasswordReq) (*VerifyPasswordResp, error)
 	mustEmbedUnimplementedUserRpcServer()
 }
 
@@ -572,6 +587,9 @@ func (UnimplementedUserRpcServer) QueryAdminLoginLogs(context.Context, *QueryLog
 }
 func (UnimplementedUserRpcServer) UpdateUserPoints(context.Context, *UpdateUserPointsReq) (*BaseResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUserPoints not implemented")
+}
+func (UnimplementedUserRpcServer) VerifyPassword(context.Context, *VerifyPasswordReq) (*VerifyPasswordResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyPassword not implemented")
 }
 func (UnimplementedUserRpcServer) mustEmbedUnimplementedUserRpcServer() {}
 func (UnimplementedUserRpcServer) testEmbeddedByValue()                 {}
@@ -1170,6 +1188,24 @@ func _UserRpc_UpdateUserPoints_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserRpc_VerifyPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyPasswordReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).VerifyPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_VerifyPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).VerifyPassword(ctx, req.(*VerifyPasswordReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserRpc_ServiceDesc is the grpc.ServiceDesc for UserRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1305,7 +1341,11 @@ var UserRpc_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "UpdateUserPoints",
 			Handler:    _UserRpc_UpdateUserPoints_Handler,
 		},
+		{
+			MethodName: "VerifyPassword",
+			Handler:    _UserRpc_VerifyPassword_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "app/user/rpc/user.proto",
+	Metadata: "user.proto",
 }

@@ -63,17 +63,15 @@ func (l *CommunityPayFeeLogic) CommunityPayFee(req *types.PayPropertyFeeReq) (re
 		if req.Password == "" {
 			return nil, fmt.Errorf("请输入支付密码")
 		}
-		// Fetch user profile to get mobile
-		profile, err := l.svcCtx.UserRpc.GetProfile(l.ctx, &userrpc.UserIDReq{UserId: userID})
-		if err != nil {
-			return nil, err
-		}
-		// Verify password using UserRpc.Login
-		_, err = l.svcCtx.UserRpc.Login(l.ctx, &userrpc.LoginReq{
-			Mobile:   profile.Mobile,
+		// Verify password using UserRpc.VerifyPassword (no session side-effects)
+		verifyResp, err := l.svcCtx.UserRpc.VerifyPassword(l.ctx, &userrpc.VerifyPasswordReq{
+			UserId:   userID,
 			Password: req.Password,
 		})
 		if err != nil {
+			return nil, err
+		}
+		if !verifyResp.Success {
 			return nil, fmt.Errorf("支付密码错误")
 		}
 	} else if req.PayType == "face" {

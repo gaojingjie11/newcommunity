@@ -188,3 +188,9 @@ func (s *UserRpcServer) UpdateUserPoints(ctx context.Context, in *user.UpdateUse
 	l := logic.NewUpdateUserPointsLogic(ctx, s.svcCtx)
 	return l.UpdateUserPoints(in)
 }
+
+// Password Verification (no side effects)
+func (s *UserRpcServer) VerifyPassword(ctx context.Context, in *user.VerifyPasswordReq) (*user.VerifyPasswordResp, error) {
+	l := logic.NewVerifyPasswordLogic(ctx, s.svcCtx)
+	return l.VerifyPassword(in)
+}

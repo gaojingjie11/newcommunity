@@ -654,13 +654,15 @@ type ProductListResp struct {
 }
 
 type PropertyFeeInfo struct {
-	Id      int64   `json:"id"`
-	UserId  int64   `json:"user_id"`
-	Month   string  `json:"month"`
-	Amount  float64 `json:"amount"`
-	Status  int32   `json:"status"`
-	DueDate string  `json:"due_date"`
-	PaidAt  string  `json:"paid_at"`
+	Id         int64   `json:"id"`
+	UserId     int64   `json:"user_id"`
+	UserName   string  `json:"user_name"`
+	UserMobile string  `json:"user_mobile"`
+	Month      string  `json:"month"`
+	Amount     float64 `json:"amount"`
+	Status     int32   `json:"status"`
+	DueDate    string  `json:"due_date"`
+	PaidAt     string  `json:"paid_at"`
 }
 
 type PropertyFeeListResp struct {

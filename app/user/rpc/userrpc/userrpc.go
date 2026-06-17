@@ -54,6 +54,8 @@ type (
 	UpdateUserPointsReq    = user.UpdateUserPointsReq
 	UserIDReq              = user.UserIDReq
 	UserInfo               = user.UserInfo
+	VerifyPasswordReq      = user.VerifyPasswordReq
+	VerifyPasswordResp     = user.VerifyPasswordResp
 
 	UserRpc interface {
 		// Authentication & Session
@@ -94,6 +96,8 @@ type (
 		QueryAdminLoginLogs(ctx context.Context, in *QueryLoginLogsReq, opts ...grpc.CallOption) (*QueryLoginLogsResp, error)
 		// Points Management
 		UpdateUserPoints(ctx context.Context, in *UpdateUserPointsReq, opts ...grpc.CallOption) (*BaseResp, error)
+		// Password Verification (no side effects)
+		VerifyPassword(ctx context.Context, in *VerifyPasswordReq, opts ...grpc.CallOption) (*VerifyPasswordResp, error)
 	}
 
 	defaultUserRpc struct {
@@ -271,4 +275,10 @@ func (m *defaultUserRpc) QueryAdminLoginLogs(ctx context.Context, in *QueryLogin
 func (m *defaultUserRpc) UpdateUserPoints(ctx context.Context, in *UpdateUserPointsReq, opts ...grpc.CallOption) (*BaseResp, error) {
 	client := user.NewUserRpcClient(m.cli.Conn())
 	return client.UpdateUserPoints(ctx, in, opts...)
+}
+
+// Password Verification (no side effects)
+func (m *defaultUserRpc) VerifyPassword(ctx context.Context, in *VerifyPasswordReq, opts ...grpc.CallOption) (*VerifyPasswordResp, error) {
+	client := user.NewUserRpcClient(m.cli.Conn())
+	return client.VerifyPassword(ctx, in, opts...)
 }
