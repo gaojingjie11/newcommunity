@@ -142,7 +142,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: smartfrontend
+    container_name: sc-frontend
     restart: always
     environment:
       - TZ=Asia/Shanghai
