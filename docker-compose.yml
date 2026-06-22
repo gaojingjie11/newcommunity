@@ -93,6 +93,7 @@ services:
       - LLM_IMAGE_VISION_API_KEY=${LLM_IMAGE_VISION_API_KEY}
       - LLM_IMAGE_VISION_BASE_URL=${LLM_IMAGE_VISION_BASE_URL}
       - LLM_IMAGE_VISION_MODEL=${LLM_IMAGE_VISION_MODEL}
+      - MINIO_PUBLIC_URL=https://api.communitysvc.xyz/minio
     ports:
       - "10000:8000"
     networks:

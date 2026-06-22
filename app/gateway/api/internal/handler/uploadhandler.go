@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -55,11 +56,17 @@ func UploadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		protocol := "http"
-		if cfg.UseSSL {
-			protocol = "https"
+		publicURL := os.Getenv("MINIO_PUBLIC_URL")
+		var fileURL string
+		if publicURL != "" {
+			fileURL = fmt.Sprintf("%s/%s/%s", strings.TrimSuffix(publicURL, "/"), cfg.Bucket, info.Key)
+		} else {
+			protocol := "http"
+			if cfg.UseSSL {
+				protocol = "https"
+			}
+			fileURL = fmt.Sprintf("%s://%s/%s/%s", protocol, cfg.Endpoint, cfg.Bucket, info.Key)
 		}
-		fileURL := fmt.Sprintf("%s://%s/%s/%s", protocol, cfg.Endpoint, cfg.Bucket, info.Key)
 
 		response.Response(w, &types.UploadResp{
 			Url: fileURL,
