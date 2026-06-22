@@ -88,8 +88,8 @@
             :header-cell-style="{ background: '#f8f9fa', color: '#606266' }"
           >
             <el-table-column label="排名" width="80" align="center">
-              <template #default="{ row }">
-                <span class="rank-badge" :class="`rank-${row.rank}`">#{{ row.rank }}</span>
+              <template #default="{ $index }">
+                <span class="rank-badge" :class="`rank-${$index + 1}`">#{{ $index + 1 }}</span>
               </template>
             </el-table-column>
             <el-table-column label="环保达人">

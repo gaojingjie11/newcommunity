@@ -1,0 +1,57 @@
+name: Deploy Smart Community Microservices
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Tencent Cloud Server
+    runs-on: ubuntu-latest
+
+    steps:
+      # ================= Step 1: Pull code and build sequentially (check if compiling succeeds) =================
+      - name: Build Docker Images (Compile Check)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script_stop: true                      # Stop workflow immediately if any command fails
+          script: |
+            cd /data/www/newcommunity
+            
+            echo "1. Pulling latest code..."
+            git pull
+            
+            echo "2. Starting sequential build..."
+            docker-compose build user-rpc
+            docker-compose build mall-rpc
+            docker-compose build community-rpc
+            docker-compose build workorder-rpc
+            docker-compose build stats-rpc
+            docker-compose build agent-rpc
+            docker-compose build gateway-api
+            docker-compose build frontend
+            echo "All builds completed successfully!"
+
+      # ================= Step 2: Restart containers only if compile succeeded =================
+      - name: Start/Update Containers (Launch)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /data/www/newcommunity
+            
+            echo "3. Restarting containers with new images..."
+            docker-compose up -d
+            
+            echo "4. Pruning unused old docker images..."
+            docker image prune -f
+            
+            echo "Deployment successfully completed!"
