@@ -1,8 +1,6 @@
 package service
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -56,20 +54,6 @@ type CreateOrderRequest struct {
 	StoreID int64   `json:"store_id" binding:"required"`
 }
 
-type pendingOrderCache struct {
-	OrderID     int64     `json:"order_id"`
-	OrderNo     string    `json:"order_no"`
-	UserID      int64     `json:"user_id"`
-	StoreID     int64     `json:"store_id"`
-	CartIDs     []int64   `json:"cart_ids"`
-	TotalAmount int64     `json:"total_amount"`
-	ExpireAt    time.Time `json:"expire_at"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-func pendingOrderRedisKey(orderID int64) string {
-	return fmt.Sprintf("mall:order:pending:%d", orderID)
-}
 
 type AvailableStoreProduct struct {
 	ProductID   int64   `json:"product_id"`
@@ -251,47 +235,12 @@ func (s *OrderService) CreateOrder(userID int64, req CreateOrderRequest) (*model
 	if err == nil && s.eventBus != nil {
 		s.eventBus.PublishOrderDelayCancel(order)
 	}
-	if err == nil {
-		s.cachePendingOrder(order, req.CartIDs)
-	}
+
 
 	return order, err
 }
 
-func (s *OrderService) cachePendingOrder(order *model.Order, cartIDs []int64) {
-	if s.rdb == nil || order == nil || order.ExpireAt == nil {
-		return
-	}
-	ttl := time.Until(*order.ExpireAt)
-	if ttl <= 0 {
-		return
-	}
-	body, err := json.Marshal(pendingOrderCache{
-		OrderID:     order.ID,
-		OrderNo:     order.OrderNo,
-		UserID:      order.UserID,
-		StoreID:     order.StoreID,
-		CartIDs:     cartIDs,
-		TotalAmount: order.TotalAmount,
-		ExpireAt:    *order.ExpireAt,
-		CreatedAt:   order.CreatedAt,
-	})
-	if err != nil {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-	_ = s.rdb.Set(ctx, pendingOrderRedisKey(order.ID), body, ttl).Err()
-}
 
-func (s *OrderService) deletePendingOrderCache(orderID int64) {
-	if s.rdb == nil || orderID <= 0 {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-	_ = s.rdb.Del(ctx, pendingOrderRedisKey(orderID)).Err()
-}
 
 func (s *OrderService) GetOrder(id, userID int64) (*model.Order, error) {
 	order, err := s.orderRepo.FindByID(id)
@@ -389,8 +338,6 @@ func (s *OrderService) cancelPendingOrder(order *model.Order, reason string) err
 	if err == nil && s.eventBus != nil {
 		s.eventBus.PublishOrderCancelled(order, reason)
 	}
-	if err == nil {
-		s.deletePendingOrderCache(order.ID)
-	}
+
 	return err
 }
