@@ -124,7 +124,7 @@
           </div>
           <div class="metrics-grid">
             <div class="metric-item">
-              <div class="m-icon" style="color: #00f2fe">
+              <div class="m-icon" style="color: #4facfe">
                 <el-icon><User /></el-icon>
               </div>
               <div class="m-info">
@@ -327,6 +327,87 @@
           <span>{{ pureMode ? "返回大屏" : "纯净模式" }}</span>
         </div>
       </div>
+
+      <!-- ===== 灯光调节控制面板 (只在纯净模式下有 CSS 过渡展示) ===== -->
+      <div class="light-control-panel glass-card" :class="{ 'panel-active': pureMode }">
+        <div class="glass-card-header">
+          <div class="glass-card-accent"></div>
+          <span class="glass-card-title">三维光源调节中枢</span>
+          <div class="glass-card-badge-dot"></div>
+        </div>
+        <div class="panel-content">
+          <el-tabs v-model="activeLightTab" class="light-tabs">
+            <el-tab-pane label="环境光" name="ambient">
+              <div class="control-item">
+                <span class="control-label">光源强度</span>
+                <el-slider v-model="lightConfig.ambient.intensity" :min="0" :max="10" :step="0.1" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">光源颜色</span>
+                <el-color-picker v-model="lightConfig.ambient.color" color-format="hex" />
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="主平行光" name="dir">
+              <div class="control-item">
+                <span class="control-label">光源强度</span>
+                <el-slider v-model="lightConfig.dir.intensity" :min="0" :max="10" :step="0.1" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">光源颜色</span>
+                <el-color-picker v-model="lightConfig.dir.color" color-format="hex" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">位置 X</span>
+                <el-slider v-model="lightConfig.dir.x" :min="-20" :max="20" :step="0.5" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">位置 Y</span>
+                <el-slider v-model="lightConfig.dir.y" :min="-20" :max="20" :step="0.5" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">位置 Z</span>
+                <el-slider v-model="lightConfig.dir.z" :min="-20" :max="20" :step="0.5" />
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="辅助平行" name="fill">
+              <div class="control-item">
+                <span class="control-label">光源强度</span>
+                <el-slider v-model="lightConfig.fill.intensity" :min="0" :max="10" :step="0.1" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">光源颜色</span>
+                <el-color-picker v-model="lightConfig.fill.color" color-format="hex" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">位置 X</span>
+                <el-slider v-model="lightConfig.fill.x" :min="-20" :max="20" :step="0.5" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">位置 Y</span>
+                <el-slider v-model="lightConfig.fill.y" :min="-20" :max="20" :step="0.5" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">位置 Z</span>
+                <el-slider v-model="lightConfig.fill.z" :min="-20" :max="20" :step="0.5" />
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="底部光源" name="ground">
+              <div class="control-item">
+                <span class="control-label">光源强度</span>
+                <el-slider v-model="lightConfig.ground.intensity" :min="0" :max="10" :step="0.1" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">光源颜色</span>
+                <el-color-picker v-model="lightConfig.ground.color" color-format="hex" />
+              </div>
+              <div class="control-item">
+                <span class="control-label">照射距离</span>
+                <el-slider v-model="lightConfig.ground.distance" :min="0" :max="100" :step="1" />
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
     </dv-full-screen-container>
 
     <!-- AI 报告弹窗 -->
@@ -347,7 +428,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, reactive, nextTick, computed } from "vue";
+import { ref, onMounted, onUnmounted, reactive, nextTick, computed, watch } from "vue";
 import * as echarts from "echarts";
 import dayjs from "dayjs";
 import { useRouter } from "vue-router";
@@ -469,6 +550,111 @@ let threeControls = null;
 let threeAnimFrameId = null;
 let threeInited = false;
 let containerRect = null;
+
+// Light references for dynamic adjustment
+let ambientLight = null;
+let dirLight = null;
+let fillLight = null;
+let groundLight = null;
+
+const activeLightTab = ref("ambient");
+
+const lightConfig = reactive({
+  ambient: {
+    color: "#0a1628",
+    intensity: 2.5,
+  },
+  dir: {
+    color: "#7fdfff",
+    intensity: 1.2,
+    x: 5,
+    y: 10,
+    z: 7,
+  },
+  fill: {
+    color: "#4facfe",
+    intensity: 1.5,
+    x: -5,
+    y: 2,
+    z: -5,
+  },
+  ground: {
+    color: "#00f2fe",
+    intensity: 1.0,
+    distance: 20,
+  },
+});
+
+// Watch lightConfig changes and update Three.js scene dynamically
+watch(
+  () => lightConfig.ambient.color,
+  (val) => {
+    if (ambientLight) ambientLight.color.set(val);
+  }
+);
+watch(
+  () => lightConfig.ambient.intensity,
+  (val) => {
+    if (ambientLight) ambientLight.intensity = val;
+  }
+);
+
+watch(
+  () => lightConfig.dir.color,
+  (val) => {
+    if (dirLight) dirLight.color.set(val);
+  }
+);
+watch(
+  () => lightConfig.dir.intensity,
+  (val) => {
+    if (dirLight) dirLight.intensity = val;
+  }
+);
+watch(
+  () => [lightConfig.dir.x, lightConfig.dir.y, lightConfig.dir.z],
+  ([x, y, z]) => {
+    if (dirLight) dirLight.position.set(x, y, z);
+  }
+);
+
+watch(
+  () => lightConfig.fill.color,
+  (val) => {
+    if (fillLight) fillLight.color.set(val);
+  }
+);
+watch(
+  () => lightConfig.fill.intensity,
+  (val) => {
+    if (fillLight) fillLight.intensity = val;
+  }
+);
+watch(
+  () => [lightConfig.fill.x, lightConfig.fill.y, lightConfig.fill.z],
+  ([x, y, z]) => {
+    if (fillLight) fillLight.position.set(x, y, z);
+  }
+);
+
+watch(
+  () => lightConfig.ground.color,
+  (val) => {
+    if (groundLight) groundLight.color.set(val);
+  }
+);
+watch(
+  () => lightConfig.ground.intensity,
+  (val) => {
+    if (groundLight) groundLight.intensity = val;
+  }
+);
+watch(
+  () => lightConfig.ground.distance,
+  (val) => {
+    if (groundLight) groundLight.distance = val;
+  }
+);
 
 let threeModelMeshes = []; // 建筑总览所有mesh
 let floorModelMeshes = []; // 楼层所有mesh
@@ -662,22 +848,19 @@ const initThreeJS = () => {
   threeControls.maxPolarAngle = Math.PI / 2.5;
 
   // 灯光
-  const ambientLight = new THREE.AmbientLight(0x0a1628, 2.5);//修改
-  // const ambientLight = new THREE.AmbientLight(0x112233, 0.8); //变浅
-  // const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);//修改白色
+  ambientLight = new THREE.AmbientLight(lightConfig.ambient.color, lightConfig.ambient.intensity);
   threeScene.add(ambientLight);
-  // const dirLight = new THREE.DirectionalLight(0x00f2fe, 3);//修改
-  const dirLight = new THREE.DirectionalLight(0x7fdfff, 1.2); //变浅
-  // const dirLight = new THREE.DirectionalLight(0xffffff, 2);//修改白色
-  dirLight.position.set(5, 10, 7);
+
+  dirLight = new THREE.DirectionalLight(lightConfig.dir.color, lightConfig.dir.intensity);
+  dirLight.position.set(lightConfig.dir.x, lightConfig.dir.y, lightConfig.dir.z);
   dirLight.castShadow = true;
   threeScene.add(dirLight);
-  const fillLight = new THREE.DirectionalLight(0x4facfe, 1.5);//修改
-  // const fillLight = new THREE.DirectionalLight(0xa8d8ff, 0.4); //变浅
-  // const fillLight = new THREE.DirectionalLight(0xffffff, 1);//修改白色
-  fillLight.position.set(-5, 2, -5);
+
+  fillLight = new THREE.DirectionalLight(lightConfig.fill.color, lightConfig.fill.intensity);
+  fillLight.position.set(lightConfig.fill.x, lightConfig.fill.y, lightConfig.fill.z);
   threeScene.add(fillLight);
-  const groundLight = new THREE.PointLight(0x00f2fe, 1, 20);
+
+  groundLight = new THREE.PointLight(lightConfig.ground.color, lightConfig.ground.intensity, lightConfig.ground.distance);
   groundLight.position.set(0, -2, 0);
   threeScene.add(groundLight);
 
@@ -997,7 +1180,7 @@ const renderCharts = () => {
     ];
   }
   pieChart.setOption({
-    color: ["#85a5ff", "#0A82A4", "#3498db4c", "#2e86c1", "#3498db", "#5dade2"],
+    color: ["#00f2fe", "#4facfe", "#79bbff", "#2e86c1", "#3498db", "#5dade2"],
     tooltip: {
       trigger: "item",
       backgroundColor: "rgba(0,0,0,0.7)",
@@ -1014,7 +1197,11 @@ const renderCharts = () => {
         type: "pie",
         radius: ["40%", "60%"],
         center: ["50%", "42%"],
-        itemStyle: { borderColor: "#050a15", borderWidth: 2 },
+        itemStyle: {
+          borderColor: "#050a15",
+          borderWidth: 2,
+          borderRadius: 6,
+        },
         label: { show: false },
         data: pieData,
       },
@@ -1789,5 +1976,113 @@ onUnmounted(() => {
   pointer-events: none;
   z-index: 0;
   opacity: 0.65;
+}
+
+/* ===================================================
+   三维光源调节中枢控制面板样式 (玻璃拟态 + 暗色定制)
+   =================================================== */
+.light-control-panel {
+  position: absolute;
+  top: 90px;
+  right: 30px;
+  width: 320px;
+  z-index: 100;
+  padding: 16px;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(120%);
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(10, 20, 42, 0.65) !important;
+}
+
+.light-control-panel.panel-active {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel-content {
+  margin-top: 12px;
+}
+
+/* 深度自定义 Element Plus Tabs 样式 */
+:deep(.light-tabs) {
+  --el-tabs-header-height: 36px;
+}
+
+:deep(.light-tabs .el-tabs__item) {
+  color: #a0cfff !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  padding: 0 12px !important;
+  transition: all 0.3s;
+}
+
+:deep(.light-tabs .el-tabs__item.is-active) {
+  color: #00f2fe !important;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
+}
+
+:deep(.light-tabs .el-tabs__active-bar) {
+  background-color: #00f2fe !important;
+  box-shadow: 0 0 8px #00f2fe;
+}
+
+:deep(.light-tabs .el-tabs__nav-wrap::after) {
+  background-color: rgba(141, 141, 141, 0.12) !important;
+}
+
+/* 控制项间距 */
+.control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.control-item:last-child {
+  margin-bottom: 4px;
+}
+
+.control-label {
+  font-size: 12px;
+  color: #a0cfff;
+  opacity: 0.85;
+}
+
+/* 深度自定义 Element Plus Slider 样式 */
+:deep(.el-slider) {
+  --el-slider-main-bg-color: #00f2fe;
+  --el-slider-runway-bg-color: rgba(255, 255, 255, 0.15);
+  --el-slider-stop-bg-color: transparent;
+  --el-slider-button-size: 12px;
+  --el-slider-button-wrapper-size: 30px;
+}
+
+:deep(.el-slider__button) {
+  border: 2px solid #00f2fe !important;
+  background-color: #050a15 !important;
+  box-shadow: 0 0 6px #00f2fe;
+}
+
+/* 深度自定义 Element Plus ColorPicker 样式 */
+:deep(.el-color-picker) {
+  width: 100%;
+}
+
+:deep(.el-color-picker__trigger) {
+  width: 100% !important;
+  height: 32px !important;
+  border: 1px solid rgba(0, 242, 254, 0.35) !important;
+  background: rgba(5, 10, 21, 0.88) !important;
+  border-radius: 4px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+}
+
+:deep(.el-color-picker__color) {
+  border-radius: 2px !important;
+  border: none !important;
 }
 </style>
