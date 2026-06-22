@@ -566,7 +566,7 @@ const lightConfig = reactive({
   },
   dir: {
     color: "#7fdfff",
-    intensity: 1.2,
+    intensity: 2.5,
     x: 5,
     y: 10,
     z: 7,
