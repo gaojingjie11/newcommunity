@@ -119,7 +119,7 @@
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           @size-change="handleSearch"
-          @current-change="handleSearch"
+          @current-change="fetchData"
           class="custom-pagination"
         />
       </div>
