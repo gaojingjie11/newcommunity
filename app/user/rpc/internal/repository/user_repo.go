@@ -122,7 +122,7 @@ func (r *UserRepo) AdjustBalance(userID int64, amount float64, operatorID int64,
 			return err
 		}
 		if err := tx.Exec(
-			"INSERT INTO wallets (user_id, balance, version, created_at, updated_at) VALUES (?, 0, 0, NOW(), NOW()) ON DUPLICATE KEY UPDATE user_id = user_id",
+			"INSERT INTO wallets (user_id, balance, version, created_at, updated_at) VALUES (?, 0, 0, NOW(), NOW()) ON CONFLICT (user_id) DO NOTHING",
 			userID,
 		).Error; err != nil {
 			return err
