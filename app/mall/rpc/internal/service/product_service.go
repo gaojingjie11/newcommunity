@@ -36,8 +36,10 @@ func (s *ProductService) List(page, size int, categoryID int64, sort string, key
 	if page < 1 {
 		page = 1
 	}
-	if size < 1 || size > 100 {
+	if size < 1 {
 		size = 20
+	} else if size > 1000 {
+		size = 1000
 	}
 
 	if s.rdb == nil {
@@ -80,8 +82,10 @@ func (s *ProductService) AdminList(page, size int, name string, categoryID int64
 	if page < 1 {
 		page = 1
 	}
-	if size < 1 || size > 100 {
+	if size < 1 {
 		size = 20
+	} else if size > 1000 {
+		size = 1000
 	}
 	return s.productRepo.AdminList(page, size, name, categoryID, isPromotion)
 }
@@ -90,8 +94,10 @@ func (s *ProductService) Search(keyword string, page, size int) ([]model.Product
 	if page < 1 {
 		page = 1
 	}
-	if size < 1 || size > 100 {
+	if size < 1 {
 		size = 20
+	} else if size > 1000 {
+		size = 1000
 	}
 	return s.productRepo.Search(keyword, page, size)
 }
@@ -100,8 +106,10 @@ func (s *ProductService) GetPromotions(page, size int) ([]model.Product, int64, 
 	if page < 1 {
 		page = 1
 	}
-	if size < 1 || size > 100 {
+	if size < 1 {
 		size = 20
+	} else if size > 1000 {
+		size = 1000
 	}
 	return s.productRepo.ListPromotionProducts(page, size)
 }
