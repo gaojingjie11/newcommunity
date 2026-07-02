@@ -92,15 +92,6 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 	}
 	agentCtx = context.WithValue(agentCtx, CtxKeyStreamCallback, StreamCallback(streamCallback))
 
-	// 4. Build/Get cached Eino ReAct Agent
-	runner, err := GetOrBuildAgent(agentCtx, l.svcCtx, resolvedProfile)
-
-	// Mock Fallback if LLM config is missing (for local testing/robustness)
-	if err != nil {
-		l.Errorf("LLM not configured (error: %v), running in mock fallback mode", err)
-		return l.runMockFallback(in, stream)
-	}
-
 	// 5. Assemble Eino Prompt Messages
 	var einoMessages []*schema.Message
 	einoMessages = append(einoMessages, schema.SystemMessage(SystemPrompt))
@@ -123,51 +114,17 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 	einoMessages = append(einoMessages, schema.UserMessage(in.Message))
 
 	// 6. Invoke Eino Streaming Chat
-	sr, err := runner.Stream(agentCtx, einoMessages)
+	fullReply, hasApprovalRequired, err := l.runAgentStreamWithFallback(agentCtx, resolvedProfile, einoMessages, stream)
 	if err != nil {
-		l.Errorf("Eino Stream call failed: %v", err)
 		return err
-	}
-	defer sr.Close()
-
-	var fullReply strings.Builder
-	hasApprovalRequired := false
-
-	for {
-		chunk, errRecv := sr.Recv()
-		if errors.Is(errRecv, io.EOF) {
-			break
-		}
-		if errRecv != nil {
-			l.Errorf("error reading Eino chunk: %v", errRecv)
-			return errRecv
-		}
-
-		// Intercept approval token
-		if strings.Contains(chunk.Content, "[APPROVAL_REQUIRED:") {
-			hasApprovalRequired = true
-			break
-		}
-
-		fullReply.WriteString(chunk.Content)
-
-		errSend := stream.Send(&agent.ChatResp{
-			Chunk:        chunk.Content,
-			EventType:    "message_delta",
-			EventPayload: fmt.Sprintf(`{"chunk":%q}`, chunk.Content),
-		})
-		if errSend != nil {
-			l.Errorf("error writing gRPC stream chunk to gateway: %v", errSend)
-			return errSend
-		}
 	}
 
 	// 7. Save messages to database via Transaction
 	var errSave error
 	if lastApprovalPayload != "" {
-		errSave = l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, fullReply.String(), "approval_required", lastApprovalPayload)
+		errSave = l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, fullReply, "approval_required", lastApprovalPayload)
 	} else {
-		errSave = l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, fullReply.String(), "", "")
+		errSave = l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, fullReply, "", "")
 	}
 	if errSave != nil {
 		l.Errorf("failed to save chat messages in transaction: %v", errSave)
@@ -184,6 +141,117 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 	}
 
 	return nil
+}
+
+func (l *ChatStreamLogic) runAgentStreamWithFallback(
+	agentCtx context.Context,
+	resolvedProfile string,
+	einoMessages []*schema.Message,
+	stream agent.AgentRpc_ChatStreamServer,
+) (string, bool, error) {
+	reply, hasApprovalRequired, err := l.runAgentStream(agentCtx, resolvedProfile, einoMessages, stream)
+	if err == nil {
+		return reply, hasApprovalRequired, nil
+	}
+
+	if !isMaxStepsError(err) || resolvedProfile == chatModeFast {
+		return "", false, err
+	}
+
+	l.Errorf("agent run exceeded max steps under profile=%q, falling back to fast profile: %v", resolvedProfile, err)
+	return l.runAgentStream(agentCtx, chatModeFast, einoMessages, stream)
+}
+
+func (l *ChatStreamLogic) runAgentStream(
+	agentCtx context.Context,
+	profile string,
+	einoMessages []*schema.Message,
+	stream agent.AgentRpc_ChatStreamServer,
+) (string, bool, error) {
+	runner, err := GetOrBuildAgent(agentCtx, l.svcCtx, profile)
+
+	// Mock Fallback if LLM config is missing (for local testing/robustness)
+	if err != nil {
+		l.Errorf("LLM not configured (error: %v), running in mock fallback mode", err)
+		return "", false, l.runMockFallback(&agent.ChatReq{
+			ConversationId: anyValue[string](agentCtx, CtxKeyConversationID),
+			UserId:         anyValue[int64](agentCtx, CtxKeyUserID),
+			Message:        lastUserMessage(einoMessages),
+		}, stream)
+	}
+
+	sr, err := runner.Stream(agentCtx, einoMessages)
+	if err != nil {
+		l.Errorf("Eino Stream call failed under profile=%q: %v", profile, err)
+		return "", false, err
+	}
+	defer sr.Close()
+
+	var fullReply strings.Builder
+	hasApprovalRequired := false
+
+	for {
+		chunk, errRecv := sr.Recv()
+		if errors.Is(errRecv, io.EOF) {
+			break
+		}
+		if errRecv != nil {
+			l.Errorf("error reading Eino chunk under profile=%q: %v", profile, errRecv)
+			return "", false, errRecv
+		}
+
+		if strings.Contains(chunk.Content, "[APPROVAL_REQUIRED:") {
+			hasApprovalRequired = true
+			break
+		}
+
+		fullReply.WriteString(chunk.Content)
+
+		errSend := stream.Send(&agent.ChatResp{
+			Chunk:        chunk.Content,
+			EventType:    "message_delta",
+			EventPayload: fmt.Sprintf(`{"chunk":%q}`, chunk.Content),
+		})
+		if errSend != nil {
+			l.Errorf("error writing gRPC stream chunk to gateway: %v", errSend)
+			return "", false, errSend
+		}
+	}
+
+	return fullReply.String(), hasApprovalRequired, nil
+}
+
+func isMaxStepsError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "exceeds max steps")
+}
+
+func lastUserMessage(messages []*schema.Message) string {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i] == nil {
+			continue
+		}
+		if messages[i].Role == schema.User {
+			return messages[i].Content
+		}
+	}
+	return ""
+}
+
+func anyValue[T any](ctx context.Context, key interface{}) T {
+	var zero T
+	value := ctx.Value(key)
+	if value == nil {
+		return zero
+	}
+	typed, ok := value.(T)
+	if !ok {
+		return zero
+	}
+	return typed
 }
 
 func (l *ChatStreamLogic) loadPromptHistory(convID string, userID int64, summaryUntil, maxPromptHistoryMessages int) ([]model.SysUserChatMessage, error) {

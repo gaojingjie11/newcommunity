@@ -77,9 +77,10 @@ func GetOrBuildAgent(ctx context.Context, svcCtx *svc.ServiceContext, profile st
 
 func BuildEinoAgent(ctx context.Context, svcCtx *svc.ServiceContext, profile string) (*react.Agent, error) {
 	cfg := svcCtx.Config.Agent
+	profile = normalizeChatMode(profile)
 
 	apiKey, baseUrl, modelName := cfg.GetModelConfig(cfg.Models.ChatDefault)
-	if normalizeChatMode(profile) == chatModeDeep {
+	if profile == chatModeDeep {
 		apiKey, baseUrl, modelName = cfg.GetModelConfig(cfg.Models.AgentReasoning)
 	} else if apiKey == "" || baseUrl == "" || strings.TrimSpace(modelName) == "" {
 		apiKey, baseUrl, modelName = cfg.GetModelConfig(cfg.Models.AgentReasoning)
@@ -111,7 +112,7 @@ func BuildEinoAgent(ctx context.Context, svcCtx *svc.ServiceContext, profile str
 
 	// 3. Instantiate ReAct Agent
 	agent, err := react.NewAgent(ctx, &react.AgentConfig{
-		MaxStep:          5,
+		MaxStep:          maxAgentSteps(profile),
 		ToolCallingModel: chatModel,
 		ToolsConfig: compose.ToolsNodeConfig{
 			Tools: tools,
@@ -122,6 +123,17 @@ func BuildEinoAgent(ctx context.Context, svcCtx *svc.ServiceContext, profile str
 	}
 
 	return agent, nil
+}
+
+func maxAgentSteps(profile string) int {
+	switch normalizeChatMode(profile) {
+	case chatModeDeep:
+		return 12
+	case chatModeFast:
+		return 6
+	default:
+		return 8
+	}
 }
 
 func requestedChatModeFromContext(ctx context.Context) string {
