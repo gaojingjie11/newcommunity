@@ -54,11 +54,12 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 		}
 	}
 
-	// 2. Fetch history messages for the conversation
-	var history []model.SysUserChatMessage
-	l.svcCtx.DB.Where("conversation_id = ? AND user_id = ?", in.ConversationId, in.UserId).
-		Order("created_at ASC").
-		Find(&history)
+	// 2. Fetch only the prompt-relevant history window instead of loading all messages every turn.
+	history, err := l.loadPromptHistory(in.ConversationId, in.UserId, conv.SummaryUntil, maxPromptHistoryMessages)
+	if err != nil {
+		l.Errorf("failed to load prompt history: %v", err)
+		return err
+	}
 
 	// 3. Bind credentials/IDs to context for use inside Eino tools
 	agentCtx := context.WithValue(l.ctx, CtxKeyUserID, in.UserId)
@@ -110,15 +111,7 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 	}
 
 	// Append active history turns since last summary
-	startIdx := conv.SummaryUntil
-	if startIdx < 0 || startIdx > len(history) {
-		startIdx = 0
-	}
-	activeHistory := history[startIdx:]
-	if len(activeHistory) > maxPromptHistoryMessages {
-		activeHistory = activeHistory[len(activeHistory)-maxPromptHistoryMessages:]
-	}
-	for _, m := range activeHistory {
+	for _, m := range history {
 		if m.Role == "user" {
 			einoMessages = append(einoMessages, schema.UserMessage(m.Content))
 		} else if m.Role == "assistant" {
@@ -191,6 +184,42 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 	}
 
 	return nil
+}
+
+func (l *ChatStreamLogic) loadPromptHistory(convID string, userID int64, summaryUntil, maxPromptHistoryMessages int) ([]model.SysUserChatMessage, error) {
+	if maxPromptHistoryMessages <= 0 {
+		return nil, nil
+	}
+
+	var total int64
+	if err := l.svcCtx.DB.Model(&model.SysUserChatMessage{}).
+		Where("conversation_id = ? AND user_id = ?", convID, userID).
+		Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	startIdx := summaryUntil
+	if startIdx < 0 {
+		startIdx = 0
+	}
+
+	if totalInt := int(total); totalInt > startIdx+maxPromptHistoryMessages {
+		startIdx = totalInt - maxPromptHistoryMessages
+	}
+
+	var history []model.SysUserChatMessage
+	err := l.svcCtx.DB.
+		Select("role", "content", "created_at").
+		Where("conversation_id = ? AND user_id = ?", convID, userID).
+		Order("created_at ASC").
+		Offset(startIdx).
+		Limit(maxPromptHistoryMessages).
+		Find(&history).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return history, nil
 }
 
 func (l *ChatStreamLogic) runMockFallback(in *agent.ChatReq, stream agent.AgentRpc_ChatStreamServer) error {
