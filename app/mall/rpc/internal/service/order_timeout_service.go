@@ -2,6 +2,8 @@ package service
 
 import (
 	"log/slog"
+	"sync"
+	"time"
 
 	"smartcommunity-microservices/app/mall/rpc/internal/consts"
 	"smartcommunity-microservices/app/mall/rpc/internal/model"
@@ -26,6 +28,9 @@ type OrderTimeoutService struct {
 	eventBus         *EventBus
 	log              *slog.Logger
 	stopCh           chan struct{}
+	doneCh           chan struct{}
+	startOnce        sync.Once
+	stopOnce         sync.Once
 }
 
 func NewOrderTimeoutService(
@@ -44,17 +49,57 @@ func NewOrderTimeoutService(
 		eventBus:         eventBus,
 		log:              log,
 		stopCh:           make(chan struct{}),
+		doneCh:           make(chan struct{}),
 	}
 }
 
-// Start begins the service (MQ-trigger mode, no polling).
+// Start begins the timeout service with a periodic polling fallback.
 func (s *OrderTimeoutService) Start() {
-	s.log.Info("order timeout service started (MQ-trigger mode)")
+	s.startOnce.Do(func() {
+		s.log.Info("order timeout service started")
+		go s.run()
+	})
 }
 
 // Stop signals the service to exit.
 func (s *OrderTimeoutService) Stop() {
-	s.log.Info("order timeout service stopped")
+	s.stopOnce.Do(func() {
+		close(s.stopCh)
+		<-s.doneCh
+		s.log.Info("order timeout service stopped")
+	})
+}
+
+func (s *OrderTimeoutService) run() {
+	defer close(s.doneCh)
+
+	s.scanExpiredOrders()
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			s.scanExpiredOrders()
+		case <-s.stopCh:
+			return
+		}
+	}
+}
+
+func (s *OrderTimeoutService) scanExpiredOrders() {
+	orders, err := s.orderRepo.FindExpiredPendingOrders(100)
+	if err != nil {
+		s.log.Warn("scan expired orders failed", "error", err)
+		return
+	}
+	for _, order := range orders {
+		orderCopy := order
+		if err := s.processExpiredOrder(&orderCopy); err != nil {
+			s.log.Warn("process expired order failed", "order_id", orderCopy.ID, "error", err)
+		}
+	}
 }
 
 // processExpiredOrder cancels a single expired order within a transaction.

@@ -184,19 +184,19 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		log.Println("Started wallet.recharged consumer successfully.")
 	}
 
-	// 3. Consume order.cancelled
-	err = mqClient.ConsumeEvents(service.QueueOrderCancelled, func(delivery amqp.Delivery) {
+	// 3. Consume order timeout trigger
+	err = mqClient.ConsumeEvents(service.QueueOrderTimeout, func(delivery amqp.Delivery) {
 		defer func() {
 			_ = delivery.Ack(false)
 		}()
 
 		var event service.OrderCancelledEvent
 		if err := json.Unmarshal(delivery.Body, &event); err != nil {
-			log.Printf("[Notification Consumer] failed to unmarshal order.cancelled event: %v", err)
+			log.Printf("[Notification Consumer] failed to unmarshal order.timeout event: %v", err)
 			return
 		}
 
-		log.Printf("[Notification Consumer] received order.cancelled event: %+v", event)
+		log.Printf("[Notification Consumer] received order.timeout event: %+v", event)
 
 		if err := svcCtx.TimeoutSvc.CancelExpiredOrder(event.OrderID); err != nil {
 			log.Printf("[Notification Consumer] failed to cancel expired order %d: %v", event.OrderID, err)
@@ -205,9 +205,9 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		}
 	})
 	if err != nil {
-		log.Printf("failed to start order.cancelled consumer: %v", err)
+		log.Printf("failed to start order.timeout consumer: %v", err)
 	} else {
-		log.Println("Started order.cancelled consumer successfully.")
+		log.Println("Started order.timeout consumer successfully.")
 	}
 
 	// 4. Consume property_fee.paid
@@ -269,4 +269,3 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		log.Println("Started property_fee.paid consumer successfully.")
 	}
 }
-

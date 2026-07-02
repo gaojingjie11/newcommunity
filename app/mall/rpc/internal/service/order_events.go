@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"smartcommunity-microservices/common/mq"
 	"smartcommunity-microservices/app/mall/rpc/internal/model"
+	"smartcommunity-microservices/common/mq"
 )
 
 type OrderPaidEvent struct {
@@ -39,7 +39,8 @@ type OrderCancelledEvent struct {
 const (
 	QueueOrderPaid       = "order.paid"
 	QueueOrderCancelled  = "order.cancelled"
-	QueueOrderDelay      = "order.delay"
+	QueueOrderDelay      = "order.delay.v2"
+	QueueOrderTimeout    = "order.timeout.trigger"
 	QueueWalletRecharged = "wallet.recharged"
 )
 
@@ -57,7 +58,7 @@ func (b *EventBus) PublishOrderDelayCancel(order *model.Order) {
 		return
 	}
 	event := OrderCancelledEvent{
-		Event:   QueueOrderCancelled,
+		Event:   QueueOrderTimeout,
 		OrderID: order.ID,
 		OrderNo: order.OrderNo,
 		UserID:  order.UserID,
@@ -77,7 +78,7 @@ func (b *EventBus) PublishOrderDelayCancel(order *model.Order) {
 	}
 
 	b.log.Info("publishing order delay cancel event", "order_id", order.ID, "delay_ms", delayMs)
-	if err := b.mq.PublishDelayEvent(ctx, QueueOrderDelay, QueueOrderCancelled, delayMs, body); err != nil {
+	if err := b.mq.PublishDelayEvent(ctx, QueueOrderDelay, QueueOrderTimeout, delayMs, body); err != nil {
 		b.log.Warn("publish delay event failed", "queue", QueueOrderDelay, "error", err)
 	}
 }
@@ -150,4 +151,3 @@ func (b *EventBus) PublishFileCleanup(url string) {
 	event := map[string]string{"url": url}
 	b.publish("file.cleanup", event)
 }
-
