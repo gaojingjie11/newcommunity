@@ -149,7 +149,7 @@ func (l *ChatStreamLogic) runAgentStreamWithFallback(
 	einoMessages []*schema.Message,
 	stream agent.AgentRpc_ChatStreamServer,
 ) (string, bool, error) {
-	reply, hasApprovalRequired, err := l.runAgentStream(agentCtx, resolvedProfile, einoMessages, stream)
+	reply, hasApprovalRequired, emittedChunks, err := l.runAgentStream(agentCtx, resolvedProfile, einoMessages, stream)
 	if err == nil {
 		return reply, hasApprovalRequired, nil
 	}
@@ -157,9 +157,13 @@ func (l *ChatStreamLogic) runAgentStreamWithFallback(
 	if !isMaxStepsError(err) || resolvedProfile == chatModeFast {
 		return "", false, err
 	}
+	if emittedChunks > 0 {
+		return "", false, fmt.Errorf("复杂模式推理未完整结束，请重试或切换简洁模式: %w", err)
+	}
 
 	l.Errorf("agent run exceeded max steps under profile=%q, falling back to fast profile: %v", resolvedProfile, err)
-	return l.runAgentStream(agentCtx, chatModeFast, einoMessages, stream)
+	reply, hasApprovalRequired, _, err = l.runAgentStream(agentCtx, chatModeFast, einoMessages, stream)
+	return reply, hasApprovalRequired, err
 }
 
 func (l *ChatStreamLogic) runAgentStream(
@@ -167,28 +171,30 @@ func (l *ChatStreamLogic) runAgentStream(
 	profile string,
 	einoMessages []*schema.Message,
 	stream agent.AgentRpc_ChatStreamServer,
-) (string, bool, error) {
+) (string, bool, int, error) {
 	runner, err := GetOrBuildAgent(agentCtx, l.svcCtx, profile)
 
 	// Mock Fallback if LLM config is missing (for local testing/robustness)
 	if err != nil {
 		l.Errorf("LLM not configured (error: %v), running in mock fallback mode", err)
-		return "", false, l.runMockFallback(&agent.ChatReq{
+		reply, err := l.runMockFallback(&agent.ChatReq{
 			ConversationId: anyValue[string](agentCtx, CtxKeyConversationID),
 			UserId:         anyValue[int64](agentCtx, CtxKeyUserID),
 			Message:        lastUserMessage(einoMessages),
 		}, stream)
+		return reply, false, len([]rune(reply)), err
 	}
 
 	sr, err := runner.Stream(agentCtx, einoMessages)
 	if err != nil {
 		l.Errorf("Eino Stream call failed under profile=%q: %v", profile, err)
-		return "", false, err
+		return "", false, 0, err
 	}
 	defer sr.Close()
 
 	var fullReply strings.Builder
 	hasApprovalRequired := false
+	emittedChunks := 0
 
 	for {
 		chunk, errRecv := sr.Recv()
@@ -197,7 +203,7 @@ func (l *ChatStreamLogic) runAgentStream(
 		}
 		if errRecv != nil {
 			l.Errorf("error reading Eino chunk under profile=%q: %v", profile, errRecv)
-			return "", false, errRecv
+			return fullReply.String(), false, emittedChunks, errRecv
 		}
 
 		if strings.Contains(chunk.Content, "[APPROVAL_REQUIRED:") {
@@ -214,11 +220,12 @@ func (l *ChatStreamLogic) runAgentStream(
 		})
 		if errSend != nil {
 			l.Errorf("error writing gRPC stream chunk to gateway: %v", errSend)
-			return "", false, errSend
+			return fullReply.String(), false, emittedChunks, errSend
 		}
+		emittedChunks++
 	}
 
-	return fullReply.String(), hasApprovalRequired, nil
+	return fullReply.String(), hasApprovalRequired, emittedChunks, nil
 }
 
 func isMaxStepsError(err error) bool {
@@ -290,7 +297,7 @@ func (l *ChatStreamLogic) loadPromptHistory(convID string, userID int64, summary
 	return history, nil
 }
 
-func (l *ChatStreamLogic) runMockFallback(in *agent.ChatReq, stream agent.AgentRpc_ChatStreamServer) error {
+func (l *ChatStreamLogic) runMockFallback(in *agent.ChatReq, stream agent.AgentRpc_ChatStreamServer) (string, error) {
 	reply := "您好！由于尚未配置大模型 API 密钥，当前正处于本地模拟演示模式。\n我可以为您演示社区公告总结、商城商品选购、订单支付以及报修工单创建："
 
 	lowerMsg := strings.ToLower(in.Message)
@@ -317,8 +324,7 @@ func (l *ChatStreamLogic) runMockFallback(in *agent.ChatReq, stream agent.AgentR
 		time.Sleep(15 * time.Millisecond) // Simulated typing speed
 	}
 
-	_ = l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, reply, "", "")
-	return nil
+	return reply, nil
 }
 
 func (l *ChatStreamLogic) saveChatMessagesTx(convID string, userID int64, userMsg, botMsg, eventType, eventPayload string) error {

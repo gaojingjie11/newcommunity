@@ -18,8 +18,8 @@ import (
 	"smartcommunity-microservices/app/user/rpc/userrpc"
 	"smartcommunity-microservices/common/auth"
 
-	"github.com/zeromicro/go-zero/rest"
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 const (
@@ -156,50 +156,53 @@ func permCheckMiddleware(svcCtx *svc.ServiceContext) rest.Middleware {
 						isAdmin = true
 					} else {
 						requiredPerm := perm.LookupPermission(r.Method, path)
-						if requiredPerm != "" {
-							codes, err := loadPermissions(r.Context(), svcCtx.RedisClient, svcCtx.UserRpc, userID)
+						if requiredPerm == "" {
+							writeJSONError(w, 403, "当前管理接口未配置权限点，已拒绝访问")
+							return
+						}
+
+						codes, err := loadPermissions(r.Context(), svcCtx.RedisClient, svcCtx.UserRpc, userID)
+						if err != nil {
+							writeJSONError(w, 500, "权限校验失败")
+							return
+						}
+
+						hasFull := false
+						hasRestricted := false
+						requiredPermAll := requiredPerm + "_all"
+
+						for _, code := range codes {
+							if code == requiredPermAll {
+								hasFull = true
+								break
+							}
+							if code == requiredPerm {
+								hasRestricted = true
+							}
+						}
+
+						if hasFull {
+							isAdmin = true
+						} else if hasRestricted {
+							isAdmin = true
+							// Restricted view: fetch store ids
+							storesResp, err := svcCtx.MallRpc.GetUserStores(r.Context(), &mall.UserIDReq{UserId: userID})
 							if err != nil {
-								writeJSONError(w, 500, "权限校验失败")
+								writeJSONError(w, 500, fmt.Sprintf("获取绑定门店失败: %v", err))
 								return
 							}
-
-							hasFull := false
-							hasRestricted := false
-							requiredPermAll := requiredPerm + "_all"
-
-							for _, code := range codes {
-								if code == requiredPermAll {
-									hasFull = true
-									break
-								}
-								if code == requiredPerm {
-									hasRestricted = true
-								}
-							}
-
-							if hasFull {
-								isAdmin = true
-							} else if hasRestricted {
-								isAdmin = true
-								// Restricted view: fetch store ids
-								storesResp, err := svcCtx.MallRpc.GetUserStores(r.Context(), &mall.UserIDReq{UserId: userID})
-								if err != nil {
-									writeJSONError(w, 500, fmt.Sprintf("获取绑定门店失败: %v", err))
-									return
-								}
-								if len(storesResp.StoreIds) == 0 {
-									storeIdsStr = "none"
-								} else {
-									var idStrs []string
-									for _, sid := range storesResp.StoreIds {
-										idStrs = append(idStrs, fmt.Sprintf("%d", sid))
-									}
-									storeIdsStr = strings.Join(idStrs, ",")
-								}
+							if len(storesResp.StoreIds) == 0 {
+								storeIdsStr = "none"
 							} else {
-								writeJSONError(w, 403, "无权限访问此资源")
-								return
+								var idStrs []string
+								for _, sid := range storesResp.StoreIds {
+									idStrs = append(idStrs, fmt.Sprintf("%d", sid))
+								}
+								storeIdsStr = strings.Join(idStrs, ",")
 							}
+						} else {
+							writeJSONError(w, 403, "无权限访问此资源")
+							return
 						}
 					}
 				}

@@ -23,10 +23,6 @@ func StartStatsConsumer(svcCtx *ServiceContext) {
 	}
 
 	err := mqClient.ConsumeEvents("ai_report.generate", func(delivery amqp.Delivery) {
-		defer func() {
-			_ = delivery.Ack(false)
-		}()
-
 		var task struct {
 			ReportID int64 `json:"report_id"`
 			UserID   int64 `json:"user_id"`
@@ -34,6 +30,7 @@ func StartStatsConsumer(svcCtx *ServiceContext) {
 
 		if err := json.Unmarshal(delivery.Body, &task); err != nil {
 			log.Printf("[Stats Consumer] failed to unmarshal ai_report.generate task: %v", err)
+			_ = delivery.Reject(false)
 			return
 		}
 
@@ -42,8 +39,10 @@ func StartStatsConsumer(svcCtx *ServiceContext) {
 		err := svcCtx.ReportSvc.GenerateReportAsync(task.ReportID, task.UserID)
 		if err != nil {
 			log.Printf("[Stats Consumer] failed to generate report %d asynchronously: %v", task.ReportID, err)
+			_ = delivery.Nack(false, true)
 		} else {
 			log.Printf("[Stats Consumer] successfully generated report %d asynchronously", task.ReportID)
+			_ = delivery.Ack(false)
 		}
 	})
 

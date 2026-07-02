@@ -29,13 +29,10 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 
 	// 1. Consume order.paid
 	err := mqClient.ConsumeEvents(service.QueueOrderPaid, func(delivery amqp.Delivery) {
-		defer func() {
-			_ = delivery.Ack(false)
-		}()
-
 		var event service.OrderPaidEvent
 		if err := json.Unmarshal(delivery.Body, &event); err != nil {
 			log.Printf("[Notification Consumer] failed to unmarshal order.paid event: %v", err)
+			_ = delivery.Reject(false)
 			return
 		}
 
@@ -45,11 +42,13 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		user, err := svcCtx.UserRepo.FindByID(event.UserID)
 		if err != nil {
 			log.Printf("[Notification Consumer] failed to find user %d: %v", event.UserID, err)
+			_ = delivery.Nack(false, true)
 			return
 		}
 
 		if user.Email == "" {
 			log.Printf("[Notification Consumer] user %d (%s) does not have email bound, skipping notification.", event.UserID, user.Username)
+			_ = delivery.Ack(false)
 			return
 		}
 
@@ -57,6 +56,7 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		order, err := svcCtx.OrderRepo.FindByID(event.OrderID)
 		if err != nil {
 			log.Printf("[Notification Consumer] failed to find order %d: %v", event.OrderID, err)
+			_ = delivery.Nack(false, true)
 			return
 		}
 
@@ -120,6 +120,7 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		} else {
 			log.Printf("[Notification Consumer] successfully sent order.paid email to %s", user.Email)
 		}
+		_ = delivery.Ack(false)
 	})
 	if err != nil {
 		log.Printf("failed to start order.paid consumer: %v", err)
@@ -129,13 +130,10 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 
 	// 2. Consume wallet.recharged
 	err = mqClient.ConsumeEvents(service.QueueWalletRecharged, func(delivery amqp.Delivery) {
-		defer func() {
-			_ = delivery.Ack(false)
-		}()
-
 		var event service.WalletRechargedEvent
 		if err := json.Unmarshal(delivery.Body, &event); err != nil {
 			log.Printf("[Notification Consumer] failed to unmarshal wallet.recharged event: %v", err)
+			_ = delivery.Reject(false)
 			return
 		}
 
@@ -145,11 +143,13 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		user, err := svcCtx.UserRepo.FindByID(event.UserID)
 		if err != nil {
 			log.Printf("[Notification Consumer] failed to find user %d: %v", event.UserID, err)
+			_ = delivery.Nack(false, true)
 			return
 		}
 
 		if user.Email == "" {
 			log.Printf("[Notification Consumer] user %d (%s) does not have email bound, skipping notification.", event.UserID, user.Username)
+			_ = delivery.Ack(false)
 			return
 		}
 
@@ -177,6 +177,7 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		} else {
 			log.Printf("[Notification Consumer] successfully sent wallet.recharged email to %s", user.Email)
 		}
+		_ = delivery.Ack(false)
 	})
 	if err != nil {
 		log.Printf("failed to start wallet.recharged consumer: %v", err)
@@ -186,13 +187,10 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 
 	// 3. Consume order timeout trigger
 	err = mqClient.ConsumeEvents(service.QueueOrderTimeout, func(delivery amqp.Delivery) {
-		defer func() {
-			_ = delivery.Ack(false)
-		}()
-
 		var event service.OrderCancelledEvent
 		if err := json.Unmarshal(delivery.Body, &event); err != nil {
 			log.Printf("[Notification Consumer] failed to unmarshal order.timeout event: %v", err)
+			_ = delivery.Reject(false)
 			return
 		}
 
@@ -200,8 +198,10 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 
 		if err := svcCtx.TimeoutSvc.CancelExpiredOrder(event.OrderID); err != nil {
 			log.Printf("[Notification Consumer] failed to cancel expired order %d: %v", event.OrderID, err)
+			_ = delivery.Nack(false, true)
 		} else {
 			log.Printf("[Notification Consumer] successfully cancelled expired order %d", event.OrderID)
+			_ = delivery.Ack(false)
 		}
 	})
 	if err != nil {
@@ -212,10 +212,6 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 
 	// 4. Consume property_fee.paid
 	err = mqClient.ConsumeEvents("property_fee.paid", func(delivery amqp.Delivery) {
-		defer func() {
-			_ = delivery.Ack(false)
-		}()
-
 		var event struct {
 			Event          string `json:"event"`
 			FeeID          int64  `json:"fee_id"`
@@ -227,6 +223,7 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		}
 		if err := json.Unmarshal(delivery.Body, &event); err != nil {
 			log.Printf("[Notification Consumer] failed to unmarshal property_fee.paid event: %v", err)
+			_ = delivery.Reject(false)
 			return
 		}
 
@@ -236,11 +233,13 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		user, err := svcCtx.UserRepo.FindByID(event.UserID)
 		if err != nil {
 			log.Printf("[Notification Consumer] failed to find user %d: %v", event.UserID, err)
+			_ = delivery.Nack(false, true)
 			return
 		}
 
 		if user.Email == "" {
 			log.Printf("[Notification Consumer] user %d (%s) does not have email bound, skipping property fee notification.", event.UserID, user.Username)
+			_ = delivery.Ack(false)
 			return
 		}
 
@@ -262,6 +261,7 @@ func StartNotificationConsumer(svcCtx *ServiceContext) {
 		} else {
 			log.Printf("[Notification Consumer] successfully sent property_fee.paid email to %s", user.Email)
 		}
+		_ = delivery.Ack(false)
 	})
 	if err != nil {
 		log.Printf("failed to start property_fee.paid consumer: %v", err)

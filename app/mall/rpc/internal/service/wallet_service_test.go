@@ -200,6 +200,27 @@ func TestValidateExternalDebitTransactionRejectsKeyConflict(t *testing.T) {
 	}
 }
 
+func TestValidateRechargeTransactionRejectsKeyConflict(t *testing.T) {
+	tx := &model.WalletTransaction{
+		UserID:        7,
+		Type:          consts.WalletTxTypeRecharge,
+		Amount:        100,
+		BizType:       consts.BizTypeRecharge,
+		BizID:         "RECH_1",
+		BalanceBefore: 1000,
+		BalanceAfter:  1100,
+	}
+	if err := validateRechargeTransaction(tx, 7, 100, "RECH_1"); err != nil {
+		t.Fatalf("matching recharge transaction should pass validation: %v", err)
+	}
+	if err := validateRechargeTransaction(tx, 8, 100, "RECH_1"); err == nil {
+		t.Fatal("different user with same idempotency key should be rejected")
+	}
+	if err := validateRechargeTransaction(tx, 7, 200, "RECH_1"); err == nil {
+		t.Fatal("different amount with same idempotency key should be rejected")
+	}
+}
+
 // TestDebitForExternal_CrossServiceTransactionFlow documents the expected flow.
 func TestDebitForExternal_CrossServiceTransactionFlow(t *testing.T) {
 	// This test documents the cross-service transaction design.

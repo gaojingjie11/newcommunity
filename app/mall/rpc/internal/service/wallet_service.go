@@ -28,8 +28,24 @@ func validateExternalDebitTransaction(tx *model.WalletTransaction, userID, amoun
 	return nil
 }
 
+func validateRechargeTransaction(tx *model.WalletTransaction, userID, amount int64, idempotencyKey string) error {
+	if tx.UserID != userID || tx.Type != consts.WalletTxTypeRecharge || tx.Amount != amount || tx.BizType != consts.BizTypeRecharge || tx.BizID != idempotencyKey {
+		return errors.New("idempotency key conflict")
+	}
+	return nil
+}
+
 // Recharge adds amount (in cents) to the user's wallet.
 func (s *WalletService) Recharge(userID int64, amount int64, idempotencyKey string) error {
+	return s.recharge(nil, userID, amount, idempotencyKey)
+}
+
+// RechargeTx reuses the caller's transaction so wallet balance and business status can commit atomically.
+func (s *WalletService) RechargeTx(tx *gorm.DB, userID int64, amount int64, idempotencyKey string) error {
+	return s.recharge(tx, userID, amount, idempotencyKey)
+}
+
+func (s *WalletService) recharge(tx *gorm.DB, userID int64, amount int64, idempotencyKey string) error {
 	if amount <= 0 {
 		return errors.New("充值金额必须大于0")
 	}
@@ -37,8 +53,16 @@ func (s *WalletService) Recharge(userID int64, amount int64, idempotencyKey stri
 		return errors.New("幂等键不能为空")
 	}
 
-	return s.db.Transaction(func(tx *gorm.DB) error {
+	run := func(tx *gorm.DB) error {
 		walletRepo := s.walletRepo.WithTx(tx)
+
+		existing, findErr := walletRepo.FindTransactionByIdempotencyKey(idempotencyKey)
+		if findErr == nil {
+			return validateRechargeTransaction(existing, userID, amount, idempotencyKey)
+		}
+		if !errors.Is(findErr, gorm.ErrRecordNotFound) {
+			return findErr
+		}
 
 		if _, err := walletRepo.GetOrCreate(userID); err != nil {
 			return err
@@ -62,7 +86,7 @@ func (s *WalletService) Recharge(userID int64, amount int64, idempotencyKey stri
 			}
 		}
 
-		return walletRepo.CreateTransaction(tx, &model.WalletTransaction{
+		if err := walletRepo.CreateTransaction(tx, &model.WalletTransaction{
 			UserID:         userID,
 			Type:           consts.WalletTxTypeRecharge,
 			Amount:         amount,
@@ -72,8 +96,20 @@ func (s *WalletService) Recharge(userID int64, amount int64, idempotencyKey stri
 			BizID:          idempotencyKey,
 			IdempotencyKey: &idempotencyKey,
 			Remark:         remark,
-		})
-	})
+		}); err != nil {
+			existing, findErr := walletRepo.FindTransactionByIdempotencyKey(idempotencyKey)
+			if findErr == nil {
+				return validateRechargeTransaction(existing, userID, amount, idempotencyKey)
+			}
+			return err
+		}
+		return nil
+	}
+
+	if tx != nil {
+		return run(tx)
+	}
+	return s.db.Transaction(run)
 }
 
 // Transfer moves amount (in cents) from one user to another.

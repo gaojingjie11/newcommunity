@@ -68,7 +68,12 @@ func (l *PayPropertyFeeLogic) PayPropertyFee(in *community.PayPropertyFeeReq) (*
 	// Update local property fee status and insert payment record
 	_, err = l.svcCtx.PropertyFeeRepo.Pay(in.UserId, in.Id, walletKey, txID)
 	if err != nil {
-		return nil, err
+		l.Logger.Errorf("property fee local commit failed after wallet debit, fee_id=%d, user_id=%d, wallet_tx_id=%d, err=%v", in.Id, in.UserId, txID, err)
+		if _, retryErr := l.svcCtx.PropertyFeeRepo.Pay(in.UserId, in.Id, walletKey, txID); retryErr == nil || errors.Is(retryErr, repository.ErrPropertyFeePaid) {
+			err = nil
+		} else {
+			return nil, fmt.Errorf("缴费记账失败，请稍后重试确认结果")
+		}
 	}
 
 	// Publish property fee paid event to MQ
@@ -106,4 +111,3 @@ func (l *PayPropertyFeeLogic) PayPropertyFee(in *community.PayPropertyFeeReq) (*
 
 	return &community.BaseResp{Code: 0, Message: "success"}, nil
 }
-

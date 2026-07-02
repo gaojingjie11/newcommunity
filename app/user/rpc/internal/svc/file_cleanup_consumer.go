@@ -29,18 +29,16 @@ func StartFileCleanupConsumer(svcCtx *ServiceContext) {
 	time.Sleep(3 * time.Second)
 
 	err := svcCtx.MqClient.ConsumeEvents("file.cleanup", func(delivery amqp.Delivery) {
-		defer func() {
-			_ = delivery.Ack(false)
-		}()
-
 		var event FileCleanupEvent
 		if err := json.Unmarshal(delivery.Body, &event); err != nil {
 			log.Printf("[File Cleanup Consumer] failed to unmarshal file.cleanup event: %v", err)
+			_ = delivery.Reject(false)
 			return
 		}
 
 		url := strings.TrimSpace(event.URL)
 		if url == "" {
+			_ = delivery.Ack(false)
 			return
 		}
 
@@ -64,6 +62,7 @@ func StartFileCleanupConsumer(svcCtx *ServiceContext) {
 
 		if objectKey == "" {
 			log.Printf("[File Cleanup Consumer] failed to resolve object key for url: %s", url)
+			_ = delivery.Reject(false)
 			return
 		}
 
@@ -74,8 +73,10 @@ func StartFileCleanupConsumer(svcCtx *ServiceContext) {
 		err := svcCtx.MinioClient.RemoveObject(ctx, bucketName, objectKey, minio.RemoveObjectOptions{})
 		if err != nil {
 			log.Printf("[File Cleanup Consumer] failed to remove object from MinIO: %v", err)
+			_ = delivery.Nack(false, true)
 		} else {
 			log.Printf("[File Cleanup Consumer] successfully removed object from MinIO: bucket=%s, key=%s", bucketName, objectKey)
+			_ = delivery.Ack(false)
 		}
 	})
 

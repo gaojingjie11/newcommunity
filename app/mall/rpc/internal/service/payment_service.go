@@ -163,6 +163,7 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 		walletRepo := s.walletRepo.WithTx(tx)
 		storeProductRepo := s.storeProductRepo.WithTx(tx)
 		productRepo := s.productRepo.WithTx(tx)
+		paymentRepo := s.paymentRepo.WithTx(tx)
 
 		// Lock order row
 		lockedOrder, err := orderRepo.FindByIDForUpdate(tx, orderID)
@@ -176,6 +177,16 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 			order.UsedBalance = lockedOrder.UsedBalance
 			finalUsedPoints = lockedOrder.UsedPoints
 			finalRemainingAmount = lockedOrder.UsedBalance
+			affected, err := paymentRepo.UpdateStatus(tx, record.ID, consts.PaymentStatusInit, consts.PaymentStatusSuccess, "")
+			if err != nil {
+				return err
+			}
+			if affected == 0 {
+				current, err := paymentRepo.FindByIdempotencyKey(req.IdempotencyKey)
+				if err != nil || current.Status != consts.PaymentStatusSuccess {
+					return errors.New("更新支付记录状态失败")
+				}
+			}
 			return nil
 		}
 		if lockedOrder.Status != consts.OrderStatusPendingPayment {
@@ -297,6 +308,17 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 		order.UsedPoints = usedPoints
 		order.UsedBalance = remainingAmountInCents
 
+		affected, err := paymentRepo.UpdateStatus(tx, record.ID, consts.PaymentStatusInit, consts.PaymentStatusSuccess, "")
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			current, err := paymentRepo.FindByIdempotencyKey(req.IdempotencyKey)
+			if err != nil || current.Status != consts.PaymentStatusSuccess {
+				return errors.New("更新支付记录状态失败")
+			}
+		}
+
 		return nil
 	})
 
@@ -312,10 +334,7 @@ func (s *PaymentService) PayOrder(orderID, userID int64, req PayOrderRequest) (*
 		return nil, errors.New("支付失败，请重试")
 	}
 
-	// Step 4: Update payment record to success
-	_, _ = s.paymentRepo.UpdateStatus(nil, record.ID, consts.PaymentStatusInit, consts.PaymentStatusSuccess, "")
-
-	// Step 5: Best-effort event publish
+	// Step 4: Best-effort event publish
 	if s.eventBus != nil {
 		order.Status = consts.OrderStatusPaid
 		now := time.Now()

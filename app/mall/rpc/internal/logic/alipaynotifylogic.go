@@ -50,7 +50,7 @@ func (l *AlipayNotifyLogic) AlipayNotify(in *mall.AlipayNotifyReq) (*mall.Alipay
 	}
 
 	outTradeNo := in.Params["out_trade_no"] // This is our OrderNo
-	tradeNo := in.Params["trade_no"]       // Alipay transaction ID
+	tradeNo := in.Params["trade_no"]        // Alipay transaction ID
 
 	// 2.1 Handle Recharge Callback if prefix is RECH_
 	if strings.HasPrefix(outTradeNo, "RECH_") {
@@ -85,7 +85,7 @@ func (l *AlipayNotifyLogic) AlipayNotify(in *mall.AlipayNotifyReq) (*mall.Alipay
 
 			// Call WalletSvc.Recharge to credit the user balance
 			walletSvc := l.svcCtx.WalletSvc
-			err = walletSvc.Recharge(record.UserID, record.Amount, outTradeNo)
+			err = walletSvc.RechargeTx(tx, record.UserID, record.Amount, outTradeNo)
 			if err != nil {
 				return fmt.Errorf("增加用户钱包余额失败: %w", err)
 			}
