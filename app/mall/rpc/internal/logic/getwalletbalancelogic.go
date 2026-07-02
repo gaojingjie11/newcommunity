@@ -24,6 +24,9 @@ func NewGetWalletBalanceLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *GetWalletBalanceLogic) GetWalletBalance(in *mall.UserIDReq) (*mall.WalletBalanceResp, error) {
+	if l.svcCtx.PaymentReconcileSvc != nil {
+		l.svcCtx.PaymentReconcileSvc.ReconcilePendingRechargesForUser(l.ctx, in.UserId)
+	}
 	balance, err := l.svcCtx.WalletSvc.GetBalance(in.UserId)
 	if err != nil {
 		return nil, err

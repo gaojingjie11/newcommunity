@@ -24,6 +24,9 @@ func NewListWalletTransactionsLogic(ctx context.Context, svcCtx *svc.ServiceCont
 }
 
 func (l *ListWalletTransactionsLogic) ListWalletTransactions(in *mall.ListWalletTxReq) (*mall.WalletTxListResp, error) {
+	if l.svcCtx.PaymentReconcileSvc != nil {
+		l.svcCtx.PaymentReconcileSvc.ReconcilePendingRechargesForUser(l.ctx, in.UserId)
+	}
 	txs, total, err := l.svcCtx.WalletSvc.ListTransactions(in.UserId, int(in.Page), int(in.Size), nil)
 	if err != nil {
 		return nil, err

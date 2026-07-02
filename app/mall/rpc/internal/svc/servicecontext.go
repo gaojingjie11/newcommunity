@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"smartcommunity-microservices/app/mall/rpc/internal/config"
+	"smartcommunity-microservices/app/mall/rpc/internal/model"
 	"smartcommunity-microservices/app/mall/rpc/internal/repository"
 	"smartcommunity-microservices/app/mall/rpc/internal/service"
-	"smartcommunity-microservices/app/mall/rpc/internal/model"
 	"smartcommunity-microservices/common/db"
 	"smartcommunity-microservices/common/logger"
 	"smartcommunity-microservices/common/mq"
@@ -40,19 +40,20 @@ type ServiceContext struct {
 	PaymentRepo      *repository.PaymentRepo
 	UserRepo         *repository.UserRepo
 
-	ProductSvc     *service.ProductService
-	CategorySvc    *service.CategoryService
-	CartSvc        *service.CartService
-	OrderSvc       *service.OrderService
-	StoreSvc       *service.StoreService
-	FavoriteSvc    *service.FavoriteService
-	CommentSvc     *service.CommentService
-	WalletSvc      *service.WalletService
-	ServiceAreaSvc *service.ServiceAreaService
-	PaymentSvc     *service.PaymentService
-	AlipaySvc      *service.AlipayService
-	EventBus       *service.EventBus
-	TimeoutSvc     *service.OrderTimeoutService
+	ProductSvc          *service.ProductService
+	CategorySvc         *service.CategoryService
+	CartSvc             *service.CartService
+	OrderSvc            *service.OrderService
+	StoreSvc            *service.StoreService
+	FavoriteSvc         *service.FavoriteService
+	CommentSvc          *service.CommentService
+	WalletSvc           *service.WalletService
+	ServiceAreaSvc      *service.ServiceAreaService
+	PaymentSvc          *service.PaymentService
+	PaymentReconcileSvc *service.PaymentReconcileService
+	AlipaySvc           *service.AlipayService
+	EventBus            *service.EventBus
+	TimeoutSvc          *service.OrderTimeoutService
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -133,6 +134,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		logr.Warn("alipay init failed, alipay disabled", "error", err)
 	}
+	paymentReconcileSvc := service.NewPaymentReconcileService(database, paymentRepo, walletSvc, alipaySvc, eventBus, logr)
+	paymentReconcileSvc.Start()
 
 	// Timeout service (polling fallback)
 	timeoutSvc := service.NewOrderTimeoutService(database, orderRepo, storeProductRepo, productRepo, eventBus, logr)
@@ -142,35 +145,36 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	go warmUpProductCache(database, rdb)
 
 	return &ServiceContext{
-		Config:           c,
-		DB:               database,
-		Redis:            rdb,
-		MQ:               mqClient,
-		ProductRepo:      productRepo,
-		CategoryRepo:     categoryRepo,
-		CartRepo:         cartRepo,
-		OrderRepo:        orderRepo,
-		StoreRepo:        storeRepo,
-		StoreProductRepo: storeProductRepo,
-		FavoriteRepo:     favoriteRepo,
-		CommentRepo:      commentRepo,
-		WalletRepo:       walletRepo,
-		ServiceAreaRepo:  serviceAreaRepo,
-		PaymentRepo:      paymentRepo,
-		UserRepo:         userRepo,
-		ProductSvc:       productSvc,
-		CategorySvc:      categorySvc,
-		CartSvc:          cartSvc,
-		OrderSvc:         orderSvc,
-		StoreSvc:         storeSvc,
-		FavoriteSvc:      favoriteSvc,
-		CommentSvc:       commentSvc,
-		WalletSvc:        walletSvc,
-		ServiceAreaSvc:   serviceAreaSvc,
-		PaymentSvc:       paymentSvc,
-		AlipaySvc:        alipaySvc,
-		EventBus:         eventBus,
-		TimeoutSvc:       timeoutSvc,
+		Config:              c,
+		DB:                  database,
+		Redis:               rdb,
+		MQ:                  mqClient,
+		ProductRepo:         productRepo,
+		CategoryRepo:        categoryRepo,
+		CartRepo:            cartRepo,
+		OrderRepo:           orderRepo,
+		StoreRepo:           storeRepo,
+		StoreProductRepo:    storeProductRepo,
+		FavoriteRepo:        favoriteRepo,
+		CommentRepo:         commentRepo,
+		WalletRepo:          walletRepo,
+		ServiceAreaRepo:     serviceAreaRepo,
+		PaymentRepo:         paymentRepo,
+		UserRepo:            userRepo,
+		ProductSvc:          productSvc,
+		CategorySvc:         categorySvc,
+		CartSvc:             cartSvc,
+		OrderSvc:            orderSvc,
+		StoreSvc:            storeSvc,
+		FavoriteSvc:         favoriteSvc,
+		CommentSvc:          commentSvc,
+		WalletSvc:           walletSvc,
+		ServiceAreaSvc:      serviceAreaSvc,
+		PaymentSvc:          paymentSvc,
+		PaymentReconcileSvc: paymentReconcileSvc,
+		AlipaySvc:           alipaySvc,
+		EventBus:            eventBus,
+		TimeoutSvc:          timeoutSvc,
 	}
 }
 

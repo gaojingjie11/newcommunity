@@ -54,53 +54,15 @@ func (l *AlipayNotifyLogic) AlipayNotify(in *mall.AlipayNotifyReq) (*mall.Alipay
 
 	// 2.1 Handle Recharge Callback if prefix is RECH_
 	if strings.HasPrefix(outTradeNo, "RECH_") {
-		var userID int64
-		var amount int64
-		err := l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
-			paymentRepo := l.svcCtx.PaymentRepo.WithTx(tx)
-			record, err := paymentRepo.FindByOrderNo(outTradeNo)
-			if err != nil {
-				return fmt.Errorf("未找到对应充值记录: %s", outTradeNo)
-			}
-			userID = record.UserID
-			amount = record.Amount
-
-			if record.Status == consts.PaymentStatusSuccess {
-				l.Infof("充值记录 %s 已经是成功状态，忽略此次回调", outTradeNo)
-				return nil
-			}
-
-			// Update payment record status
-			affected, err := paymentRepo.UpdateStatus(tx, record.ID, consts.PaymentStatusInit, consts.PaymentStatusSuccess, "")
-			if err != nil {
-				return err
-			}
-			if affected == 0 {
-				r, err := paymentRepo.FindByOrderNo(outTradeNo)
-				if err == nil && r.Status == consts.PaymentStatusSuccess {
-					return nil
-				}
-				return errors.New("更新充值支付记录状态失败")
-			}
-
-			// Call WalletSvc.Recharge to credit the user balance
-			walletSvc := l.svcCtx.WalletSvc
-			err = walletSvc.RechargeTx(tx, record.UserID, record.Amount, outTradeNo)
-			if err != nil {
-				return fmt.Errorf("增加用户钱包余额失败: %w", err)
-			}
-
-			return nil
-		})
-
+		applied, _, _, err := l.svcCtx.PaymentReconcileSvc.ConfirmRechargeSuccess(outTradeNo)
 		if err != nil {
 			l.Errorf("处理支付宝充值回调失败, orderNo=%s, err=%v", outTradeNo, err)
 			return &mall.AlipayNotifyResp{Success: false}, err
 		}
 
 		l.Infof("成功处理支付宝充值回调, orderNo=%s, tradeNo=%s", outTradeNo, tradeNo)
-		if l.svcCtx.EventBus != nil {
-			l.svcCtx.EventBus.PublishWalletRecharged(userID, amount, outTradeNo)
+		if !applied {
+			l.Infof("充值记录 %s 已经完成入账，忽略重复回调", outTradeNo)
 		}
 		return &mall.AlipayNotifyResp{Success: true}, nil
 	}

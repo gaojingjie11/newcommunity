@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 	"smartcommunity-microservices/app/mall/rpc/internal/config"
+	"strings"
 
 	"github.com/smartwalle/alipay/v3"
 )
@@ -72,4 +72,17 @@ func (s *AlipayService) VerifyNotify(params map[string]string) error {
 	}
 
 	return s.client.VerifySign(context.Background(), values)
+}
+
+func (s *AlipayService) QueryTrade(ctx context.Context, orderNo string) (*alipay.TradeQueryRsp, error) {
+	if s == nil || s.client == nil {
+		return nil, errors.New("alipay client not initialized")
+	}
+	if strings.TrimSpace(orderNo) == "" {
+		return nil, errors.New("orderNo is required")
+	}
+
+	var p alipay.TradeQuery
+	p.OutTradeNo = orderNo
+	return s.client.TradeQuery(ctx, p)
 }

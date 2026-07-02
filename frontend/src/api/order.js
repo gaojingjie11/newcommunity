@@ -1,5 +1,18 @@
 import request from '@/utils/request'
 
+function appendQueryParams(url, params = {}) {
+  const base = url || ''
+  const [path, query = ''] = base.split('?')
+  const search = new URLSearchParams(query)
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      search.set(key, String(value))
+    }
+  })
+  const queryString = search.toString()
+  return queryString ? `${path}?${queryString}` : path
+}
+
 export function addToCart(data) {
   return request({
     url: '/mall/cart/items',
@@ -99,6 +112,9 @@ export function getOrderList(params) {
 export function payOrder(orderId, data = {}) {
   const idempotencyKey = data.idempotency_key || data.idempotencyKey ||
     `order-pay-${orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const returnUrl = appendQueryParams(data.return_url || data.returnUrl || '', {
+    order_id: orderId
+  })
 
   return request({
     url: `/mall/orders/${orderId}/pay`,
@@ -108,7 +124,7 @@ export function payOrder(orderId, data = {}) {
       password: data.password || '',
       face_image_url: data.face_image_url || '',
       idempotency_key: idempotencyKey,
-      return_url: data.return_url || data.returnUrl || ''
+      return_url: returnUrl
     }
   })
 }

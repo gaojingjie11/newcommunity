@@ -11,8 +11,8 @@
           <el-icon><CircleCloseFilled /></el-icon>
         </div>
         
-        <h2 class="result-title">{{ success ? '支付成功' : '支付确认中' }}</h2>
-        <p class="result-subtitle">{{ success ? '感谢您的支付，资金已安全入账' : '正在确认您的支付状态，请稍后' }}</p>
+        <h2 class="result-title">{{ statusText }}</h2>
+        <p class="result-subtitle">{{ subtitleText }}</p>
         
         <div class="detail-list">
           <div class="detail-item" v-if="outTradeNo">
@@ -31,6 +31,10 @@
             <span class="label">交易类型</span>
             <span class="value">{{ isRecharge ? '余额充值' : '订单支付' }}</span>
           </div>
+          <div class="detail-item" v-if="!success && checked">
+            <span class="label">当前状态</span>
+            <span class="value">等待系统确认</span>
+          </div>
         </div>
         
         <div class="actions">
@@ -45,24 +49,126 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { SuccessFilled, CircleCloseFilled } from '@element-plus/icons-vue'
+import { getTransactionList } from '@/api/finance'
+import { getOrderDetail } from '@/api/order'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
-const success = ref(true)
+const success = ref(false)
+const checked = ref(false)
+const statusText = ref('支付确认中')
+const subtitleText = ref('正在确认您的支付状态，请稍后')
+const pollIntervalMs = 2500
+const maxPollAttempts = 8
+let pollTimer = null
+let pollAttempts = 0
 
 const outTradeNo = computed(() => route.query.out_trade_no || '')
 const tradeNo = computed(() => route.query.trade_no || '')
 const amount = computed(() => route.query.total_amount || '')
+const orderId = computed(() => Number(route.query.order_id || 0))
 
 const isRecharge = computed(() => {
   return outTradeNo.value.startsWith('RECH_')
 })
+
+const stopPolling = () => {
+  if (pollTimer) {
+    window.clearTimeout(pollTimer)
+    pollTimer = null
+  }
+}
+
+const setPendingState = (title = '支付确认中', subtitle = '正在确认您的支付状态，请稍后') => {
+  success.value = false
+  statusText.value = title
+  subtitleText.value = subtitle
+}
+
+const setSuccessState = (title = '支付成功', subtitle = '感谢您的支付，资金已安全入账') => {
+  success.value = true
+  checked.value = true
+  statusText.value = title
+  subtitleText.value = subtitle
+  stopPolling()
+}
+
+const scheduleRetry = () => {
+  if (pollAttempts >= maxPollAttempts) {
+    checked.value = true
+    setPendingState('支付确认中', '系统还在和支付结果对账，稍后刷新本页或前往业务页面查看最新状态')
+    return
+  }
+  pollAttempts += 1
+  pollTimer = window.setTimeout(() => {
+    verifyPaymentResult()
+  }, pollIntervalMs)
+}
+
+const confirmRechargeResult = async () => {
+  const txResp = await getTransactionList({ page: 1, size: 100 })
+  const list = Array.isArray(txResp?.list) ? txResp.list : Array.isArray(txResp) ? txResp : []
+  const matched = list.find((item) => item?.biz_id === outTradeNo.value)
+  if (matched && Number(matched.amount) > 0) {
+    setSuccessState('充值成功', '充值金额已进入账户余额，可在钱包账单中查看')
+    return true
+  }
+  return false
+}
+
+const confirmOrderResult = async () => {
+  if (!orderId.value) {
+    return false
+  }
+  const detail = await getOrderDetail(orderId.value)
+  const status = Number(detail?.status)
+  if (status >= 1 && status !== 40) {
+    setSuccessState('支付成功', '订单已完成支付，稍后可以在我的订单中查看')
+    return true
+  }
+  if (status === 40) {
+    checked.value = true
+    setPendingState('支付未完成', '订单已取消或已过期，请返回订单页重新发起支付')
+    stopPolling()
+    return true
+  }
+  return false
+}
+
+const verifyPaymentResult = async () => {
+  if (!outTradeNo.value) {
+    checked.value = true
+    setPendingState('缺少交易信息', '未获取到有效的支付回跳参数，请返回业务页面查看最新状态')
+    return
+  }
+
+  loading.value = true
+  try {
+    const confirmed = isRecharge.value
+      ? await confirmRechargeResult()
+      : await confirmOrderResult()
+
+    if (!confirmed) {
+      setPendingState()
+      scheduleRetry()
+    }
+  } catch (error) {
+    if (pollAttempts >= maxPollAttempts) {
+      checked.value = true
+      setPendingState('支付确认中', error?.message || '暂时无法确认支付结果，请稍后重试')
+      return
+    }
+    scheduleRetry()
+  } finally {
+    loading.value = false
+  }
+}
 
 const goNext = () => {
   if (isRecharge.value) {
@@ -75,6 +181,14 @@ const goNext = () => {
 const goHome = () => {
   router.push('/home')
 }
+
+onMounted(() => {
+  verifyPaymentResult()
+})
+
+onUnmounted(() => {
+  stopPolling()
+})
 </script>
 
 <style scoped>

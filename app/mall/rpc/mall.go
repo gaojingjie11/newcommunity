@@ -25,6 +25,7 @@ func main() {
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
 	ctx := svc.NewServiceContext(c)
 	defer ctx.TimeoutSvc.Stop()
+	defer ctx.PaymentReconcileSvc.Stop()
 
 	// Start RabbitMQ Notification Consumer in background
 	go svc.StartNotificationConsumer(ctx)
