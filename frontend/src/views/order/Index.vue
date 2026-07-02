@@ -369,7 +369,9 @@ async function fetchOrders() {
   const token = ++fetchToken.value
   loading.value = true
   try {
-    const status = currentTab.value === 'all' ? undefined : Number(currentTab.value)
+    // Gateway/Mall RPC uses int32 scalar for status, so omitted query values collapse to 0.
+    // Use -1 as an explicit "all statuses" sentinel; backend already treats negative as no filter.
+    const status = currentTab.value === 'all' ? -1 : Number(currentTab.value)
     const res = await getOrderList({
       status,
       page: page.value,
