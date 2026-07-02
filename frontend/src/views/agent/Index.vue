@@ -77,9 +77,11 @@
             </el-tooltip>
             <div class="chat-title-info">
               <h2>{{ activeSession?.title || '新对话' }}</h2>
-              <span :class="['status-dot', { active: !isStreaming }]"></span>
-              <span class="status-text">{{ isStreaming ? 'AI 正在输入...' : '在线' }}</span>
             </div>
+          </div>
+          <div class="header-meta">
+            <span class="model-pill">{{ currentModelLabel }}</span>
+            <span class="status-text">{{ isStreaming ? '响应中' : '已连接' }}</span>
           </div>
         </header>
 
@@ -87,18 +89,10 @@
         <div ref="msgContainer" class="messages-container">
           <div v-if="messages.length === 0" class="welcome-screen">
             <div class="welcome-avatar">
-              <svg class="bot-svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" fill="url(#avatar-grad)" />
-                <path d="M7 11H8V13H7V11ZM16 11H17V13H16V11ZM12 15C13.6569 15 15 13.6569 15 12H9C9 13.6569 10.3431 15 12 15Z" fill="white" />
-                <defs>
-                  <linearGradient id="avatar-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#4f46e5" />
-                    <stop offset="1" stop-color="#06b6d4" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              <span class="welcome-mark">AI</span>
             </div>
             <h3>有什么我可以帮您的？</h3>
+            <p class="welcome-subtitle">更快地处理社区公告、下单支付、物业报修与日常问答。</p>
             <div class="quick-starts">
               <button
                 v-for="qs in quickStarts"
@@ -106,7 +100,10 @@
                 class="qs-card"
                 @click="handleQuickStart(qs.prompt)"
               >
-                <div class="qs-title">{{ qs.title }}</div>
+                <div class="qs-card-top">
+                  <div class="qs-title">{{ qs.title }}</div>
+                  <span class="qs-arrow">+</span>
+                </div>
                 <div class="qs-desc">{{ qs.desc }}</div>
               </button>
             </div>
@@ -119,16 +116,7 @@
           >
             <div class="avatar-col">
               <div v-if="msg.role === 'assistant'" class="avatar bot">
-                <svg class="bot-svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
-                  <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" fill="url(#avatar-grad-msg)" />
-                  <path d="M7 11H8V13H7V11ZM16 11H17V13H16V11ZM12 15C13.6569 15 15 13.6569 15 12H9C9 13.6569 10.3431 15 12 15Z" fill="white" />
-                  <defs>
-                    <linearGradient id="avatar-grad-msg" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                      <stop stop-color="#4f46e5" />
-                      <stop offset="1" stop-color="#06b6d4" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                <span class="assistant-mark">AI</span>
               </div>
               <div v-else class="avatar user">
                 我
@@ -214,7 +202,7 @@
               </div>
 
               <!-- Otherwise render normal markdown -->
-              <div v-else-if="msg.content" class="bubble" v-html="renderMarkdown(msg.content)"></div>
+              <div v-else-if="msg.content" class="bubble" v-html="msg.rendered_content || ''"></div>
 
               <!-- Tool status indicator -->
               <div v-if="msg.tool_status" class="tool-calling-status">
@@ -227,51 +215,35 @@
 
         <!-- Chat Input Footer -->
         <footer class="chat-footer">
+          <div class="chat-mode-row">
+            <span class="chat-mode-label">模式</span>
+            <div class="chat-mode-switch">
+              <button
+                v-for="mode in chatModes"
+                :key="mode.value"
+                type="button"
+                :class="['chat-mode-btn', { active: chatMode === mode.value }]"
+                @click="setChatMode(mode.value)"
+              >
+                {{ mode.label }}
+              </button>
+            </div>
+            <div class="chat-mode-hint">{{ activeModeHint }}</div>
+          </div>
+
           <div class="input-form">
-            <!-- Message Input (Single-line for clean vertical alignment and no scrollbar) -->
             <el-input
               v-model="inputMsg"
-              type="text"
+              type="textarea"
+              :autosize="{ minRows: 1, maxRows: 6 }"
+              resize="none"
               placeholder="有问题，尽管问..."
               class="message-input"
-              @keyup.enter="handleSend"
+              @keydown.enter.exact.prevent="handleSend"
             />
             
-            <!-- Right Action Group -->
             <div class="input-right-actions">
-              <!-- Model Selection Dropdown -->
-              <el-dropdown trigger="click" @command="handleModelCommand" popper-class="model-select-popper">
-                <div class="model-select-trigger">
-                  <span>{{ currentModelLabel }}</span>
-                  <el-icon class="arrow-down-icon"><ArrowDown /></el-icon>
-                </div>
-                <template #dropdown>
-                  <el-dropdown-menu class="model-select-menu">
-                    <div class="menu-title">智能水平</div>
-                    <el-dropdown-item command="fast" :class="{ 'is-active': chatMode === 'fast' }">
-                      <span class="item-label">极速</span>
-                      <el-icon v-if="chatMode === 'fast'" class="check-icon"><Check /></el-icon>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="auto" :class="{ 'is-active': chatMode === 'auto' }">
-                      <span class="item-label">均衡</span>
-                      <el-icon v-if="chatMode === 'auto'" class="check-icon"><Check /></el-icon>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="deep" :class="{ 'is-active': chatMode === 'deep' }">
-                      <span class="item-label">高级</span>
-                      <el-icon v-if="chatMode === 'deep'" class="check-icon"><Check /></el-icon>
-                    </el-dropdown-item>
-                    
-                    <div class="menu-divider"></div>
-                    
-                    <el-dropdown-item command="specific-model" class="specific-model-item">
-                      <span class="item-label">{{ specificModelName }}</span>
-                      <el-icon class="arrow-right-icon"><ArrowRight /></el-icon>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-              
-              <!-- Send Button -->
+              <span class="input-model-pill">{{ currentModelLabel }}</span>
               <el-button
                 type="primary"
                 class="send-btn"
@@ -298,24 +270,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Plus,
   Delete,
-  Lock,
-  CircleCheck,
-  Promotion,
   Loading,
   Warning,
   Top,
   Fold,
   Expand,
-  ChatLineRound,
-  ArrowDown,
-  Check,
-  ArrowRight,
-  Microphone
+  ChatLineRound
 } from '@element-plus/icons-vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import PayAuthDialog from '@/components/payment/PayAuthDialog.vue'
@@ -364,19 +329,9 @@ const payingOrderId = ref(null)
 const payingOrderMsg = ref(null)
 const chatMode = ref(localStorage.getItem('agent-chat-mode') || 'auto')
 
-// Payment Credential config
-const tempPayType = ref('password')
-const tempPassword = ref('')
-const scanningFace = ref(false)
-const faceScanned = ref(false)
-const boundFaceUrl = ref('')
-
-const payConfig = reactive({
-  enabled: false,
-  type: 'password', // 'password' or 'face'
-  password: '',
-  faceUrl: ''
-})
+let pendingAssistantChunk = ''
+let assistantRenderFrame = 0
+let scrollFrame = 0
 
 // Active session helper
 const activeSession = computed(() => {
@@ -392,14 +347,6 @@ const currentModelLabel = computed(() => {
   return item ? item.label : '均衡'
 })
 
-const specificModelName = computed(() => {
-  if (chatMode.value === 'deep') {
-    return 'mimo-v2.5-pro'
-  } else {
-    return 'mimo-v2.5'
-  }
-})
-
 // Format time
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
@@ -409,14 +356,6 @@ const formatTime = (timeStr) => {
 const setChatMode = (mode) => {
   chatMode.value = mode
   localStorage.setItem('agent-chat-mode', mode)
-}
-
-const handleModelCommand = (command) => {
-  if (command === 'specific-model') {
-    ElMessage.info(`当前模型为: ${specificModelName.value}`)
-    return
-  }
-  setChatMode(command)
 }
 
 // Fetch all conversations
@@ -481,16 +420,7 @@ const handleSelectSession = async (id, clearMessages = true) => {
   }
   try {
     const res = await getChatHistory(id)
-    messages.value = (res?.list || []).map(msg => {
-      if (msg.event_type === 'approval_required' && msg.event_payload) {
-        try {
-          msg.proposed_action = JSON.parse(msg.event_payload)
-        } catch (e) {
-          console.error('Failed to parse event_payload:', e)
-        }
-      }
-      return msg
-    })
+    messages.value = (res?.list || []).map(normalizeMessage)
     
     // Fetch statuses of all approved order creations
     messages.value.forEach(msg => {
@@ -502,7 +432,7 @@ const handleSelectSession = async (id, clearMessages = true) => {
       }
     })
     
-    nextTick(scrollToBottom)
+    nextTick(scheduleScrollToBottom)
   } catch (err) {
     ElMessage.error('加载聊天记录失败: ' + err.message)
   }
@@ -511,6 +441,24 @@ const handleSelectSession = async (id, clearMessages = true) => {
 // Trigger quick start chip
 const handleQuickStart = (text) => {
   inputMsg.value = text
+}
+
+const normalizeMessage = (msg) => {
+  const normalized = {
+    ...msg,
+    content: msg.content || '',
+    rendered_content: msg.content ? renderMarkdown(msg.content) : ''
+  }
+
+  if (normalized.event_type === 'approval_required' && normalized.event_payload) {
+    try {
+      normalized.proposed_action = JSON.parse(normalized.event_payload)
+    } catch (e) {
+      console.error('Failed to parse event_payload:', e)
+    }
+  }
+
+  return normalized
 }
 
 // Custom Markdown parser function
@@ -548,56 +496,46 @@ const renderMarkdown = (content) => {
   return html
 }
 
-// Mock Face Scanner Action
-const handleMockFaceScan = () => {
-  scanningFace.value = true
-  setTimeout(() => {
-    scanningFace.value = false
-    faceScanned.value = true
-    boundFaceUrl.value = 'https://smart-community-bucket.oss-cn-shanghai.aliyuncs.com/face_mocks/user_face_ok.jpg'
-    ElMessage.success('人脸扫描完成，特征分析成功！')
-  }, 2500)
-}
-
-// Confirm Payment Auth
-const handleConfirmAuth = () => {
-  if (tempPayType.value === 'password') {
-    if (!tempPassword.value || tempPassword.value.length < 6) {
-      ElMessage.warning('请输入完整的6位支付密码')
-      return
-    }
-    payConfig.password = tempPassword.value
-    payConfig.faceUrl = ''
-  } else {
-    if (!faceScanned.value) {
-      ElMessage.warning('请先完成人脸特征扫描')
-      return
-    }
-    payConfig.password = ''
-    payConfig.faceUrl = boundFaceUrl.value
-  }
-
-  payConfig.type = tempPayType.value
-  payConfig.enabled = true
-  ElMessage.success('支付验证凭证绑定成功')
-}
-
-// Clear Payment Auth
-const handleClearAuth = () => {
-  payConfig.enabled = false
-  payConfig.password = ''
-  payConfig.faceUrl = ''
-  tempPassword.value = ''
-  faceScanned.value = false
-  boundFaceUrl.value = ''
-  ElMessage.info('已清除支付验证授权')
-}
-
 // Scroll chat panel to bottom
 const scrollToBottom = () => {
   if (msgContainer.value) {
     msgContainer.value.scrollTop = msgContainer.value.scrollHeight
   }
+}
+
+const scheduleScrollToBottom = () => {
+  if (scrollFrame) return
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = 0
+    scrollToBottom()
+  })
+}
+
+const renderMessageContent = (msg) => {
+  msg.rendered_content = msg.content ? renderMarkdown(msg.content) : ''
+}
+
+const flushAssistantChunks = (botMsgIdx) => {
+  if (!pendingAssistantChunk) return
+  const botMsg = messages.value[botMsgIdx]
+  if (!botMsg) {
+    pendingAssistantChunk = ''
+    return
+  }
+
+  activeStreamingMessage.value += pendingAssistantChunk
+  pendingAssistantChunk = ''
+  botMsg.content = activeStreamingMessage.value
+  renderMessageContent(botMsg)
+  scheduleScrollToBottom()
+}
+
+const scheduleAssistantChunkFlush = (botMsgIdx) => {
+  if (assistantRenderFrame) return
+  assistantRenderFrame = requestAnimationFrame(() => {
+    assistantRenderFrame = 0
+    flushAssistantChunks(botMsgIdx)
+  })
 }
 
 // Send Message stream handler
@@ -630,9 +568,9 @@ const handleSend = async () => {
     conversation_id: activeSessionId.value,
     message: query,
     mode: chatMode.value,
-    pay_type: payConfig.enabled ? payConfig.type : '',
-    payment_password: payConfig.password,
-    face_image_url: payConfig.faceUrl
+    pay_type: '',
+    payment_password: '',
+    face_image_url: ''
   }
 
   // 3. Append assistant message placeholder
@@ -640,6 +578,7 @@ const handleSend = async () => {
   messages.value.push({
     role: 'assistant',
     content: '',
+    rendered_content: '',
     tool_status: '智能管家正在思考中...',
     created_at: new Date().toISOString()
   })
@@ -656,8 +595,8 @@ const handleSend = async () => {
         if (botMsg.tool_status === '智能管家正在思考中...') {
           botMsg.tool_status = ''
         }
-        activeStreamingMessage.value += event.data.chunk
-        botMsg.content = activeStreamingMessage.value
+        pendingAssistantChunk += event.data.chunk
+        scheduleAssistantChunkFlush(botMsgIdx)
       } else if (event.type === 'tool_call_start') {
         let toolText = '智能管家正在处理业务...'
         if (event.data.tool === 'list_products') {
@@ -675,26 +614,27 @@ const handleSend = async () => {
       } else if (event.type === 'tool_call_end') {
         botMsg.tool_status = ''
       } else if (event.type === 'approval_required') {
+        flushAssistantChunks(botMsgIdx)
         isStreaming.value = false
         botMsg.proposed_action = event.data
       }
-      nextTick(scrollToBottom)
+      scheduleScrollToBottom()
     },
     () => {
-      // Done Callback
+      flushAssistantChunks(botMsgIdx)
       isStreaming.value = false
-      // Refresh summaries
       fetchSessions()
     },
     (err) => {
-      // Error Callback
+      flushAssistantChunks(botMsgIdx)
       isStreaming.value = false
       const botMsg = messages.value[botMsgIdx]
       if (botMsg) {
         botMsg.content = '⚠️ 发送错误: ' + err.message
+        renderMessageContent(botMsg)
       }
       ElMessage.error('智能管家响应异常: ' + err.message)
-      nextTick(scrollToBottom)
+      scheduleScrollToBottom()
     }
   )
 }
@@ -886,6 +826,15 @@ onMounted(async () => {
     console.error('Failed to fetch user info:', err)
   }
 })
+
+onBeforeUnmount(() => {
+  if (assistantRenderFrame) {
+    cancelAnimationFrame(assistantRenderFrame)
+  }
+  if (scrollFrame) {
+    cancelAnimationFrame(scrollFrame)
+  }
+})
 </script>
 
 <style scoped>
@@ -895,7 +844,7 @@ onMounted(async () => {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: #ffffff;
+  background: #f7f7f8;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -910,8 +859,8 @@ onMounted(async () => {
 .sidebar {
   width: 260px;
   min-width: 260px;
-  background: #f9f9f9;
-  border-right: 1px solid #e5e7eb;
+  background: #171717;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -939,7 +888,7 @@ onMounted(async () => {
 .sidebar-brand {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: #fafafa;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -951,7 +900,7 @@ onMounted(async () => {
 }
 
 .sidebar-toggle-btn {
-  color: #4b5563;
+  color: #a1a1aa;
   padding: 6px;
   border-radius: 6px;
   transition: all 0.2s ease;
@@ -964,30 +913,30 @@ onMounted(async () => {
 }
 
 .sidebar-toggle-btn:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
 }
 
 .sidebar-header {
   padding: 8px 16px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .new-chat-btn {
   width: 100%;
   border-radius: 8px;
   font-weight: 600;
-  color: #202123;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: #f4f4f5;
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
   transition: all 0.2s ease;
 }
 
 .new-chat-btn:hover {
-  background: #f4f4f5;
-  border-color: #d4d4d8;
-  color: #09090b;
+  background: #343434;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 
 .sessions-list-container {
@@ -998,7 +947,7 @@ onMounted(async () => {
 
 .empty-sessions {
   text-align: center;
-  color: #71717a;
+  color: #a1a1aa;
   margin-top: 40px;
   font-size: 13px;
 }
@@ -1015,12 +964,12 @@ onMounted(async () => {
 }
 
 .session-item:hover {
-  background: #ececec;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .session-item.active {
-  background: #ececec;
-  border-color: transparent;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .session-info {
@@ -1035,7 +984,7 @@ onMounted(async () => {
 }
 
 .session-title {
-  color: #202123;
+  color: #fafafa;
   font-weight: 600;
   font-size: 13.5px;
   white-space: nowrap;
@@ -1048,7 +997,7 @@ onMounted(async () => {
   opacity: 0;
   transition: opacity 0.2s;
   padding: 2px;
-  color: #71717a !important;
+  color: #a1a1aa !important;
 }
 
 .session-item:hover .delete-session-btn {
@@ -1056,7 +1005,7 @@ onMounted(async () => {
 }
 
 .session-summary {
-  color: #71717a;
+  color: #a1a1aa;
   font-size: 12px;
   margin: 4px 0 2px;
   white-space: nowrap;
@@ -1065,7 +1014,7 @@ onMounted(async () => {
 }
 
 .session-time {
-  color: #a1a1aa;
+  color: #737373;
   font-size: 10px;
   text-align: right;
 }
@@ -1075,7 +1024,7 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: #f7f7f8;
   position: relative;
   overflow: hidden;
 }
@@ -1084,11 +1033,12 @@ onMounted(async () => {
 .chat-header {
   height: 60px;
   padding: 0 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   display: flex;
   align-items: center;
-  background: #ffffff;
+  background: rgba(247, 247, 248, 0.85);
   justify-content: space-between;
+  backdrop-filter: blur(10px);
 }
 
 .header-left-group {
@@ -1114,30 +1064,38 @@ onMounted(async () => {
   margin: 0;
 }
 
-.status-dot {
-  width: 7px;
-  height: 7px;
-  background: #a1a1aa;
-  border-radius: 50%;
-}
-
-.status-dot.active {
-  background: #10a37f;
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .status-text {
-  color: #71717a;
+  color: #6b7280;
   font-size: 12px;
+}
+
+.model-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #111827;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 /* Messages area - ChatGPT Centered Style */
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 0 140px; /* More bottom padding for input bar overlap */
+  padding: 28px 0 172px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 28px;
   align-items: center;
 }
 
@@ -1145,7 +1103,7 @@ onMounted(async () => {
 .welcome-screen {
   max-width: 768px;
   width: 90%;
-  margin: 60px auto 40px;
+  margin: 72px auto 40px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -1153,48 +1111,75 @@ onMounted(async () => {
 }
 
 .welcome-avatar {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 24px;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
 }
 
-.bot-svg-icon {
-  width: 100%;
-  height: 100%;
+.welcome-mark {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .welcome-screen h3 {
   color: #0d0d0d;
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 600;
-  margin: 0 0 32px;
+  margin: 0 0 10px;
+}
+
+.welcome-subtitle {
+  margin: 0 0 28px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .quick-starts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   max-width: 768px;
 }
 
 .qs-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  padding: 16px 20px;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 16px 18px;
+  border-radius: 14px;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
 }
 
 .qs-card:hover {
-  background: #f9f9f9;
-  border-color: #d1d5db;
+  background: #ffffff;
+  border-color: rgba(17, 24, 39, 0.12);
+  transform: translateY(-1px);
+}
+
+.qs-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qs-arrow {
+  color: #9ca3af;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .qs-title {
@@ -1214,7 +1199,7 @@ onMounted(async () => {
   width: 90%;
   max-width: 768px;
   display: flex;
-  gap: 20px;
+  gap: 14px;
 }
 
 .message-row.user {
@@ -1232,9 +1217,9 @@ onMounted(async () => {
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1247,11 +1232,13 @@ onMounted(async () => {
 }
 
 .avatar.bot {
-  background: transparent;
+  background: #111827;
   color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+}
+
+.assistant-mark {
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .bubble-col {
@@ -1264,7 +1251,7 @@ onMounted(async () => {
 .bubble-info {
   font-size: 12px;
   font-weight: 600;
-  color: #4b5563;
+  color: #6b7280;
   margin-bottom: 2px;
 }
 
@@ -1280,11 +1267,13 @@ onMounted(async () => {
 }
 
 .message-row.user .bubble {
-  background: #f4f4f5;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   padding: 10px 18px;
   border-radius: 20px;
   max-width: fit-content;
   align-self: flex-end;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
 }
 
 .message-row.assistant .bubble {
@@ -1405,7 +1394,7 @@ onMounted(async () => {
 /* Chat Input Footer styling - floating ChatGPT style */
 .chat-footer {
   padding: 12px 0 24px 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 40%);
+  background: linear-gradient(180deg, rgba(247, 247, 248, 0) 0%, #f7f7f8 38%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1426,10 +1415,10 @@ onMounted(async () => {
   margin-bottom: 12px;
   flex-wrap: wrap;
   padding: 10px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
   backdrop-filter: blur(8px);
 }
 
@@ -1462,9 +1451,9 @@ onMounted(async () => {
 }
 
 .chat-mode-btn.active {
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  background: #111827;
   color: #ffffff;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
+  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.18);
 }
 
 .chat-mode-hint {
@@ -1489,36 +1478,20 @@ onMounted(async () => {
 .input-form {
   max-width: 768px;
   width: 90%;
-  background: #f4f4f5;
-  border: 1px solid #e4e4e7;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 24px;
-  padding: 10px 14px 10px 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  padding: 12px 14px 12px 18px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .input-form:focus-within {
-  border-color: #d1d5db;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.message-textarea {
-  flex: 1;
-}
-
-.message-textarea :deep(.el-textarea__inner) {
-  background: transparent !important;
-  border: none !important;
-  color: #0d0d0d !important;
-  font-family: inherit;
-  font-size: 15px;
-  box-shadow: none !important;
-  padding: 4px 0 !important;
-  resize: none;
-  line-height: 1.5;
+  border-color: rgba(17, 24, 39, 0.16);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.1);
 }
 
 .send-btn {
@@ -1705,151 +1678,34 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  padding-bottom: 2px;
 }
 
-.model-select-trigger {
+.input-model-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
   padding: 6px 12px;
   background-color: #f4f4f5;
   border-radius: 999px;
-  cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: #374151;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.model-select-trigger:hover {
-  background-color: #e5e7eb;
-  color: #111827;
-}
-
-.model-select-trigger .arrow-down-icon {
-  font-size: 10px;
-  color: #6b7280;
-  transition: transform 0.2s ease;
-}
-
-.el-dropdown-selfdefine:focus-visible {
-  outline: none !important;
-}
-
-/* ChatGPT Input form layout adjustments */
-.input-form {
-  max-width: 768px;
-  width: 90%;
-  height: 48px;
-  background: #ffffff !important;
-  border: 1px solid #e4e4e7;
-  border-radius: 999px !important;
-  padding: 0 8px 0 20px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  box-sizing: border-box;
-}
-
-.input-form:focus-within {
-  border-color: #d1d5db;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
 }
 
 .message-input {
   flex: 1;
 }
 
-.message-input :deep(.el-input__wrapper) {
+.message-input :deep(.el-textarea__inner) {
   background: transparent !important;
   box-shadow: none !important;
-  padding: 0 !important;
-  border: none !important;
-}
-
-.message-input :deep(.el-input__inner) {
-  background: transparent !important;
   border: none !important;
   color: #0d0d0d !important;
   font-family: inherit;
   font-size: 15px;
-  height: 40px;
-  line-height: 40px;
-}
-</style>
-
-<style>
-/* Global styles for dropdown popper to match user screenshot */
-.model-select-popper {
-  --el-dropdown-menu-box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  border-radius: 20px !important;
-  border: 1px solid #e5e7eb !important;
-  padding: 8px 4px !important;
-  background: #ffffff !important;
-  min-width: 160px;
-}
-
-.model-select-menu {
-  background: transparent !important;
-  border: none !important;
+  min-height: 24px !important;
+  line-height: 1.6;
   padding: 0 !important;
-}
-
-.model-select-menu .menu-title {
-  padding: 8px 16px 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #9ca3af;
-  user-select: none;
-}
-
-.model-select-menu .el-dropdown-menu__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px !important;
-  font-size: 14px !important;
-  color: #111827 !important;
-  font-weight: 500;
-  border-radius: 12px;
-  margin: 2px 4px;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.model-select-menu .el-dropdown-menu__item:hover,
-.model-select-menu .el-dropdown-menu__item:focus {
-  background-color: #f3f4f6 !important;
-  color: #111827 !important;
-}
-
-.model-select-menu .el-dropdown-menu__item.is-active {
-  background-color: transparent !important;
-  font-weight: 600;
-}
-
-.model-select-menu .check-icon {
-  margin-left: 8px;
-  font-size: 14px;
-  color: #111827;
-  font-weight: bold;
-}
-
-.model-select-menu .menu-divider {
-  height: 1px;
-  background-color: #f3f4f6;
-  margin: 6px 0;
-}
-
-.model-select-menu .specific-model-item {
-  color: #111827 !important;
-}
-
-.model-select-menu .arrow-right-icon {
-  font-size: 12px;
-  color: #9ca3af;
-  margin-left: 8px;
+  resize: none;
 }
 </style>
