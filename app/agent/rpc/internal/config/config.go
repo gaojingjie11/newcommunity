@@ -18,16 +18,19 @@ type LLMModelDetail struct {
 type ModelsConfig struct {
 	ChatDefault    LLMModelDetail `json:",optional"`
 	AgentReasoning LLMModelDetail `json:",optional"`
+	Embedding      LLMModelDetail `json:",optional"`
 	ImageVision    LLMModelDetail `json:",optional"`
 	ASR            LLMModelDetail `json:",optional"`
 	TTS            LLMModelDetail `json:",optional"`
 }
 
 type AgentConfig struct {
-	LlmApiKey  string       `json:",optional"`
-	LlmBaseUrl string       `json:",optional"`
-	LlmModel   string       `json:",optional"`
-	Models     ModelsConfig `json:",optional"`
+	LlmApiKey              string       `json:",optional"`
+	LlmBaseUrl             string       `json:",optional"`
+	LlmModel               string       `json:",optional"`
+	RAGMaxResults          int          `json:",optional"`
+	RAGSyncIntervalSeconds int          `json:",optional"`
+	Models                 ModelsConfig `json:",optional"`
 }
 
 func isPlaceholder(val string) bool {

@@ -123,18 +123,18 @@ func NewGetCurrentTimeTool() tool.InvokableTool {
 
 // 2. Query Notices Tool
 type QueryNoticesInput struct {
-	Keyword string `json:"keyword" jsonschema:"description=查询公告的关键字，留空则获取最新的公告列表"`
+	Keyword string `json:"keyword" jsonschema:"description=可选，公告标题或正文中的简单关键字。若只是查看最新公告列表可留空；若需要按主题、语义、历史内容检索，请改用 search_knowledge"`
 }
 
 func NewQueryNoticesTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
 	t, err := utils.InferTool(
 		"query_notices",
-		"查询社区公告通知。可以输入关键字进行筛选，或者留空获取最新发布的公告列表。",
+		"查询社区最新公告列表。适合“看看最近公告、最新通知、公告列表”这类直接拉取最新公告的场景。若用户是按主题、问题、历史内容、AI报告、制度说明做语义检索或总结，请不要使用本工具，应改用 search_knowledge。",
 		func(ctx context.Context, input *QueryNoticesInput) (output string, err error) {
 			triggerToolStart(ctx, "query_notices", input)
 			resp, err := svcCtx.CommunityRpc.ListNotices(ctx, &communityrpc.ListNoticesReq{
 				Page: 1,
-				Size: 5,
+				Size: 10,
 			})
 			if err != nil {
 				out := fmt.Sprintf("查询公告失败: %v", err)
@@ -142,13 +142,25 @@ func NewQueryNoticesTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
 				return out, nil
 			}
 
+			keyword := strings.TrimSpace(strings.ToLower(input.Keyword))
 			var list []string
 			for _, item := range resp.List {
+				if keyword != "" {
+					title := strings.ToLower(item.Title)
+					content := strings.ToLower(item.Content)
+					if !strings.Contains(title, keyword) && !strings.Contains(content, keyword) {
+						continue
+					}
+				}
 				list = append(list, fmt.Sprintf("- 标题: %s\n  内容摘要: %s\n  发布时间: %s", item.Title, truncateText(item.Content, 48), item.CreatedAt))
 			}
 			var out string
 			if len(list) == 0 {
-				out = "当前社区暂无公告。"
+				if keyword != "" {
+					out = "最新公告中暂未找到匹配该关键字的内容。如需按主题或历史内容进一步检索，请使用知识库检索。"
+				} else {
+					out = "当前社区暂无公告。"
+				}
 			} else {
 				out = strings.Join(list, "\n\n")
 			}
@@ -158,6 +170,72 @@ func NewQueryNoticesTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
 	)
 	if err != nil {
 		log.Fatalf("failed to create query_notices tool: %v", err)
+	}
+	return t
+}
+
+type SearchKnowledgeInput struct {
+	Query string `json:"query" jsonschema:"description=要检索的知识问题或主题，例如：最近社区停水通知、最近AI报告提到的主要问题、近期公告重点总结"`
+	Scope string `json:"scope,omitempty" jsonschema:"description=检索范围，可选 notice、report、all。查AI报告可传 report；查公告语义内容可传 notice；留空默认全局检索"`
+}
+
+func NewSearchKnowledgeTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
+	t, err := utils.InferTool(
+		"search_knowledge",
+		"检索社区知识库。适用于按主题、问题、历史内容去语义化查询公告、制度说明、管理员AI报告等文档型内容。需要解释、总结、找依据、按主题查找时优先使用此工具。若用户只是想直接查看最新公告列表，请优先使用 query_notices。不要用本工具查询商品、订单、支付、库存、报修进度等实时业务数据。",
+		func(ctx context.Context, input *SearchKnowledgeInput) (output string, err error) {
+			triggerToolStart(ctx, "search_knowledge", input)
+
+			if svcCtx.KnowledgeSvc == nil {
+				out := "当前知识库检索尚未启用，请先配置 RAG 向量化能力。"
+				triggerToolEnd(ctx, "search_knowledge", out)
+				return out, nil
+			}
+
+			userID, _ := ctx.Value(CtxKeyUserID).(int64)
+			hits, err := svcCtx.KnowledgeSvc.Search(ctx, userID, input.Query, input.Scope, 4)
+			if err != nil {
+				out := fmt.Sprintf("知识库检索失败: %v", err)
+				triggerToolEnd(ctx, "search_knowledge", out)
+				return out, nil
+			}
+			if len(hits) == 0 {
+				out := "知识库中暂未找到相关内容。"
+				triggerToolEnd(ctx, "search_knowledge", out)
+				return out, nil
+			}
+
+			lines := make([]string, 0, len(hits))
+			for _, hit := range hits {
+				sourceLabel := "知识条目"
+				switch hit.SourceType {
+				case "notice":
+					sourceLabel = "社区公告"
+				case "ai_report":
+					sourceLabel = "AI 报告"
+				}
+
+				snippet := hit.Content
+				if strings.TrimSpace(hit.Summary) != "" {
+					snippet = hit.Summary
+				}
+
+				lines = append(lines, fmt.Sprintf(
+					"- 来源: %s\n  标题: %s\n  时间: %s\n  内容: %s",
+					sourceLabel,
+					hit.Title,
+					hit.UpdatedAt.Format("2006-01-02 15:04:05"),
+					truncateText(snippet, 180),
+				))
+			}
+
+			out := strings.Join(lines, "\n\n")
+			triggerToolEnd(ctx, "search_knowledge", out)
+			return out, nil
+		},
+	)
+	if err != nil {
+		log.Fatalf("failed to create search_knowledge tool: %v", err)
 	}
 	return t
 }

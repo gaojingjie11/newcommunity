@@ -38,6 +38,8 @@ Agent:
   LlmApiKey: ${LLM_API_KEY}
   LlmBaseUrl: ${LLM_BASE_URL}
   LlmModel: ${LLM_MODEL}
+  RAGMaxResults: 4
+  RAGSyncIntervalSeconds: 86400
   Models:
     ChatDefault:
       ApiKey: ${LLM_CHAT_DEFAULT_API_KEY}
@@ -47,6 +49,10 @@ Agent:
       ApiKey: ${LLM_AGENT_REASONING_API_KEY}
       BaseUrl: ${LLM_AGENT_REASONING_BASE_URL}
       Model: ${LLM_AGENT_REASONING_MODEL}
+    Embedding:
+      ApiKey: ${ARK_API_KEY}
+      BaseUrl: ${ARK_BASE_URL}
+      Model: ${ARK_EMBEDDING_MODEL}
     ImageVision:
       ApiKey: ${LLM_IMAGE_VISION_API_KEY}
       BaseUrl: ${LLM_IMAGE_VISION_BASE_URL}

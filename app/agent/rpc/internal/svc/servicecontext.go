@@ -1,10 +1,12 @@
 package svc
 
 import (
+	"context"
 	"log"
 
 	"smartcommunity-microservices/app/agent/rpc/internal/config"
 	"smartcommunity-microservices/app/agent/rpc/internal/model"
+	agentservice "smartcommunity-microservices/app/agent/rpc/internal/service"
 	"smartcommunity-microservices/app/community/rpc/communityrpc"
 	"smartcommunity-microservices/app/mall/rpc/mallrpc"
 	"smartcommunity-microservices/app/user/rpc/userrpc"
@@ -22,6 +24,7 @@ type ServiceContext struct {
 	MallRpc      mallrpc.MallRpc
 	CommunityRpc communityrpc.CommunityRpc
 	WorkorderRpc workorderrpc.WorkorderRpc
+	KnowledgeSvc *agentservice.KnowledgeService
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -41,6 +44,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		log.Fatalf("failed to automigrate agent-rpc GORM tables: %v", err)
 	}
 
+	var knowledgeSvc *agentservice.KnowledgeService
+	if svc, err := agentservice.NewKnowledgeService(database, c.Agent); err != nil {
+		log.Printf("RAG knowledge service disabled: %v", err)
+	} else if err := svc.Init(context.Background()); err != nil {
+		log.Printf("RAG knowledge service init failed: %v", err)
+	} else {
+		knowledgeSvc = svc
+		knowledgeSvc.StartBackgroundSync()
+	}
+
 	return &ServiceContext{
 		Config:       c,
 		DB:           database,
@@ -48,5 +61,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		MallRpc:      mallrpc.NewMallRpc(zrpc.MustNewClient(c.MallRpc)),
 		CommunityRpc: communityrpc.NewCommunityRpc(zrpc.MustNewClient(c.CommunityRpc)),
 		WorkorderRpc: workorderrpc.NewWorkorderRpc(zrpc.MustNewClient(c.WorkorderRpc)),
+		KnowledgeSvc: knowledgeSvc,
 	}
 }
