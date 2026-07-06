@@ -687,6 +687,8 @@ func extractOrderKeyword(message string) string {
 	text := strings.TrimSpace(message)
 	replacers := []string{
 		"帮我", "请", "直接", "下单", "购买", "买", "我要", "我想", "来一份", "来点", "给我", "安排", "一下",
+		"商场", "商城", "商店", "店里", "便利店", "小卖部",
+		"有没有卖", "有卖", "有没有", "有没", "卖",
 	}
 	for _, item := range replacers {
 		text = strings.ReplaceAll(text, item, "")
@@ -697,8 +699,9 @@ func extractOrderKeyword(message string) string {
 func extractProductKeyword(message string) string {
 	text := strings.TrimSpace(message)
 	replacers := []string{
-		"帮我", "请", "推荐", "一些", "看下", "看看", "查询", "搜索", "商品", "便利店", "商城", "有什么", "有啥", "推荐下", "一下",
-		"我想买", "我想", "想买", "我要买", "买点", "来点", "想要", "想看看", "有没有",
+		"帮我", "请", "推荐", "一些", "看下", "看看", "查询", "搜索", "商品", "便利店", "商城", "商场", "商店", "店里", "小卖部",
+		"有什么", "有啥", "推荐下", "一下", "有没有卖", "有卖", "有没有", "有没", "卖",
+		"我想买", "我想", "想买", "我要买", "买点", "来点", "想要", "想看看",
 	}
 	for _, item := range replacers {
 		text = strings.ReplaceAll(text, item, "")
