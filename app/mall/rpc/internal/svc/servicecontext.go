@@ -123,7 +123,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	categorySvc := service.NewCategoryService(categoryRepo, rdb)
 	cartSvc := service.NewCartService(cartRepo, productRepo)
 	orderSvc := service.NewOrderService(database, orderRepo, cartRepo, productRepo, storeRepo, storeProductRepo, walletRepo, eventBus, rdb)
-	storeSvc := service.NewStoreService(storeRepo, storeProductRepo)
+	storeSvc := service.NewStoreService(storeRepo, storeProductRepo, productRepo)
 	favoriteSvc := service.NewFavoriteService(favoriteRepo)
 	commentSvc := service.NewCommentService(commentRepo, productRepo)
 	walletSvc := service.NewWalletService(database, walletRepo)

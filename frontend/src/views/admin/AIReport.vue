@@ -166,7 +166,7 @@ async function fetchList() {
     total.value = res.total || 0
   } catch (error) {
     if (isNetworkError(error)) {
-      ElMessage.error('后端服务未连接，请先确认 smartcomunity 已启动')
+      ElMessage.error('后端服务未连接，请先确认当前后端服务已启动')
       return
     }
     ElMessage.error(error.response?.data?.msg || error.message || '获取报表列表失败')
@@ -193,7 +193,7 @@ async function handleGenerate(showMessage) {
       return
     }
     if (isNetworkError(error)) {
-      ElMessage.error('后端服务未连接，请先确认 smartcomunity 已启动')
+      ElMessage.error('后端服务未连接，请先确认当前后端服务已启动')
       return
     }
     ElMessage.error(error.response?.data?.msg || error.message || 'AI 报告生成失败')

@@ -35,6 +35,18 @@ func (r *StoreProductRepo) UpdateStock(storeID, productID int64, stock int) erro
 	return r.db.Model(&model.StoreProduct{}).Where("store_id = ? AND product_id = ?", storeID, productID).Update("stock", stock).Error
 }
 
+func (r *StoreProductRepo) SumAllocatedStock(productID int64, excludeStoreID int64) (int, error) {
+	var total int64
+	query := r.db.Model(&model.StoreProduct{}).Where("product_id = ?", productID)
+	if excludeStoreID > 0 {
+		query = query.Where("store_id <> ?", excludeStoreID)
+	}
+	if err := query.Select("COALESCE(SUM(stock), 0)").Scan(&total).Error; err != nil {
+		return 0, err
+	}
+	return int(total), nil
+}
+
 func (r *StoreProductRepo) ListByStore(storeID int64) ([]model.StoreProduct, error) {
 	var items []model.StoreProduct
 	err := r.db.Preload("Product").Where("store_id = ?", storeID).Find(&items).Error

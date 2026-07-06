@@ -100,12 +100,23 @@
           <span style="font-size: 14px; color: #606266;">
             提示：在此为门店分配商品，并维护各门店独立的库存与上架状态。
           </span>
-          <el-button type="primary" size="default" @click="openBindDialog" :icon="Plus">
-            绑定新商品
-          </el-button>
+          <div class="store-products-toolbar">
+            <el-input
+              v-model="storeProductSearchInput"
+              placeholder="输入商品名、分类或ID"
+              clearable
+              class="store-products-search"
+              @keyup.enter="applyStoreProductSearch"
+            />
+            <el-button @click="applyStoreProductSearch">查找商品</el-button>
+            <el-button v-if="appliedStoreProductSearch" @click="resetStoreProductSearch">清空</el-button>
+            <el-button type="primary" size="default" @click="openBindDialog" :icon="Plus">
+              绑定新商品
+            </el-button>
+          </div>
         </div>
 
-        <el-table :data="storeProducts" class="custom-table" style="width: 100%" v-loading="loadingProducts">
+        <el-table :data="filteredStoreProducts" class="custom-table" style="width: 100%" v-loading="loadingProducts">
           <el-table-column prop="product_id" label="商品ID" width="90" align="center" />
           <el-table-column label="商品图片" width="100" align="center">
             <template #default="{ row }">
@@ -138,6 +149,7 @@
               <el-input-number 
                 v-model="row.stock" 
                 :min="0" 
+                :max="row.product?.stock ?? undefined"
                 size="small" 
                 style="width: 110px;"
                 @change="(val) => handleUpdateStock(row, val)" 
@@ -297,6 +309,8 @@ const showStoreProductsDialog = ref(false);
 const loadingProducts = ref(false);
 const storeProducts = ref([]);
 const currentStore = ref(null);
+const storeProductSearchInput = ref("");
+const appliedStoreProductSearch = ref("");
 
 const systemProducts = ref([]);
 const showBindDialog = ref(false);
@@ -369,6 +383,8 @@ const handleDelete = async (id) => {
 
 const openStoreProducts = async (store) => {
   currentStore.value = store;
+  storeProductSearchInput.value = "";
+  appliedStoreProductSearch.value = "";
   showStoreProductsDialog.value = true;
   await loadSystemProducts();
   await fetchStoreProducts();
@@ -414,6 +430,17 @@ const availableProducts = computed(() => {
   return systemProducts.value.filter((p) => !boundIds.has(p.id));
 });
 
+const filteredStoreProducts = computed(() => {
+  const keyword = appliedStoreProductSearch.value.trim().toLowerCase();
+  if (!keyword) return storeProducts.value;
+  return storeProducts.value.filter((item) => {
+    const productId = String(item.product_id || "").toLowerCase();
+    const name = String(item.product?.name || item.product_name || "").toLowerCase();
+    const category = String(item.product?.category_name || "").toLowerCase();
+    return productId.includes(keyword) || name.includes(keyword) || category.includes(keyword);
+  });
+});
+
 const filteredAvailableProducts = computed(() => {
   const keyword = bindSearch.value.trim().toLowerCase();
   if (!keyword) return availableProducts.value;
@@ -439,6 +466,15 @@ const openBindDialog = () => {
   });
 };
 
+const applyStoreProductSearch = () => {
+  appliedStoreProductSearch.value = storeProductSearchInput.value.trim();
+};
+
+const resetStoreProductSearch = () => {
+  storeProductSearchInput.value = "";
+  appliedStoreProductSearch.value = "";
+};
+
 const handleBindSelectionChange = (rows) => {
   bindSelectedRows.value = rows;
 };
@@ -449,7 +485,7 @@ const applyBatchStockToSelection = () => {
     return;
   }
   bindSelectedRows.value.forEach((row) => {
-    bindStockMap.value[row.id] = bindBatchStock.value;
+    bindStockMap.value[row.id] = Math.min(bindBatchStock.value, Number(row.stock || 0));
   });
   ElMessage.success("已批量应用库存");
 };
@@ -464,6 +500,10 @@ const submitBind = async () => {
     let successCount = 0;
     for (const row of bindSelectedRows.value) {
       const stock = Number(bindStockMap.value[row.id] ?? 0);
+      if (stock > Number(row.stock || 0)) {
+        ElMessage.warning(`商品「${row.name}」分配库存不能超过总库存 ${row.stock}`);
+        return;
+      }
       await bindStoreProduct({
         store_id: currentStore.value.id,
         product_id: row.id,
@@ -483,6 +523,11 @@ const submitBind = async () => {
 };
 
 const handleUpdateStock = async (row, val) => {
+  if (Number(val) > Number(row.product?.stock || 0)) {
+    ElMessage.warning(`门店库存不能超过商品总库存 ${row.product?.stock || 0}`);
+    await fetchStoreProducts();
+    return;
+  }
   try {
     await updateStoreProductStock({
       store_id: row.store_id,
@@ -582,6 +627,17 @@ onMounted(fetchStores);
 
 .btn-danger-ghost { background: transparent; color: #f56c6c; border-color: #fbc4c4; }
 .btn-danger-ghost:hover { background: #fef0f0; color: #e4393c; transform: translateY(-1px); }
+
+.store-products-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.store-products-search {
+  width: min(280px, 100%);
+}
 
 .bind-dialog-shell {
   display: flex;
