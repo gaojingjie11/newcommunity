@@ -135,8 +135,18 @@ func routeShoppingBuyIntent(message string) IntentRouteResult {
 		return IntentRouteResult{Intent: IntentFallbackAgent}
 	}
 
+	if strings.Contains(text, "和") || strings.Contains(text, "与") || strings.Contains(text, "及") ||
+		strings.Contains(text, "跟") || strings.Contains(text, "、") || strings.Contains(text, "，") ||
+		strings.Contains(text, ",") || strings.Contains(text, "每个") || strings.Contains(text, "都") ||
+		strings.Contains(text, "各") || strings.Contains(text, "全部") {
+		return IntentRouteResult{Intent: IntentFallbackAgent}
+	}
+
 	keyword := extractOrderKeyword(message)
 	if isGenericKeyword(keyword) {
+		return IntentRouteResult{Intent: IntentFallbackAgent}
+	}
+	if strings.Contains(keyword, " ") || strings.Contains(keyword, "\t") {
 		return IntentRouteResult{Intent: IntentFallbackAgent}
 	}
 
