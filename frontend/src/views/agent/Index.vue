@@ -407,7 +407,13 @@ const handleModeCommand = (mode) => {
 const fetchSessions = async () => {
   try {
     const list = await getConversations();
-    sessions.value = Array.isArray(list) ? list : list?.list || [];
+    const rawSessions = Array.isArray(list) ? list : list?.list || [];
+    sessions.value = rawSessions
+      .map((item) => ({
+        ...item,
+        id: String(item?.id || "").trim(),
+      }))
+      .filter((item) => item.id);
     if (sessions.value.length > 0 && !activeSessionId.value) {
       handleSelectSession(sessions.value[0].id);
     } else if (sessions.value.length === 0) {
@@ -434,6 +440,12 @@ const handleCreateSession = async () => {
 };
 
 const handleDeleteSession = async (id) => {
+  if (!id || !String(id).trim()) {
+    ElMessage.warning("该聊天记录编号异常，正在刷新列表");
+    await fetchSessions();
+    return;
+  }
+
   try {
     await deleteConversation(id);
     sessions.value = sessions.value.filter((session) => session.id !== id);
@@ -453,6 +465,12 @@ const handleDeleteSession = async (id) => {
 };
 
 const handleSelectSession = async (id, clearMessages = true) => {
+  if (!id || !String(id).trim()) {
+    ElMessage.warning("该聊天记录编号异常，正在刷新列表");
+    await fetchSessions();
+    return;
+  }
+
   activeSessionId.value = id;
   if (clearMessages) {
     messages.value = [];

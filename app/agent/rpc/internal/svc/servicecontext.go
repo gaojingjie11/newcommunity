@@ -44,6 +44,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		log.Fatalf("failed to automigrate agent-rpc GORM tables: %v", err)
 	}
 
+	if err := agentservice.RepairLegacyConversationIDs(database); err != nil {
+		log.Printf("repair legacy conversation ids failed: %v", err)
+	}
+
 	var knowledgeSvc *agentservice.KnowledgeService
 	if svc, err := agentservice.NewKnowledgeService(database, c.Agent); err != nil {
 		log.Printf("RAG knowledge service disabled: %v", err)

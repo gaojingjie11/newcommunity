@@ -799,7 +799,11 @@ func sanitizeProductKeyword(value string) string {
 		":", " ",
 	)
 	value = replacer.Replace(value)
-	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	value = strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	value = regexp.MustCompile(`^(?:一)?个`).ReplaceAllString(value, "")
+	value = regexp.MustCompile(`^(?:一)?(只|瓶|盒|袋|杯|包|桶|件)\s*`).ReplaceAllString(value, "")
+	value = regexp.MustCompile(`(吧|呢|呀|啊|哦|哈|呗|啦)+$`).ReplaceAllString(value, "")
+	return strings.TrimSpace(value)
 }
 
 func (l *ChatStreamLogic) loadPromptHistory(convID string, userID int64, summaryUntil, maxPromptHistoryMessages int) ([]model.SysUserChatMessage, error) {
