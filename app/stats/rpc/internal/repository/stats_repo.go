@@ -130,14 +130,29 @@ func (r *StatsRepo) CommunityOverview() (model.CommunityOverview, error) {
 	_ = r.db.Model(&model.PropertyFee{}).Where("status = 1 AND paid_at >= DATE_TRUNC('month', CURRENT_DATE)").Select("COALESCE(SUM(amount), 0)").Scan(&feeCents)
 	ov.MonthIncome = float64(orderCents+feeCents) / 100.0
 
-	// 9. Repair Stats (grouped by category)
-	var repairStats []model.RepairStat
+	// 9. Workorder Stats (grouped by type: repair vs complaint)
+	var workorderStats []struct {
+		Type  string
+		Count int64
+	}
 	if tx := r.db.Table("workorders").
-		Where("type = ?", "repair").
-		Select("category AS name, COUNT(*) AS value").
-		Group("category").
-		Scan(&repairStats); tx.Error == nil {
-		ov.RepairStats = repairStats
+		Select("type, COUNT(*) as count").
+		Group("type").
+		Scan(&workorderStats); tx.Error == nil {
+		var mappedStats []model.RepairStat
+		for _, ws := range workorderStats {
+			name := "其他"
+			if ws.Type == "repair" {
+				name = "报修"
+			} else if ws.Type == "complaint" {
+				name = "投诉"
+			}
+			mappedStats = append(mappedStats, model.RepairStat{
+				Name:  name,
+				Value: ws.Count,
+			})
+		}
+		ov.RepairStats = mappedStats
 	}
 
 	// 10. 7-Day Income Trend (Combined daily sums)
