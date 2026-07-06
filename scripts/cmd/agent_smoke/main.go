@@ -79,6 +79,12 @@ func main() {
 			Message: "我要报修，二楼路灯坏了",
 		},
 		{
+			Name:    "submit_complaint",
+			UserID:  5,
+			Mode:    "smart",
+			Message: "帮我投诉下小区的垃圾桶，最近经常爆满没人清理。",
+		},
+		{
 			Name:    "buy_apples",
 			UserID:  5,
 			Mode:    "fast",

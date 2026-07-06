@@ -674,10 +674,14 @@ const handleSend = async () => {
       isStreaming.value = false;
       const botMsg = messages.value[botMsgIdx];
       if (botMsg) {
-        botMsg.content = "⚠️ 发送错误: " + err.message;
-        renderMessageContent(botMsg);
+        if (!botMsg.proposed_action) {
+          botMsg.content = "⚠️ 发送错误: " + err.message;
+          renderMessageContent(botMsg);
+        }
       }
-      ElMessage.error("智能管家响应异常: " + err.message);
+      if (!botMsg?.proposed_action) {
+        ElMessage.error("智能管家响应异常: " + err.message);
+      }
       scheduleScrollToBottom();
     }
   );

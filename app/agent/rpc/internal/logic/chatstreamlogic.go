@@ -150,6 +150,29 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 	// 6. Invoke Eino Streaming Chat
 	fullReply, hasApprovalRequired, err := l.runAgentStreamWithFallback(agentCtx, resolvedProfile, einoMessages, stream)
 	if err != nil {
+		if isMaxStepsError(err) && lastApprovalPayload != "" {
+			recoveredReply := strings.TrimSpace(fullReply)
+			if recoveredReply == "" {
+				recoveredReply = buildApprovalReplyFromPayload(lastApprovalPayload)
+			}
+			if recoveredReply == "" {
+				recoveredReply = "我已为您准备好确认操作，请在前端确认卡片中继续。"
+			}
+
+			if errSave := l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, recoveredReply, "approval_required", lastApprovalPayload); errSave != nil {
+				l.Errorf("failed to save recovered chat messages in transaction: %v", errSave)
+				return errSave
+			}
+
+			go func(userID int64, convID string, userMsg string) {
+				bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				l.autoUpdateConversationTitle(bgCtx, convID, userID, userMsg)
+			}(in.UserId, in.ConversationId, in.Message)
+
+			l.Errorf("recovered approval turn after max steps, conversation=%s user=%d err=%v", in.ConversationId, in.UserId, err)
+			return nil
+		}
 		return err
 	}
 
@@ -190,10 +213,10 @@ func (l *ChatStreamLogic) runAgentStreamWithFallback(
 	}
 
 	if !isMaxStepsError(err) || resolvedProfile == chatModeFast {
-		return "", false, err
+		return reply, hasApprovalRequired, err
 	}
 	if emittedChunks > 0 {
-		return "", false, fmt.Errorf("复杂模式推理未完整结束，请重试或切换简洁模式: %w", err)
+		return reply, hasApprovalRequired, fmt.Errorf("复杂模式推理未完整结束，请重试或切换简洁模式: %w", err)
 	}
 
 	l.Errorf("agent run exceeded max steps under profile=%q, falling back to fast profile: %v", resolvedProfile, err)
@@ -238,7 +261,7 @@ func (l *ChatStreamLogic) runAgentStream(
 		}
 		if errRecv != nil {
 			l.Errorf("error reading Eino chunk under profile=%q: %v", profile, errRecv)
-			return fullReply.String(), false, emittedChunks, errRecv
+			return fullReply.String(), hasApprovalRequired, emittedChunks, errRecv
 		}
 
 		if strings.Contains(chunk.Content, "[APPROVAL_REQUIRED:") {
@@ -255,7 +278,7 @@ func (l *ChatStreamLogic) runAgentStream(
 		})
 		if errSend != nil {
 			l.Errorf("error writing gRPC stream chunk to gateway: %v", errSend)
-			return fullReply.String(), false, emittedChunks, errSend
+			return fullReply.String(), hasApprovalRequired, emittedChunks, errSend
 		}
 		emittedChunks++
 	}
@@ -342,6 +365,15 @@ func (l *ChatStreamLogic) tryDirectResponse(
 			return true, reply, false, nil
 		}
 		return false, "", false, nil
+	case IntentSubmitRepair:
+		reply, hasApprovalRequired, err := l.directSubmitRepair(agentCtx, message)
+		if err != nil {
+			return true, "", false, err
+		}
+		if err := sendDirectReply(stream, reply); err != nil {
+			return true, "", false, err
+		}
+		return true, reply, hasApprovalRequired, nil
 	case IntentShoppingCapability:
 		reply := directShoppingCapabilityReply()
 		if err := sendDirectReply(stream, reply); err != nil {
@@ -550,6 +582,35 @@ func sendDirectReply(stream agent.AgentRpc_ChatStreamServer, reply string) error
 
 func directShoppingCapabilityReply() string {
 	return "可以，我能帮您完成社区商店购物。您直接告诉我具体商品名称就行，比如“帮我买苹果1kg”或“帮我买个水杯吧”；确认后我会在前端为您拉起下单确认。"
+}
+
+func (l *ChatStreamLogic) directSubmitRepair(ctx context.Context, message string) (string, bool, error) {
+	input := extractSubmitRepairInput(message)
+	if strings.TrimSpace(input.Description) == "" {
+		return "我可以帮您提交物业报修或投诉，请直接描述一下问题，例如“帮我投诉下垃圾桶经常爆满没人清理”或“帮我报修楼道灯坏了”。", false, nil
+	}
+
+	approvalText, err := proposeAction(ctx, l.svcCtx, "submit_repair", &input)
+	if err != nil {
+		return "", false, err
+	}
+	if strings.HasPrefix(approvalText, "错误：") {
+		return approvalText, false, nil
+	}
+
+	typeLabel := "报修"
+	if input.Type == "complaint" {
+		typeLabel = "投诉"
+	}
+
+	reply := fmt.Sprintf(
+		"已为您整理好物业%s内容：\n\n- 工单类别：%s\n- 分类：%s\n- 描述：%s\n\n请在前端确认后提交。",
+		typeLabel,
+		typeLabel,
+		input.Category,
+		input.Description,
+	)
+	return reply, true, nil
 }
 
 func shouldDirectLatestAIReport(message string) bool {
@@ -902,6 +963,121 @@ func sanitizeProductKeyword(value string) string {
 	value = regexp.MustCompile(`^(?:一)?(只|瓶|盒|袋|杯|包|桶|件)\s*`).ReplaceAllString(value, "")
 	value = regexp.MustCompile(`(吧|呢|呀|啊|哦|哈|呗|啦|吗|么|嘛)+$`).ReplaceAllString(value, "")
 	return strings.TrimSpace(value)
+}
+
+func extractSubmitRepairInput(message string) SubmitRepairInput {
+	raw := strings.TrimSpace(message)
+	lower := strings.ToLower(raw)
+
+	input := SubmitRepairInput{
+		Type:        "repair",
+		Category:    inferServiceCategory(raw),
+		Description: sanitizeServiceDescription(raw),
+	}
+
+	if strings.Contains(lower, "投诉") || strings.Contains(lower, "反馈") || strings.Contains(lower, "建议") {
+		input.Type = "complaint"
+	}
+	if input.Category == "" {
+		if input.Type == "complaint" {
+			input.Category = "投诉"
+		} else {
+			input.Category = "维修"
+		}
+	}
+	if input.Description == "" {
+		input.Description = raw
+	}
+	return input
+}
+
+func sanitizeServiceDescription(message string) string {
+	text := strings.TrimSpace(message)
+	replacers := []string{
+		"请帮我", "帮我", "麻烦帮我", "麻烦", "请", "可以帮我", "能不能帮我",
+		"投诉一下", "投诉下", "投诉", "报修一下", "报修下", "报修", "维修一下", "维修下", "维修",
+		"反馈一下", "反馈下", "反馈", "提交一下", "提交下", "提交",
+	}
+	for _, item := range replacers {
+		text = strings.ReplaceAll(text, item, "")
+	}
+	text = strings.TrimSpace(text)
+	text = strings.TrimLeft(text, "，。！？,.!?:：；; ")
+	text = strings.Join(strings.Fields(text), "")
+	return strings.TrimSpace(text)
+}
+
+func inferServiceCategory(message string) string {
+	text := strings.ToLower(strings.TrimSpace(message))
+	switch {
+	case strings.Contains(text, "垃圾") || strings.Contains(text, "卫生") || strings.Contains(text, "脏") || strings.Contains(text, "清理"):
+		return "卫生"
+	case strings.Contains(text, "噪音") || strings.Contains(text, "太吵") || strings.Contains(text, "扰民") || strings.Contains(text, "噪声"):
+		return "噪音"
+	case strings.Contains(text, "电梯"):
+		return "电梯"
+	case strings.Contains(text, "漏水") || strings.Contains(text, "水龙头") || strings.Contains(text, "管道") || strings.Contains(text, "下水"):
+		return "水暖"
+	case strings.Contains(text, "跳闸") || strings.Contains(text, "停电") || strings.Contains(text, "不亮") || strings.Contains(text, "灯坏") || strings.Contains(text, "电路"):
+		return "电工"
+	case strings.Contains(text, "门禁") || strings.Contains(text, "门锁") || strings.Contains(text, "大门"):
+		return "门禁"
+	case strings.Contains(text, "车位") || strings.Contains(text, "停车"):
+		return "停车"
+	case strings.Contains(text, "绿化") || strings.Contains(text, "树") || strings.Contains(text, "草坪"):
+		return "绿化"
+	case strings.Contains(text, "服务") || strings.Contains(text, "态度") || strings.Contains(text, "物业"):
+		return "服务态度"
+	default:
+		return ""
+	}
+}
+
+func buildApprovalReplyFromPayload(payload string) string {
+	if strings.TrimSpace(payload) == "" {
+		return ""
+	}
+
+	var event struct {
+		ActionType string          `json:"action_type"`
+		Payload    json.RawMessage `json:"payload"`
+	}
+	if err := json.Unmarshal([]byte(payload), &event); err != nil {
+		return ""
+	}
+
+	switch event.ActionType {
+	case "submit_repair":
+		var input SubmitRepairInput
+		if err := json.Unmarshal(event.Payload, &input); err != nil {
+			return "我已为您准备好物业服务单确认，请在前端确认后提交。"
+		}
+		typeLabel := "报修"
+		if strings.ToLower(input.Type) == "complaint" {
+			typeLabel = "投诉"
+		}
+		return fmt.Sprintf(
+			"已为您整理好物业%s内容：\n\n- 工单类别：%s\n- 分类：%s\n- 描述：%s\n\n请在前端确认后提交。",
+			typeLabel,
+			typeLabel,
+			input.Category,
+			input.Description,
+		)
+	case "create_order":
+		var input CreateOrderInput
+		if err := json.Unmarshal(event.Payload, &input); err != nil {
+			return "我已为您准备好下单确认，请在前端确认后继续。"
+		}
+		return fmt.Sprintf("我已为您准备好下单确认：商品ID %d，数量 %d。请在前端确认后继续。", input.ProductID, input.Quantity)
+	case "pay_order":
+		var input PayOrderInput
+		if err := json.Unmarshal(event.Payload, &input); err != nil {
+			return "我已为您准备好支付确认，请在前端完成验证。"
+		}
+		return fmt.Sprintf("我已为您准备好订单 %d 的支付确认，请在前端完成验证。", input.OrderID)
+	default:
+		return "我已为您准备好确认操作，请在前端确认卡片中继续。"
+	}
 }
 
 func (l *ChatStreamLogic) loadPromptHistory(convID string, userID int64, summaryUntil, maxPromptHistoryMessages int) ([]model.SysUserChatMessage, error) {
