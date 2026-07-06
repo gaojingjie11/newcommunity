@@ -30,6 +30,8 @@ type ChatStreamLogic struct {
 	logx.Logger
 }
 
+var errFallbackToAgent = errors.New("fallback_to_agent")
+
 func NewChatStreamLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ChatStreamLogic {
 	return &ChatStreamLogic{
 		ctx:    ctx,
@@ -368,6 +370,9 @@ func (l *ChatStreamLogic) tryDirectResponse(
 	case IntentSubmitRepair:
 		reply, hasApprovalRequired, err := l.directSubmitRepair(agentCtx, message)
 		if err != nil {
+			if errors.Is(err, errFallbackToAgent) {
+				return false, "", false, nil
+			}
 			return true, "", false, err
 		}
 		if err := sendDirectReply(stream, reply); err != nil {
@@ -585,9 +590,15 @@ func directShoppingCapabilityReply() string {
 }
 
 func (l *ChatStreamLogic) directSubmitRepair(ctx context.Context, message string) (string, bool, error) {
-	input := extractSubmitRepairInput(message)
-	if strings.TrimSpace(input.Description) == "" {
-		return "我可以帮您提交物业报修或投诉，请直接描述一下问题，例如“帮我投诉下垃圾桶经常爆满没人清理”或“帮我报修楼道灯坏了”。", false, nil
+	input, confidence, usedLLM, err := l.extractSubmitRepairInputSmart(ctx, message)
+	if err != nil {
+		return "", false, err
+	}
+	if usedLLM && confidence < 0.78 {
+		return "", false, errFallbackToAgent
+	}
+	if strings.TrimSpace(input.Description) == "" || strings.TrimSpace(input.Category) == "" {
+		return "", false, errFallbackToAgent
 	}
 
 	approvalText, err := proposeAction(ctx, l.svcCtx, "submit_repair", &input)
@@ -965,6 +976,100 @@ func sanitizeProductKeyword(value string) string {
 	return strings.TrimSpace(value)
 }
 
+type serviceIntentExtraction struct {
+	Type        string  `json:"type"`
+	Category    string  `json:"category"`
+	Description string  `json:"description"`
+	Confidence  float64 `json:"confidence"`
+}
+
+func (l *ChatStreamLogic) extractSubmitRepairInputSmart(ctx context.Context, message string) (SubmitRepairInput, float64, bool, error) {
+	if strings.TrimSpace(message) == "" {
+		return SubmitRepairInput{}, 0, false, nil
+	}
+
+	if extracted, err := l.extractSubmitRepairInputByLLM(ctx, message); err == nil {
+		input := SubmitRepairInput{
+			Type:        normalizeServiceType(extracted.Type),
+			Category:    strings.TrimSpace(extracted.Category),
+			Description: strings.TrimSpace(extracted.Description),
+		}
+		if input.Category == "" {
+			input.Category = inferServiceCategory(message)
+		}
+		if input.Description == "" {
+			input.Description = sanitizeServiceDescription(message)
+		}
+		if input.Type == "" {
+			input.Type = normalizeServiceType("")
+		}
+		return input, extracted.Confidence, true, nil
+	}
+
+	input := extractSubmitRepairInput(message)
+	return input, 0.65, false, nil
+}
+
+func (l *ChatStreamLogic) extractSubmitRepairInputByLLM(ctx context.Context, message string) (*serviceIntentExtraction, error) {
+	cfg := l.svcCtx.Config.Agent
+	apiKey, baseURL, modelName := cfg.GetModelConfig(cfg.Models.ChatDefault)
+	if apiKey == "" || baseURL == "" || strings.TrimSpace(modelName) == "" {
+		return nil, errors.New("service extractor llm not configured")
+	}
+
+	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
+		Model:   modelName,
+		APIKey:  apiKey,
+		BaseURL: baseURL,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	prompt := "你是智慧社区工单信息提取器。请从用户的话里提取“是否是报修还是投诉、小分类、整理后的问题描述”。\n" +
+		"规则：\n" +
+		"1. type 只能是 repair 或 complaint。\n" +
+		"2. category 必须是简短中文小分类，2到6个字，例如：卫生、电工、水暖、电梯、噪音、门禁、绿化、停车、服务态度。\n" +
+		"3. description 需要保留用户真实诉求，删掉客套话，但不要改写核心意思。\n" +
+		"4. confidence 是 0 到 1 的小数，表示你对提取结果的把握。\n" +
+		"5. 只输出单行 JSON，不要输出代码块，不要解释。\n\n" +
+		"用户消息：" + message
+
+	resp, err := chatModel.Generate(ctx, []*schema.Message{
+		schema.SystemMessage("你只返回JSON，不要返回任何解释。"),
+		schema.UserMessage(prompt),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	raw := strings.TrimSpace(resp.Content)
+	raw = strings.Trim(raw, "`")
+	raw = strings.TrimPrefix(raw, "json")
+	raw = strings.TrimSpace(raw)
+
+	start := strings.Index(raw, "{")
+	end := strings.LastIndex(raw, "}")
+	if start >= 0 && end > start {
+		raw = raw[start : end+1]
+	}
+
+	var out serviceIntentExtraction
+	if err := json.Unmarshal([]byte(raw), &out); err != nil {
+		return nil, err
+	}
+	out.Type = normalizeServiceType(out.Type)
+	out.Category = strings.TrimSpace(out.Category)
+	out.Description = strings.TrimSpace(out.Description)
+	if out.Confidence <= 0 {
+		out.Confidence = 0.5
+	}
+	if out.Confidence > 1 {
+		out.Confidence = 1
+	}
+	return &out, nil
+}
+
 func extractSubmitRepairInput(message string) SubmitRepairInput {
 	raw := strings.TrimSpace(message)
 	lower := strings.ToLower(raw)
@@ -989,6 +1094,15 @@ func extractSubmitRepairInput(message string) SubmitRepairInput {
 		input.Description = raw
 	}
 	return input
+}
+
+func normalizeServiceType(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "complaint", "投诉", "反馈", "建议":
+		return "complaint"
+	default:
+		return "repair"
+	}
 }
 
 func sanitizeServiceDescription(message string) string {

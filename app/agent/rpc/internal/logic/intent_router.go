@@ -120,20 +120,6 @@ func routeServiceRequestIntent(message string) IntentRouteResult {
 		}
 	}
 
-	if strings.Contains(text, "帮我") || strings.Contains(text, "麻烦") || strings.Contains(text, "请") {
-		issueKeywords := []string{"漏水", "跳闸", "坏了", "故障", "不亮", "堵", "垃圾桶", "爆满", "没人清理", "太吵", "噪音", "电梯"}
-		for _, keyword := range issueKeywords {
-			if strings.Contains(text, keyword) {
-				return IntentRouteResult{
-					Intent:      IntentSubmitRepair,
-					Confidence:  0.88,
-					UseFastPath: true,
-					Reason:      "issue_submit_with_clear_problem",
-				}
-			}
-		}
-	}
-
 	return IntentRouteResult{Intent: IntentFallbackAgent}
 }
 
