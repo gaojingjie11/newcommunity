@@ -169,38 +169,91 @@
       <el-dialog
         v-model="showBindDialog"
         title="绑定新商品到门店"
-        width="450px"
+        width="860px"
         class="premium-dialog"
         append-to-body
       >
-        <el-form :model="bindForm" label-width="80px">
-          <el-form-item label="选择商品" required>
-            <el-select 
-              v-model="bindForm.product_id" 
-              filterable 
-              placeholder="请输入商品名称搜索..."
-              style="width: 100%"
-            >
-              <el-option
-                v-for="p in availableProducts"
-                :key="p.id"
-                :label="`${p.name} (单价: ¥${p.price} | 系统库存: ${p.stock})`"
-                :value="p.id"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="分配库存" required>
-            <el-input-number 
-              v-model="bindForm.stock" 
-              :min="0" 
-              style="width: 100%"
+        <div class="bind-dialog-shell">
+          <div class="bind-toolbar">
+            <el-input
+              v-model="bindSearch"
+              placeholder="搜索商品名称、分类"
+              clearable
+              class="bind-search-input"
             />
-          </el-form-item>
-        </el-form>
+            <div class="bind-toolbar-actions">
+              <div class="bind-stock-batch">
+                <span class="bind-toolbar-label">批量库存</span>
+                <el-input-number
+                  v-model="bindBatchStock"
+                  :min="0"
+                  :step="1"
+                  controls-position="right"
+                  style="width: 132px"
+                />
+                <el-button @click="applyBatchStockToSelection" :disabled="bindSelectedRows.length === 0">
+                  应用到已选
+                </el-button>
+              </div>
+              <el-tag type="info" effect="plain">已选 {{ bindSelectedRows.length }} / {{ filteredAvailableProducts.length }}</el-tag>
+            </div>
+          </div>
+
+          <el-table
+            ref="bindTableRef"
+            :data="filteredAvailableProducts"
+            row-key="id"
+            max-height="420"
+            class="custom-table bind-products-table"
+            @selection-change="handleBindSelectionChange"
+          >
+            <el-table-column type="selection" width="56" reserve-selection />
+            <el-table-column label="图片" width="88" align="center">
+              <template #default="{ row }">
+                <div class="product-thumb-wrapper">
+                  <img
+                    :src="row.image_url || DEFAULT_PRODUCT_IMAGE"
+                    class="product-thumb"
+                    alt="商品"
+                  />
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="name" label="商品名称" min-width="210" show-overflow-tooltip />
+            <el-table-column label="分类" width="120" align="center">
+              <template #default="{ row }">
+                <span>{{ row.category_name || "-" }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="单价" width="110" align="center">
+              <template #default="{ row }">
+                <span style="color: #e4393c; font-weight: 700;">¥{{ row.price }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="系统库存" width="110" align="center">
+              <template #default="{ row }">
+                <span>{{ row.stock }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="分配库存" width="160" align="center">
+              <template #default="{ row }">
+                <el-input-number
+                  v-model="bindStockMap[row.id]"
+                  :min="0"
+                  :max="row.stock || undefined"
+                  controls-position="right"
+                  style="width: 124px"
+                />
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
         <template #footer>
           <div class="dialog-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
             <el-button @click="showBindDialog = false">取消</el-button>
-            <el-button type="primary" @click="submitBind" :loading="bindingLoading">确认绑定</el-button>
+            <el-button type="primary" @click="submitBind" :loading="bindingLoading">
+              导入已选商品
+            </el-button>
           </div>
         </template>
       </el-dialog>
@@ -209,9 +262,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import Navbar from "@/components/layout/Navbar.vue";
-import request from "@/utils/request";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constants";
 import { 
   createStore, 
@@ -228,8 +280,6 @@ import { getProductList } from "@/api/product";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, ArrowLeft } from "@element-plus/icons-vue";
 import { hasPermission } from "@/utils/permission";
-
-const userRole = ref(JSON.parse(localStorage.getItem('userInfo') || '{}').role || '');
 
 const stores = ref([]);
 const showModal = ref(false);
@@ -251,10 +301,11 @@ const currentStore = ref(null);
 const systemProducts = ref([]);
 const showBindDialog = ref(false);
 const bindingLoading = ref(false);
-const bindForm = ref({
-  product_id: "",
-  stock: 0,
-});
+const bindTableRef = ref(null);
+const bindSearch = ref("");
+const bindBatchStock = ref(10);
+const bindSelectedRows = ref([]);
+const bindStockMap = ref({});
 
 const fetchStores = async () => {
   try {
@@ -363,27 +414,64 @@ const availableProducts = computed(() => {
   return systemProducts.value.filter((p) => !boundIds.has(p.id));
 });
 
+const filteredAvailableProducts = computed(() => {
+  const keyword = bindSearch.value.trim().toLowerCase();
+  if (!keyword) return availableProducts.value;
+  return availableProducts.value.filter((item) => {
+    const name = String(item.name || "").toLowerCase();
+    const category = String(item.category_name || "").toLowerCase();
+    return name.includes(keyword) || category.includes(keyword);
+  });
+});
+
 const openBindDialog = () => {
-  bindForm.value = {
-    product_id: "",
-    stock: 10,
-  };
+  const initialStockMap = {};
+  availableProducts.value.forEach((item) => {
+    initialStockMap[item.id] = 10;
+  });
+  bindStockMap.value = initialStockMap;
+  bindSelectedRows.value = [];
+  bindSearch.value = "";
+  bindBatchStock.value = 10;
   showBindDialog.value = true;
+  nextTick(() => {
+    bindTableRef.value?.clearSelection?.();
+  });
+};
+
+const handleBindSelectionChange = (rows) => {
+  bindSelectedRows.value = rows;
+};
+
+const applyBatchStockToSelection = () => {
+  if (bindSelectedRows.value.length === 0) {
+    ElMessage.warning("请先勾选要导入的商品");
+    return;
+  }
+  bindSelectedRows.value.forEach((row) => {
+    bindStockMap.value[row.id] = bindBatchStock.value;
+  });
+  ElMessage.success("已批量应用库存");
 };
 
 const submitBind = async () => {
-  if (!bindForm.value.product_id) {
-    ElMessage.warning("请选择要绑定的商品");
+  if (bindSelectedRows.value.length === 0) {
+    ElMessage.warning("请勾选要导入的商品");
     return;
   }
   bindingLoading.value = true;
   try {
-    await bindStoreProduct({
-      store_id: currentStore.value.id,
-      product_id: bindForm.value.product_id,
-      stock: bindForm.value.stock,
-    });
-    ElMessage.success("绑定商品成功");
+    let successCount = 0;
+    for (const row of bindSelectedRows.value) {
+      const stock = Number(bindStockMap.value[row.id] ?? 0);
+      await bindStoreProduct({
+        store_id: currentStore.value.id,
+        product_id: row.id,
+        stock,
+      });
+      successCount += 1;
+    }
+    ElMessage.success(`成功导入 ${successCount} 个商品`);
     showBindDialog.value = false;
     await fetchStoreProducts();
   } catch (e) {
@@ -494,6 +582,48 @@ onMounted(fetchStores);
 
 .btn-danger-ghost { background: transparent; color: #f56c6c; border-color: #fbc4c4; }
 .btn-danger-ghost:hover { background: #fef0f0; color: #e4393c; transform: translateY(-1px); }
+
+.bind-dialog-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bind-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bind-search-input {
+  width: min(340px, 100%);
+}
+
+.bind-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bind-stock-batch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bind-toolbar-label {
+  font-size: 13px;
+  color: #606266;
+  font-weight: 600;
+}
+
+:deep(.bind-products-table .el-table__header-wrapper th.el-table__cell) {
+  background: #f8fafc;
+}
 
 /* Modal Styles - Reuse */
 .modal-overlay {
