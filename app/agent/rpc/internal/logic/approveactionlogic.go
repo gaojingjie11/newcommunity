@@ -89,6 +89,18 @@ func (l *ApproveActionLogic) ApproveAction(in *agent.ApproveActionReq) (*agent.A
 		if execErr = json.Unmarshal([]byte(approval.ActionPayload), &input); execErr == nil {
 			var addedCartID int64 // Track for cleanup on failure
 
+			// Pre-cleanup: If the product is already in the cart, remove it first to avoid quantity accumulation.
+			if cartResp, errList := l.svcCtx.MallRpc.ListCart(l.ctx, &mall.UserIDReq{UserId: in.UserId}); errList == nil {
+				for _, item := range cartResp.Items {
+					if item.ProductId == input.ProductID {
+						_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{
+							UserId: in.UserId,
+							Id:     item.Id,
+						})
+					}
+				}
+			}
+
 			// A. Add item to user's cart
 			_, execErr = l.svcCtx.MallRpc.AddCartItem(l.ctx, &mall.AddCartItemReq{
 				UserId:    in.UserId,

@@ -105,6 +105,12 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 			l.Errorf("failed to save direct chat messages in transaction: %v", errSave)
 			return errSave
 		}
+		// 异步更新新对话的标题主题
+		go func(userID int64, convID string, userMsg string) {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			l.autoUpdateConversationTitle(bgCtx, convID, userID, userMsg)
+		}(in.UserId, in.ConversationId, in.Message)
 		return nil
 	}
 
@@ -159,14 +165,15 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 		return errSave
 	}
 
-	// 8. Auto-summarize old history turns (only if not approval required)
-	if !hasApprovalRequired {
-		go func(userID int64, convID string) {
-			bgCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
+	// 8. 异步自动更新会话标题 & 历史对话摘要
+	go func(userID int64, convID string, userMsg string, autoSummarize bool) {
+		bgCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		l.autoUpdateConversationTitle(bgCtx, convID, userID, userMsg)
+		if autoSummarize {
 			l.autoSummarizeSession(bgCtx, convID, userID)
-		}(in.UserId, in.ConversationId)
-	}
+		}
+	}(in.UserId, in.ConversationId, in.Message, !hasApprovalRequired)
 
 	return nil
 }
@@ -958,4 +965,45 @@ func (l *ChatStreamLogic) autoSummarizeSession(ctx context.Context, convID strin
 		"summary_until": summaryEnd,
 		"updated_at":    time.Now(),
 	})
+}
+
+func (l *ChatStreamLogic) autoUpdateConversationTitle(ctx context.Context, convID string, userID int64, firstMessage string) {
+	var conv model.SysUserConversation
+	if err := l.svcCtx.DB.Where("id = ? AND user_id = ?", convID, userID).First(&conv).Error; err != nil {
+		return
+	}
+	// 只有在对话当前标题是默认的“新对话”或为空时，才进行智能主题提取
+	if conv.Title != "新对话" && conv.Title != "" {
+		return
+	}
+
+	cfg := l.svcCtx.Config.Agent
+	apiKey, baseUrl, modelName := cfg.GetModelConfig(cfg.Models.ChatDefault)
+	if apiKey == "" || baseUrl == "" {
+		return
+	}
+
+	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
+		Model:   modelName,
+		APIKey:  apiKey,
+		BaseURL: baseUrl,
+	})
+	if err != nil {
+		return
+	}
+
+	prompt := fmt.Sprintf("请根据用户发起的首条对话内容，生成一个非常简短、精准的对话主题标题。\n要求：直接返回标题，不要有任何标点符号、解释性文字、序号或前缀，必须控制在2到6个字之间。\n用户消息：%s", firstMessage)
+
+	resp, err := chatModel.Generate(ctx, []*schema.Message{
+		schema.UserMessage(prompt),
+	})
+	if err != nil {
+		return
+	}
+
+	title := strings.TrimSpace(resp.Content)
+	title = strings.Trim(title, "\"`'“”‘’")
+	if title != "" && len([]rune(title)) <= 15 {
+		l.svcCtx.DB.Model(&conv).Update("title", title)
+	}
 }
