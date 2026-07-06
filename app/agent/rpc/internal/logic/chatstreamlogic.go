@@ -6,12 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"smartcommunity-microservices/app/agent/rpc/agent"
 	"smartcommunity-microservices/app/agent/rpc/internal/model"
 	"smartcommunity-microservices/app/agent/rpc/internal/svc"
+	"smartcommunity-microservices/app/community/rpc/communityrpc"
+	"smartcommunity-microservices/app/mall/rpc/types/mall"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/schema"
@@ -35,12 +39,20 @@ func NewChatStreamLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ChatSt
 }
 
 func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_ChatStreamServer) error {
-	const maxPromptHistoryMessages = 8
+	const maxPromptHistoryMessages = 6
+
+	if strings.TrimSpace(in.ConversationId) == "" {
+		in.ConversationId = uuid.NewString()
+	}
 
 	// 1. Check if conversation exists, or create it dynamically
 	var conv model.SysUserConversation
 	err := l.svcCtx.DB.Where("id = ? AND user_id = ?", in.ConversationId, in.UserId).First(&conv).Error
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			l.Errorf("failed to load conversation: %v", err)
+			return err
+		}
 		conv = model.SysUserConversation{
 			ID:        in.ConversationId,
 			UserID:    in.UserId,
@@ -54,14 +66,7 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 		}
 	}
 
-	// 2. Fetch only the prompt-relevant history window instead of loading all messages every turn.
-	history, err := l.loadPromptHistory(in.ConversationId, in.UserId, conv.SummaryUntil, maxPromptHistoryMessages)
-	if err != nil {
-		l.Errorf("failed to load prompt history: %v", err)
-		return err
-	}
-
-	// 3. Bind credentials/IDs to context for use inside Eino tools
+	// 2. Bind credentials/IDs to context for use inside Eino tools
 	agentCtx := context.WithValue(l.ctx, CtxKeyUserID, in.UserId)
 	agentCtx = context.WithValue(agentCtx, CtxKeyConversationID, in.ConversationId)
 	if in.PayType != "" {
@@ -70,12 +75,6 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 		agentCtx = context.WithValue(agentCtx, CtxKeyFaceImageURL, in.FaceImageUrl)
 	}
 
-	l.Infof("Agent Config status: globalKeyConfigured=%t, globalUrl=%q, globalModel=%q", l.svcCtx.Config.Agent.LlmApiKey != "", l.svcCtx.Config.Agent.LlmBaseUrl, l.svcCtx.Config.Agent.LlmModel)
-	requestedMode := requestedChatModeFromContext(l.ctx)
-	resolvedProfile := resolveChatProfile(requestedMode, in.Message)
-	l.Infof("agent chat mode requested=%q resolved=%q", requestedMode, resolvedProfile)
-
-	// Inject StreamCallback to context
 	var lastApprovalPayload string
 	streamCallback := func(eventType string, payload map[string]interface{}) {
 		payloadBytes, errMarshal := json.Marshal(payload)
@@ -91,6 +90,35 @@ func (l *ChatStreamLogic) ChatStream(in *agent.ChatReq, stream agent.AgentRpc_Ch
 		})
 	}
 	agentCtx = context.WithValue(agentCtx, CtxKeyStreamCallback, StreamCallback(streamCallback))
+
+	if handled, reply, hasApprovalRequired, err := l.tryDirectResponse(agentCtx, in, stream); handled {
+		if err != nil {
+			return err
+		}
+		var errSave error
+		if hasApprovalRequired || lastApprovalPayload != "" {
+			errSave = l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, reply, "approval_required", lastApprovalPayload)
+		} else {
+			errSave = l.saveChatMessagesTx(in.ConversationId, in.UserId, in.Message, reply, "", "")
+		}
+		if errSave != nil {
+			l.Errorf("failed to save direct chat messages in transaction: %v", errSave)
+			return errSave
+		}
+		return nil
+	}
+
+	// 3. Fetch only the prompt-relevant history window instead of loading all messages every turn.
+	history, err := l.loadPromptHistory(in.ConversationId, in.UserId, conv.SummaryUntil, maxPromptHistoryMessages)
+	if err != nil {
+		l.Errorf("failed to load prompt history: %v", err)
+		return err
+	}
+
+	l.Infof("Agent Config status: globalKeyConfigured=%t, globalUrl=%q, globalModel=%q", l.svcCtx.Config.Agent.LlmApiKey != "", l.svcCtx.Config.Agent.LlmBaseUrl, l.svcCtx.Config.Agent.LlmModel)
+	requestedMode := requestedChatModeFromContext(l.ctx)
+	resolvedProfile := resolveChatProfile(requestedMode, in.Message)
+	l.Infof("agent chat mode requested=%q resolved=%q", requestedMode, resolvedProfile)
 
 	// 5. Assemble Eino Prompt Messages
 	var einoMessages []*schema.Message
@@ -259,6 +287,481 @@ func anyValue[T any](ctx context.Context, key interface{}) T {
 		return zero
 	}
 	return typed
+}
+
+func (l *ChatStreamLogic) tryDirectResponse(
+	agentCtx context.Context,
+	in *agent.ChatReq,
+	stream agent.AgentRpc_ChatStreamServer,
+) (bool, string, bool, error) {
+	message := strings.TrimSpace(in.Message)
+	if message == "" {
+		return false, "", false, nil
+	}
+
+	if shouldDirectLatestAIReport(message) {
+		reply, err := l.directLatestAIReport(agentCtx, in.UserId)
+		if err != nil {
+			return true, "", false, err
+		}
+		if err := sendDirectReply(stream, reply); err != nil {
+			return true, "", false, err
+		}
+		return true, reply, false, nil
+	}
+
+	if shouldDirectNoticeKnowledge(message) {
+		reply, err := l.directNoticeKnowledge(agentCtx, in.UserId, message)
+		if err != nil {
+			return true, "", false, err
+		}
+		if err := sendDirectReply(stream, reply); err != nil {
+			return true, "", false, err
+		}
+		return true, reply, false, nil
+	}
+
+	if shouldDirectLatestNotices(message) {
+		reply, err := l.directLatestNotices(agentCtx, message)
+		if err != nil {
+			return true, "", false, err
+		}
+		if reply != "" {
+			if err := sendDirectReply(stream, reply); err != nil {
+				return true, "", false, err
+			}
+			return true, reply, false, nil
+		}
+	}
+
+	if shouldDirectCreateOrder(message) {
+		reply, hasApprovalRequired, err := l.directCreateOrder(agentCtx, message)
+		if err != nil {
+			return true, "", false, err
+		}
+		if err := sendDirectReply(stream, reply); err != nil {
+			return true, "", false, err
+		}
+		return true, reply, hasApprovalRequired, nil
+	}
+
+	if shouldDirectProductBrowse(message) {
+		reply, err := l.directProductBrowse(agentCtx, message)
+		if err != nil {
+			return true, "", false, err
+		}
+		if err := sendDirectReply(stream, reply); err != nil {
+			return true, "", false, err
+		}
+		return true, reply, false, nil
+	}
+
+	return false, "", false, nil
+}
+
+func (l *ChatStreamLogic) directLatestAIReport(ctx context.Context, userID int64) (string, error) {
+	if l.svcCtx.KnowledgeSvc == nil {
+		return "当前知识库检索尚未启用，暂时无法分析 AI 报告。", nil
+	}
+
+	allowed, err := l.svcCtx.KnowledgeSvc.CanAccessAdminKnowledge(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	if !allowed {
+		return "您当前无权查看 AI 报告内容。", nil
+	}
+
+	report, err := l.svcCtx.KnowledgeSvc.GetLatestAIReport(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	if report == nil {
+		return "当前暂无可用的 AI 报告。", nil
+	}
+
+	summary := strings.TrimSpace(report.Summary)
+	if summary == "" {
+		summary = strings.TrimSpace(report.Content)
+	}
+	summary = truncateText(summary, 320)
+
+	return fmt.Sprintf(
+		"我已为您检索最近一期 AI 报告。\n\n标题：%s\n时间：%s\n\n核心摘要：%s",
+		report.Title,
+		report.UpdatedAt.Format("2006-01-02 15:04:05"),
+		summary,
+	), nil
+}
+
+func (l *ChatStreamLogic) directLatestNotices(ctx context.Context, message string) (string, error) {
+	keyword := extractNoticeKeyword(message)
+	resp, err := l.svcCtx.CommunityRpc.ListNotices(ctx, &communityrpc.ListNoticesReq{
+		Page: 1,
+		Size: 10,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	lines := make([]string, 0, len(resp.List))
+	keywordLower := strings.ToLower(keyword)
+	for _, item := range resp.List {
+		if keywordLower != "" {
+			title := strings.ToLower(item.Title)
+			content := strings.ToLower(item.Content)
+			if !strings.Contains(title, keywordLower) && !strings.Contains(content, keywordLower) {
+				continue
+			}
+		}
+		lines = append(lines, fmt.Sprintf(
+			"- 标题：%s\n  发布时间：%s\n  内容摘要：%s",
+			item.Title,
+			item.CreatedAt,
+			truncateText(item.Content, 72),
+		))
+	}
+
+	if len(lines) == 0 {
+		if keyword != "" {
+			return "最新公告中暂未找到匹配内容。如需按主题或历史内容深入检索，请继续说明具体问题。", nil
+		}
+		return "当前社区暂无公告。", nil
+	}
+
+	return "这是最近的社区公告：\n\n" + strings.Join(lines, "\n\n"), nil
+}
+
+func (l *ChatStreamLogic) directNoticeKnowledge(ctx context.Context, userID int64, message string) (string, error) {
+	if l.svcCtx.KnowledgeSvc == nil {
+		return "当前知识库检索尚未启用，暂时无法按主题检索公告。", nil
+	}
+
+	hits, err := l.svcCtx.KnowledgeSvc.Search(ctx, userID, message, "notice", 4)
+	if err != nil {
+		return "", err
+	}
+	if len(hits) == 0 {
+		return "知识库中暂未找到相关公告内容。", nil
+	}
+
+	lines := make([]string, 0, len(hits))
+	for _, hit := range hits {
+		snippet := hit.Content
+		if strings.TrimSpace(hit.Summary) != "" {
+			snippet = hit.Summary
+		}
+		lines = append(lines, fmt.Sprintf(
+			"- 标题：%s\n  时间：%s\n  内容：%s",
+			hit.Title,
+			hit.UpdatedAt.Format("2006-01-02 15:04:05"),
+			truncateText(snippet, 120),
+		))
+	}
+	return "我为您检索到以下相关公告：\n\n" + strings.Join(lines, "\n\n"), nil
+}
+
+func (l *ChatStreamLogic) directCreateOrder(ctx context.Context, message string) (string, bool, error) {
+	keyword := extractOrderKeyword(message)
+	if isGenericKeyword(keyword) {
+		return "我可以直接帮您创建订单，请告诉我具体商品名称，例如“帮我买苹果1kg，直接下单”。", false, nil
+	}
+
+	var (
+		resp *mall.ProductListResp
+		err  error
+	)
+	for _, candidate := range buildProductSearchCandidates(keyword) {
+		resp, err = l.svcCtx.MallRpc.ListProducts(ctx, &mall.ListProductsReq{
+			Name: candidate,
+			Page: 1,
+			Size: 5,
+		})
+		if err != nil {
+			return "", false, err
+		}
+		if len(resp.List) > 0 {
+			keyword = candidate
+			break
+		}
+	}
+	if len(resp.List) == 0 {
+		return fmt.Sprintf("未找到与“%s”相关的商品，您可以换个关键词再试。", keyword), false, nil
+	}
+
+	product := pickBestMatchedProduct(resp.List, keyword)
+	if product == nil {
+		product = resp.List[0]
+	}
+	if product == nil {
+		return "当前未找到可下单商品。", false, nil
+	}
+
+	quantity := extractPurchaseQuantity(message)
+	approvalText, err := proposeAction(ctx, l.svcCtx, "create_order", &CreateOrderInput{
+		ProductID: product.Id,
+		Quantity:  quantity,
+	})
+	if err != nil {
+		return "", false, err
+	}
+	if strings.HasPrefix(approvalText, "错误：") {
+		return approvalText, false, nil
+	}
+
+	reply := fmt.Sprintf(
+		"已为您准备下单确认：\n\n- 商品：%s\n- 数量：%d\n- 单价：￥%.2f\n- 预计金额：￥%.2f\n\n请在前端确认创建订单。",
+		product.Name,
+		quantity,
+		float64(product.Price)/100.0,
+		float64(product.Price*int64(quantity))/100.0,
+	)
+	return reply, true, nil
+}
+
+func (l *ChatStreamLogic) directProductBrowse(ctx context.Context, message string) (string, error) {
+	keyword := extractProductKeyword(message)
+	if isGenericKeyword(keyword) {
+		keyword = ""
+	}
+
+	resp, err := l.svcCtx.MallRpc.ListProducts(ctx, &mall.ListProductsReq{
+		Name: keyword,
+		Page: 1,
+		Size: 8,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	lines := make([]string, 0, len(resp.List))
+	for _, p := range resp.List {
+		lines = append(lines, fmt.Sprintf(
+			"- 商品ID：%d\n  名称：%s\n  价格：￥%.2f\n  库存：%d\n  描述：%s",
+			p.Id,
+			p.Name,
+			float64(p.Price)/100.0,
+			p.Stock,
+			truncateText(p.Description, 48),
+		))
+	}
+
+	if len(lines) == 0 {
+		if keyword == "" {
+			return "当前社区便利店暂无商品。", nil
+		}
+		return fmt.Sprintf("未找到与“%s”相关的商品。", keyword), nil
+	}
+
+	prefix := "这是当前社区便利店可选的商品："
+	if keyword != "" {
+		prefix = fmt.Sprintf("我为您找到这些与“%s”相关的商品：", keyword)
+	}
+	return prefix + "\n\n" + strings.Join(lines, "\n\n"), nil
+}
+
+func sendDirectReply(stream agent.AgentRpc_ChatStreamServer, reply string) error {
+	return stream.Send(&agent.ChatResp{
+		Chunk:        reply,
+		EventType:    "message_delta",
+		EventPayload: fmt.Sprintf(`{"chunk":%q}`, reply),
+	})
+}
+
+func shouldDirectLatestAIReport(message string) bool {
+	text := strings.ToLower(strings.TrimSpace(message))
+	if strings.Contains(text, "生成") && strings.Contains(text, "报告") {
+		return false
+	}
+	if !(strings.Contains(text, "ai报告") || strings.Contains(text, "运营报表") || strings.Contains(text, "运营周报") || strings.Contains(text, "运营日报") || strings.Contains(text, "月报") || strings.Contains(text, "周报")) {
+		return false
+	}
+	return strings.Contains(text, "最近") ||
+		strings.Contains(text, "最新") ||
+		strings.Contains(text, "最近一期") ||
+		strings.Contains(text, "最近一份") ||
+		strings.Contains(text, "最新一期") ||
+		strings.Contains(text, "最新一份")
+}
+
+func shouldDirectLatestNotices(message string) bool {
+	text := strings.ToLower(strings.TrimSpace(message))
+	if strings.Contains(text, "ai报告") || strings.Contains(text, "运营报表") || strings.Contains(text, "报告") {
+		return false
+	}
+	if strings.Contains(text, "公告列表") || strings.Contains(text, "最新公告") || strings.Contains(text, "最近公告") || strings.Contains(text, "最近通知") {
+		return true
+	}
+	return strings.Contains(text, "最近有什么公告") || strings.Contains(text, "最近发了什么公告")
+}
+
+func shouldDirectNoticeKnowledge(message string) bool {
+	text := strings.ToLower(strings.TrimSpace(message))
+	if text == "" {
+		return false
+	}
+	if strings.Contains(text, "ai报告") || strings.Contains(text, "运营报表") || strings.Contains(text, "周报") || strings.Contains(text, "月报") {
+		return false
+	}
+	return (strings.Contains(text, "通知") || strings.Contains(text, "公告")) &&
+		(strings.Contains(text, "有没有") || strings.Contains(text, "是否有") || strings.Contains(text, "查一下") || strings.Contains(text, "检索") || strings.Contains(text, "搜索"))
+}
+
+func shouldDirectProductBrowse(message string) bool {
+	text := strings.ToLower(strings.TrimSpace(message))
+	if text == "" {
+		return false
+	}
+	if strings.Contains(text, "订单") || strings.Contains(text, "支付") || strings.Contains(text, "报修") || strings.Contains(text, "投诉") {
+		return false
+	}
+	return strings.Contains(text, "便利店商品") ||
+		strings.Contains(text, "推荐商品") ||
+		strings.Contains(text, "推荐一些商品") ||
+		strings.Contains(text, "商城有什么") ||
+		strings.Contains(text, "有什么商品") ||
+		strings.Contains(text, "看看商品")
+}
+
+func shouldDirectCreateOrder(message string) bool {
+	text := strings.ToLower(strings.TrimSpace(message))
+	if text == "" {
+		return false
+	}
+	if strings.Contains(text, "支付") || strings.Contains(text, "订单状态") || strings.Contains(text, "取消订单") {
+		return false
+	}
+	return strings.Contains(text, "直接下单") ||
+		(strings.Contains(text, "帮我买") && !strings.Contains(text, "推荐")) ||
+		strings.Contains(text, "帮我下单") ||
+		(strings.Contains(text, "我要买") && strings.Contains(text, "下单"))
+}
+
+func extractNoticeKeyword(message string) string {
+	text := strings.TrimSpace(message)
+	replacers := []string{
+		"请帮我", "帮我", "请", "看看", "查询", "检索", "最新", "最近", "社区", "公告", "通知", "一下", "有哪些", "有没有", "发了什么", "有什么",
+	}
+	for _, item := range replacers {
+		text = strings.ReplaceAll(text, item, "")
+	}
+	return strings.TrimSpace(text)
+}
+
+func extractOrderKeyword(message string) string {
+	text := strings.TrimSpace(message)
+	replacers := []string{
+		"帮我", "请", "直接", "下单", "购买", "买", "我要", "来一份", "来点", "给我", "安排", "一下",
+	}
+	for _, item := range replacers {
+		text = strings.ReplaceAll(text, item, "")
+	}
+	return sanitizeProductKeyword(text)
+}
+
+func extractProductKeyword(message string) string {
+	text := strings.TrimSpace(message)
+	replacers := []string{
+		"帮我", "请", "推荐", "一些", "看下", "看看", "查询", "搜索", "商品", "便利店", "商城", "有什么", "有啥", "推荐下", "一下",
+	}
+	for _, item := range replacers {
+		text = strings.ReplaceAll(text, item, "")
+	}
+	return strings.TrimSpace(text)
+}
+
+func extractPurchaseQuantity(message string) int32 {
+	text := strings.ToLower(strings.TrimSpace(message))
+	patterns := []string{
+		`(?:买|下单|来|要)\s*(\d+)\s*(?:份|件|个|袋|盒|瓶|箱)`,
+		`x\s*(\d+)`,
+	}
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		match := re.FindStringSubmatch(text)
+		if len(match) < 2 {
+			continue
+		}
+		value, err := strconv.Atoi(match[1])
+		if err != nil || value <= 0 {
+			continue
+		}
+		return int32(value)
+	}
+	return 1
+}
+
+func pickBestMatchedProduct(list []*mall.ProductInfo, keyword string) *mall.ProductInfo {
+	keyword = strings.ToLower(strings.TrimSpace(keyword))
+	if keyword == "" {
+		if len(list) == 0 {
+			return nil
+		}
+		return list[0]
+	}
+
+	var best *mall.ProductInfo
+	bestScore := -1
+	for _, item := range list {
+		if item == nil {
+			continue
+		}
+		name := strings.ToLower(item.Name)
+		score := 0
+		if name == keyword {
+			score += 4
+		}
+		if strings.Contains(name, keyword) {
+			score += 3
+		}
+		for _, token := range strings.Fields(keyword) {
+			if token != "" && strings.Contains(name, token) {
+				score++
+			}
+		}
+		if score > bestScore {
+			bestScore = score
+			best = item
+		}
+	}
+	return best
+}
+
+func buildProductSearchCandidates(keyword string) []string {
+	seen := make(map[string]bool)
+	add := func(list []string, value string) []string {
+		value = sanitizeProductKeyword(value)
+		if value == "" || seen[value] {
+			return list
+		}
+		seen[value] = true
+		return append(list, value)
+	}
+
+	var candidates []string
+	candidates = add(candidates, keyword)
+	candidates = add(candidates, strings.ReplaceAll(keyword, "kg", " kg"))
+	candidates = add(candidates, regexp.MustCompile(`\d+\s*(kg|公斤|g|克|ml|l|升|斤)$`).ReplaceAllString(keyword, ""))
+	return candidates
+}
+
+func sanitizeProductKeyword(value string) string {
+	replacer := strings.NewReplacer(
+		"，", " ",
+		",", " ",
+		"。", " ",
+		".", " ",
+		"！", " ",
+		"!", " ",
+		"？", " ",
+		"?", " ",
+		"；", " ",
+		";", " ",
+		"：", " ",
+		":", " ",
+	)
+	value = replacer.Replace(value)
+	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
 }
 
 func (l *ChatStreamLogic) loadPromptHistory(convID string, userID int64, summaryUntil, maxPromptHistoryMessages int) ([]model.SysUserChatMessage, error) {

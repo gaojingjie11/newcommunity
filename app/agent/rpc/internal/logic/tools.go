@@ -201,6 +201,9 @@ func NewSearchKnowledgeTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
 			}
 			if len(hits) == 0 {
 				out := "知识库中暂未找到相关内容。"
+				if isStrictAIReportQuery(input.Query, input.Scope) {
+					out = "当前未检索到可访问的 AI 报告内容。若您不是管理员，可能没有查看权限；此时不要回退到公告内容。"
+				}
 				triggerToolEnd(ctx, "search_knowledge", out)
 				return out, nil
 			}
@@ -238,6 +241,24 @@ func NewSearchKnowledgeTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
 		log.Fatalf("failed to create search_knowledge tool: %v", err)
 	}
 	return t
+}
+
+func isStrictAIReportQuery(query, scope string) bool {
+	scope = strings.ToLower(strings.TrimSpace(scope))
+	if scope == "report" || scope == "ai_report" {
+		return true
+	}
+	text := strings.ToLower(strings.TrimSpace(query))
+	if text == "" {
+		return false
+	}
+	return (strings.Contains(text, "ai报告") ||
+		strings.Contains(text, "运营报表") ||
+		strings.Contains(text, "运营周报") ||
+		strings.Contains(text, "运营日报") ||
+		strings.Contains(text, "周报") ||
+		strings.Contains(text, "月报")) &&
+		(strings.Contains(text, "只") || strings.Contains(text, "不要查公告") || strings.Contains(text, "基于"))
 }
 
 func isGenericKeyword(kw string) bool {

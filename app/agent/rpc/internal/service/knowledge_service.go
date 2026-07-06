@@ -39,6 +39,14 @@ type KnowledgeHit struct {
 	Distance   float64
 }
 
+type LatestAIReportResult struct {
+	ID        int64
+	Title     string
+	Summary   string
+	Content   string
+	UpdatedAt time.Time
+}
+
 type arkEmbedder struct {
 	client *arkruntime.Client
 	model  string
@@ -345,6 +353,44 @@ LIMIT ?`
 	return hits, nil
 }
 
+func (s *KnowledgeService) CanAccessAdminKnowledge(ctx context.Context, userID int64) (bool, error) {
+	return s.isAdminUser(ctx, userID)
+}
+
+func (s *KnowledgeService) GetLatestAIReport(ctx context.Context, userID int64) (*LatestAIReportResult, error) {
+	allowed, err := s.isAdminUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !allowed {
+		return nil, nil
+	}
+
+	var report model.AIReportSource
+	if err := s.db.WithContext(ctx).
+		Order("updated_at DESC, id DESC").
+		First(&report).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	content := strings.TrimSpace(report.Report)
+	summary := strings.TrimSpace(report.ReportSummary)
+	if summary == "" {
+		summary = truncateSummary(content, 220)
+	}
+
+	return &LatestAIReportResult{
+		ID:        report.ID,
+		Title:     fmt.Sprintf("AI 报告 #%d", report.ID),
+		Summary:   summary,
+		Content:   content,
+		UpdatedAt: report.UpdatedAt,
+	}, nil
+}
+
 func (s *KnowledgeService) upsertDocument(
 	ctx context.Context,
 	sourceType string,
@@ -581,6 +627,18 @@ func vectorLiteral(vector []float32) string {
 	}
 	sb.WriteByte(']')
 	return sb.String()
+}
+
+func truncateSummary(text string, maxRunes int) string {
+	text = strings.TrimSpace(text)
+	if text == "" || maxRunes <= 0 {
+		return text
+	}
+	runes := []rune(text)
+	if len(runes) <= maxRunes {
+		return text
+	}
+	return string(runes[:maxRunes]) + "..."
 }
 
 func shouldUseMultimodalEmbedding(modelName string) bool {
