@@ -345,7 +345,7 @@ func (l *ChatStreamLogic) tryDirectResponse(
 		return true, reply, hasApprovalRequired, nil
 	}
 
-	if shouldDirectProductBrowse(message) {
+	if shouldDirectProductIntent(message) || shouldDirectProductBrowse(message) {
 		reply, err := l.directProductBrowse(agentCtx, message)
 		if err != nil {
 			return true, "", false, err
@@ -521,6 +521,9 @@ func (l *ChatStreamLogic) directCreateOrder(ctx context.Context, message string)
 
 func (l *ChatStreamLogic) directProductBrowse(ctx context.Context, message string) (string, error) {
 	keyword := extractProductKeyword(message)
+	if isGenericKeyword(keyword) && shouldDirectProductIntent(message) {
+		keyword = extractOrderKeyword(message)
+	}
 	if isGenericKeyword(keyword) {
 		keyword = ""
 	}
@@ -557,7 +560,11 @@ func (l *ChatStreamLogic) directProductBrowse(ctx context.Context, message strin
 	if keyword != "" {
 		prefix = fmt.Sprintf("我为您找到这些与“%s”相关的商品：", keyword)
 	}
-	return prefix + "\n\n" + strings.Join(lines, "\n\n"), nil
+	reply := prefix + "\n\n" + strings.Join(lines, "\n\n")
+	if keyword != "" {
+		reply += fmt.Sprintf("\n\n如果您已经决定购买，直接回复“帮我买%s，直接下单”就行。", keyword)
+	}
+	return reply, nil
 }
 
 func sendDirectReply(stream agent.AgentRpc_ChatStreamServer, reply string) error {
@@ -623,6 +630,29 @@ func shouldDirectProductBrowse(message string) bool {
 		strings.Contains(text, "看看商品")
 }
 
+func shouldDirectProductIntent(message string) bool {
+	text := strings.ToLower(strings.TrimSpace(message))
+	if text == "" {
+		return false
+	}
+	if shouldDirectCreateOrder(text) {
+		return false
+	}
+	if strings.Contains(text, "订单") || strings.Contains(text, "支付") || strings.Contains(text, "报修") || strings.Contains(text, "投诉") {
+		return false
+	}
+	intentPhrases := []string{
+		"我想买", "想买", "我要买", "买点", "来点", "有没有", "想看看", "想要",
+	}
+	for _, phrase := range intentPhrases {
+		if strings.Contains(text, phrase) {
+			keyword := extractOrderKeyword(message)
+			return !isGenericKeyword(keyword)
+		}
+	}
+	return false
+}
+
 func shouldDirectCreateOrder(message string) bool {
 	text := strings.ToLower(strings.TrimSpace(message))
 	if text == "" {
@@ -663,11 +693,12 @@ func extractProductKeyword(message string) string {
 	text := strings.TrimSpace(message)
 	replacers := []string{
 		"帮我", "请", "推荐", "一些", "看下", "看看", "查询", "搜索", "商品", "便利店", "商城", "有什么", "有啥", "推荐下", "一下",
+		"我想买", "想买", "我要买", "买点", "来点", "想要", "想看看", "有没有",
 	}
 	for _, item := range replacers {
 		text = strings.ReplaceAll(text, item, "")
 	}
-	return strings.TrimSpace(text)
+	return sanitizeProductKeyword(text)
 }
 
 func extractPurchaseQuantity(message string) int32 {

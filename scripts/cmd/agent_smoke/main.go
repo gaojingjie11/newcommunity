@@ -84,6 +84,12 @@ func main() {
 			Mode:    "fast",
 			Message: "帮我买苹果1kg，直接下单",
 		},
+		{
+			Name:    "want_oranges",
+			UserID:  5,
+			Mode:    "smart",
+			Message: "我想买橘子",
+		},
 	}
 
 	selected := buildSelection(*only)
