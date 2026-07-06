@@ -96,6 +96,18 @@ func main() {
 			Mode:    "fast",
 			Message: "帮我买个水杯吧",
 		},
+		{
+			Name:    "shopping_capability_1",
+			UserID:  5,
+			Mode:    "fast",
+			Message: "那你能帮我买东西不",
+		},
+		{
+			Name:    "shopping_capability_2",
+			UserID:  5,
+			Mode:    "fast",
+			Message: "你可以帮我买东西吗",
+		},
 	}
 
 	selected := buildSelection(*only)

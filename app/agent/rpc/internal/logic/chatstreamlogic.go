@@ -306,7 +306,13 @@ func (l *ChatStreamLogic) tryDirectResponse(
 		return false, "", false, nil
 	}
 
-	if shouldDirectLatestAIReport(message) {
+	route := RouteAgentIntent(message)
+	if !route.UseFastPath {
+		return false, "", false, nil
+	}
+
+	switch route.Intent {
+	case IntentLatestAIReport:
 		reply, err := l.directLatestAIReport(agentCtx, in.UserId)
 		if err != nil {
 			return true, "", false, err
@@ -315,9 +321,7 @@ func (l *ChatStreamLogic) tryDirectResponse(
 			return true, "", false, err
 		}
 		return true, reply, false, nil
-	}
-
-	if shouldDirectNoticeKnowledge(message) {
+	case IntentNoticeSemantic:
 		reply, err := l.directNoticeKnowledge(agentCtx, in.UserId, message)
 		if err != nil {
 			return true, "", false, err
@@ -326,9 +330,7 @@ func (l *ChatStreamLogic) tryDirectResponse(
 			return true, "", false, err
 		}
 		return true, reply, false, nil
-	}
-
-	if shouldDirectLatestNotices(message) {
+	case IntentLatestNotices:
 		reply, err := l.directLatestNotices(agentCtx, message)
 		if err != nil {
 			return true, "", false, err
@@ -339,10 +341,15 @@ func (l *ChatStreamLogic) tryDirectResponse(
 			}
 			return true, reply, false, nil
 		}
-	}
-
-	if shouldDirectCreateOrder(message) {
-		reply, hasApprovalRequired, err := l.directCreateOrder(agentCtx, message)
+		return false, "", false, nil
+	case IntentShoppingCapability:
+		reply := directShoppingCapabilityReply()
+		if err := sendDirectReply(stream, reply); err != nil {
+			return true, "", false, err
+		}
+		return true, reply, false, nil
+	case IntentProductBuyConfirm:
+		reply, hasApprovalRequired, err := l.directCreateOrder(agentCtx, message, route.Keyword)
 		if err != nil {
 			return true, "", false, err
 		}
@@ -350,10 +357,8 @@ func (l *ChatStreamLogic) tryDirectResponse(
 			return true, "", false, err
 		}
 		return true, reply, hasApprovalRequired, nil
-	}
-
-	if shouldDirectProductIntent(message) || shouldDirectProductBrowse(message) {
-		reply, err := l.directProductBrowse(agentCtx, message)
+	case IntentProductBrowse:
+		reply, err := l.directProductBrowse(agentCtx, message, route.Keyword)
 		if err != nil {
 			return true, "", false, err
 		}
@@ -361,9 +366,9 @@ func (l *ChatStreamLogic) tryDirectResponse(
 			return true, "", false, err
 		}
 		return true, reply, false, nil
+	default:
+		return false, "", false, nil
 	}
-
-	return false, "", false, nil
 }
 
 func (l *ChatStreamLogic) directLatestAIReport(ctx context.Context, userID int64) (string, error) {
@@ -468,40 +473,26 @@ func (l *ChatStreamLogic) directNoticeKnowledge(ctx context.Context, userID int6
 	return "我为您检索到以下相关公告：\n\n" + strings.Join(lines, "\n\n"), nil
 }
 
-func (l *ChatStreamLogic) directCreateOrder(ctx context.Context, message string) (string, bool, error) {
-	keyword := extractOrderKeyword(message)
+func (l *ChatStreamLogic) directCreateOrder(ctx context.Context, message, keyword string) (string, bool, error) {
+	keyword = sanitizeProductKeyword(keyword)
+	if keyword == "" {
+		keyword = extractOrderKeyword(message)
+	}
 	if isGenericKeyword(keyword) {
 		return "我可以直接帮您创建订单，请告诉我具体商品名称，例如“帮我买苹果1kg，直接下单”。", false, nil
 	}
 
-	var (
-		resp *mall.ProductListResp
-		err  error
-	)
-	for _, candidate := range buildProductSearchCandidates(keyword) {
-		resp, err = l.svcCtx.MallRpc.ListProducts(ctx, &mall.ListProductsReq{
-			Name: candidate,
-			Page: 1,
-			Size: 5,
-		})
-		if err != nil {
-			return "", false, err
-		}
-		if len(resp.List) > 0 {
-			keyword = candidate
-			break
-		}
+	resp, matchedKeyword, err := l.searchProducts(ctx, keyword, 5)
+	if err != nil {
+		return "", false, err
 	}
 	if len(resp.List) == 0 {
 		return fmt.Sprintf("未找到与“%s”相关的商品，您可以换个关键词再试。", keyword), false, nil
 	}
 
-	product := pickBestMatchedProduct(resp.List, keyword)
-	if product == nil {
-		product = resp.List[0]
-	}
-	if product == nil {
-		return "当前未找到可下单商品。", false, nil
+	product, bestScore, secondScore := pickBestMatchedProduct(resp.List, matchedKeyword)
+	if product == nil || !isStrongProductChoice(resp.List, bestScore, secondScore) {
+		return l.renderProductCandidates(matchedKeyword, resp.List, true), false, nil
 	}
 
 	quantity := extractPurchaseQuantity(message)
@@ -526,52 +517,27 @@ func (l *ChatStreamLogic) directCreateOrder(ctx context.Context, message string)
 	return reply, true, nil
 }
 
-func (l *ChatStreamLogic) directProductBrowse(ctx context.Context, message string) (string, error) {
-	keyword := extractProductKeyword(message)
-	if isGenericKeyword(keyword) && shouldDirectProductIntent(message) {
-		keyword = extractOrderKeyword(message)
+func (l *ChatStreamLogic) directProductBrowse(ctx context.Context, message, keyword string) (string, error) {
+	keyword = sanitizeProductKeyword(keyword)
+	if keyword == "" {
+		keyword = extractProductKeyword(message)
 	}
 	if isGenericKeyword(keyword) {
 		keyword = ""
 	}
 
-	resp, err := l.svcCtx.MallRpc.ListProducts(ctx, &mall.ListProductsReq{
-		Name: keyword,
-		Page: 1,
-		Size: 8,
-	})
+	resp, matchedKeyword, err := l.searchProducts(ctx, keyword, 8)
 	if err != nil {
 		return "", err
 	}
-
-	lines := make([]string, 0, len(resp.List))
-	for _, p := range resp.List {
-		lines = append(lines, fmt.Sprintf(
-			"- 商品ID：%d\n  名称：%s\n  价格：￥%.2f\n  库存：%d\n  描述：%s",
-			p.Id,
-			p.Name,
-			float64(p.Price)/100.0,
-			p.Stock,
-			truncateText(p.Description, 48),
-		))
-	}
-
-	if len(lines) == 0 {
+	if len(resp.List) == 0 {
 		if keyword == "" {
 			return "当前社区便利店暂无商品。", nil
 		}
 		return fmt.Sprintf("未找到与“%s”相关的商品。", keyword), nil
 	}
 
-	prefix := "这是当前社区便利店可选的商品："
-	if keyword != "" {
-		prefix = fmt.Sprintf("我为您找到这些与“%s”相关的商品：", keyword)
-	}
-	reply := prefix + "\n\n" + strings.Join(lines, "\n\n")
-	if keyword != "" {
-		reply += fmt.Sprintf("\n\n如果您已经决定购买，直接回复“帮我买%s，直接下单”就行。", keyword)
-	}
-	return reply, nil
+	return l.renderProductCandidates(matchedKeyword, resp.List, false), nil
 }
 
 func sendDirectReply(stream agent.AgentRpc_ChatStreamServer, reply string) error {
@@ -580,6 +546,10 @@ func sendDirectReply(stream agent.AgentRpc_ChatStreamServer, reply string) error
 		EventType:    "message_delta",
 		EventPayload: fmt.Sprintf(`{"chunk":%q}`, reply),
 	})
+}
+
+func directShoppingCapabilityReply() string {
+	return "可以，我能帮您完成社区商店购物。您直接告诉我具体商品名称就行，比如“帮我买苹果1kg”或“帮我买个水杯吧”；确认后我会在前端为您拉起下单确认。"
 }
 
 func shouldDirectLatestAIReport(message string) bool {
@@ -642,6 +612,9 @@ func shouldDirectProductIntent(message string) bool {
 	if text == "" {
 		return false
 	}
+	if shouldDirectShoppingCapability(text) {
+		return false
+	}
 	if shouldDirectCreateOrder(text) {
 		return false
 	}
@@ -660,9 +633,34 @@ func shouldDirectProductIntent(message string) bool {
 	return false
 }
 
+func shouldDirectShoppingCapability(message string) bool {
+	text := strings.ToLower(strings.TrimSpace(message))
+	if text == "" {
+		return false
+	}
+	if !(strings.Contains(text, "买") && (strings.Contains(text, "能") || strings.Contains(text, "可以"))) {
+		return false
+	}
+
+	genericPhrases := []string{
+		"买东西", "买商品", "购物", "下单买", "帮我买东西", "帮我买商品",
+	}
+	for _, phrase := range genericPhrases {
+		if strings.Contains(text, phrase) {
+			return true
+		}
+	}
+
+	keyword := extractOrderKeyword(message)
+	return isGenericKeyword(keyword)
+}
+
 func shouldDirectCreateOrder(message string) bool {
 	text := strings.ToLower(strings.TrimSpace(message))
 	if text == "" {
+		return false
+	}
+	if shouldDirectShoppingCapability(text) {
 		return false
 	}
 	if strings.Contains(text, "支付") || strings.Contains(text, "订单状态") || strings.Contains(text, "取消订单") {
@@ -688,7 +686,7 @@ func extractNoticeKeyword(message string) string {
 func extractOrderKeyword(message string) string {
 	text := strings.TrimSpace(message)
 	replacers := []string{
-		"帮我", "请", "直接", "下单", "购买", "买", "我要", "来一份", "来点", "给我", "安排", "一下",
+		"帮我", "请", "直接", "下单", "购买", "买", "我要", "我想", "来一份", "来点", "给我", "安排", "一下",
 	}
 	for _, item := range replacers {
 		text = strings.ReplaceAll(text, item, "")
@@ -700,7 +698,7 @@ func extractProductKeyword(message string) string {
 	text := strings.TrimSpace(message)
 	replacers := []string{
 		"帮我", "请", "推荐", "一些", "看下", "看看", "查询", "搜索", "商品", "便利店", "商城", "有什么", "有啥", "推荐下", "一下",
-		"我想买", "想买", "我要买", "买点", "来点", "想要", "想看看", "有没有",
+		"我想买", "我想", "想买", "我要买", "买点", "来点", "想要", "想看看", "有没有",
 	}
 	for _, item := range replacers {
 		text = strings.ReplaceAll(text, item, "")
@@ -729,40 +727,137 @@ func extractPurchaseQuantity(message string) int32 {
 	return 1
 }
 
-func pickBestMatchedProduct(list []*mall.ProductInfo, keyword string) *mall.ProductInfo {
+func pickBestMatchedProduct(list []*mall.ProductInfo, keyword string) (*mall.ProductInfo, int, int) {
 	keyword = strings.ToLower(strings.TrimSpace(keyword))
 	if keyword == "" {
 		if len(list) == 0 {
-			return nil
+			return nil, -1, -1
 		}
-		return list[0]
+		return list[0], 0, -1
 	}
 
 	var best *mall.ProductInfo
 	bestScore := -1
+	secondScore := -1
 	for _, item := range list {
 		if item == nil {
 			continue
 		}
-		name := strings.ToLower(item.Name)
-		score := 0
-		if name == keyword {
-			score += 4
-		}
-		if strings.Contains(name, keyword) {
-			score += 3
-		}
-		for _, token := range strings.Fields(keyword) {
-			if token != "" && strings.Contains(name, token) {
-				score++
-			}
-		}
+		score := scoreProductMatch(item, keyword)
 		if score > bestScore {
+			secondScore = bestScore
 			bestScore = score
 			best = item
+		} else if score > secondScore {
+			secondScore = score
 		}
 	}
-	return best
+	return best, bestScore, secondScore
+}
+
+func scoreProductMatch(item *mall.ProductInfo, keyword string) int {
+	if item == nil {
+		return -1
+	}
+	name := strings.ToLower(strings.TrimSpace(item.Name))
+	desc := strings.ToLower(strings.TrimSpace(item.Description))
+	score := 0
+	if name == keyword {
+		score += 6
+	}
+	if strings.Contains(name, keyword) {
+		score += 4
+	}
+	if strings.Contains(desc, keyword) {
+		score += 2
+	}
+	for _, token := range strings.Fields(keyword) {
+		if token == "" {
+			continue
+		}
+		if strings.Contains(name, token) {
+			score += 2
+		} else if strings.Contains(desc, token) {
+			score++
+		}
+	}
+	return score
+}
+
+func isStrongProductChoice(list []*mall.ProductInfo, bestScore, secondScore int) bool {
+	if len(list) == 0 || bestScore < 4 {
+		return false
+	}
+	if len(list) == 1 {
+		return true
+	}
+	return bestScore-secondScore >= 2
+}
+
+func (l *ChatStreamLogic) searchProducts(ctx context.Context, keyword string, size int32) (*mall.ProductListResp, string, error) {
+	if size <= 0 {
+		size = 8
+	}
+	keyword = sanitizeProductKeyword(keyword)
+	if keyword == "" {
+		resp, err := l.svcCtx.MallRpc.ListProducts(ctx, &mall.ListProductsReq{
+			Name: "",
+			Page: 1,
+			Size: size,
+		})
+		return resp, "", err
+	}
+
+	var (
+		resp           *mall.ProductListResp
+		err            error
+		matchedKeyword = keyword
+	)
+	for _, candidate := range buildProductSearchCandidates(keyword) {
+		resp, err = l.svcCtx.MallRpc.ListProducts(ctx, &mall.ListProductsReq{
+			Name: candidate,
+			Page: 1,
+			Size: size,
+		})
+		if err != nil {
+			return nil, "", err
+		}
+		if len(resp.List) > 0 {
+			matchedKeyword = candidate
+			return resp, matchedKeyword, nil
+		}
+	}
+	return &mall.ProductListResp{}, matchedKeyword, nil
+}
+
+func (l *ChatStreamLogic) renderProductCandidates(keyword string, list []*mall.ProductInfo, askForConfirmation bool) string {
+	lines := make([]string, 0, len(list))
+	for _, p := range list {
+		if p == nil {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf(
+			"- 商品ID：%d\n  名称：%s\n  价格：￥%.2f\n  库存：%d\n  描述：%s",
+			p.Id,
+			p.Name,
+			float64(p.Price)/100.0,
+			p.Stock,
+			truncateText(p.Description, 48),
+		))
+	}
+
+	prefix := "这是当前社区便利店可选的商品："
+	if keyword != "" && !isGenericKeyword(keyword) {
+		prefix = fmt.Sprintf("我为您找到这些与“%s”相关的商品：", keyword)
+	}
+
+	reply := prefix + "\n\n" + strings.Join(lines, "\n\n")
+	if askForConfirmation && keyword != "" && !isGenericKeyword(keyword) {
+		reply += fmt.Sprintf("\n\n如果您要我直接下单，请回复更明确一些，例如“帮我买%s，直接下单”。", keyword)
+	} else if keyword != "" && !isGenericKeyword(keyword) {
+		reply += fmt.Sprintf("\n\n如果您已经决定购买，直接回复“帮我买%s，直接下单”就行。", keyword)
+	}
+	return reply
 }
 
 func buildProductSearchCandidates(keyword string) []string {
@@ -802,7 +897,7 @@ func sanitizeProductKeyword(value string) string {
 	value = strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
 	value = regexp.MustCompile(`^(?:一)?个`).ReplaceAllString(value, "")
 	value = regexp.MustCompile(`^(?:一)?(只|瓶|盒|袋|杯|包|桶|件)\s*`).ReplaceAllString(value, "")
-	value = regexp.MustCompile(`(吧|呢|呀|啊|哦|哈|呗|啦)+$`).ReplaceAllString(value, "")
+	value = regexp.MustCompile(`(吧|呢|呀|啊|哦|哈|呗|啦|吗|么|嘛)+$`).ReplaceAllString(value, "")
 	return strings.TrimSpace(value)
 }
 
