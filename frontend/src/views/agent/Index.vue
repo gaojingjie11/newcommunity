@@ -138,13 +138,27 @@
                     <div class="approval-body">
                       <div v-if="msg.proposed_action.action_type === 'create_order'" class="action-details">
                         <p class="action-desc">AI 准备为您创建商城订单。</p>
-                        <div class="detail-row">
-                          <span class="label">商品ID</span>
-                          <span class="val">{{ msg.proposed_action.payload.product_id }}</span>
+                        <div v-if="msg.proposed_action.payload.items && msg.proposed_action.payload.items.length">
+                          <div v-for="(item, idx) in msg.proposed_action.payload.items" :key="idx" class="item-detail-row" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
+                            <div class="detail-row">
+                              <span class="label">商品ID</span>
+                              <span class="val">{{ item.product_id }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="label">数量</span>
+                              <span class="val">{{ item.quantity }} 件</span>
+                            </div>
+                          </div>
                         </div>
-                        <div class="detail-row">
-                          <span class="label">数量</span>
-                          <span class="val">{{ msg.proposed_action.payload.quantity }} 件</span>
+                        <div v-else>
+                          <div class="detail-row">
+                            <span class="label">商品ID</span>
+                            <span class="val">{{ msg.proposed_action.payload.product_id }}</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="label">数量</span>
+                            <span class="val">{{ msg.proposed_action.payload.quantity }} 件</span>
+                          </div>
                         </div>
                       </div>
 

@@ -1182,6 +1182,13 @@ func buildApprovalReplyFromPayload(payload string) string {
 		if err := json.Unmarshal(event.Payload, &input); err != nil {
 			return "我已为您准备好下单确认，请在前端确认后继续。"
 		}
+		if len(input.Items) > 0 {
+			var details []string
+			for _, item := range input.Items {
+				details = append(details, fmt.Sprintf("商品ID %d (数量 %d)", item.ProductID, item.Quantity))
+			}
+			return fmt.Sprintf("我已为您准备好下单确认：%s。请在前端确认后继续。", strings.Join(details, "，"))
+		}
 		return fmt.Sprintf("我已为您准备好下单确认：商品ID %d，数量 %d。请在前端确认后继续。", input.ProductID, input.Quantity)
 	case "pay_order":
 		var input PayOrderInput

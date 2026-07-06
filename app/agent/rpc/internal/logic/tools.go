@@ -336,15 +336,21 @@ func NewListProductsTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
 }
 
 // 4. Create Order Tool
-type CreateOrderInput struct {
+type CreateOrderItem struct {
 	ProductID int64 `json:"product_id" jsonschema:"description=要购买的商品的ID"`
 	Quantity  int32 `json:"quantity" jsonschema:"description=购买的数量，必须大于等于1"`
+}
+
+type CreateOrderInput struct {
+	ProductID int64             `json:"product_id,omitempty" jsonschema:"description=要购买的单个商品ID（兼容模式）"`
+	Quantity  int32             `json:"quantity,omitempty" jsonschema:"description=要购买的单个商品数量（兼容模式）"`
+	Items     []CreateOrderItem `json:"items,omitempty" jsonschema:"description=要购买的多个商品列表（推荐使用，支持一次性购买多件商品）"`
 }
 
 func NewCreateOrderTool(svcCtx *svc.ServiceContext) tool.InvokableTool {
 	t, err := utils.InferTool(
 		"create_order",
-		"为用户创建商城购买订单。调用此工具代表用户确认下单。该动作为高风险，必须先触发用户确认。确认后会生成订单ID用于后续支付。",
+		"为用户创建商城购买订单。调用此工具代表用户确认下单。本工具支持一次性购买多个商品，在 items 字段中传入商品ID和数量的列表。该动作为高风险，必须先触发用户确认。确认后会生成订单ID用于后续支付。",
 		func(ctx context.Context, input *CreateOrderInput) (output string, err error) {
 			triggerToolStart(ctx, "create_order", input)
 			out, err := proposeAction(ctx, svcCtx, "create_order", input)

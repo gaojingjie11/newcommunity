@@ -87,62 +87,86 @@ func (l *ApproveActionLogic) ApproveAction(in *agent.ApproveActionReq) (*agent.A
 	case "create_order":
 		var input CreateOrderInput
 		if execErr = json.Unmarshal([]byte(approval.ActionPayload), &input); execErr == nil {
-			var addedCartID int64 // Track for cleanup on failure
+			// Normalize: if Items is empty but top-level fields are present, migrate to Items list
+			if len(input.Items) == 0 && input.ProductID > 0 {
+				input.Items = []CreateOrderItem{
+					{ProductID: input.ProductID, Quantity: input.Quantity},
+				}
+			}
 
-			// Pre-cleanup: If the product is already in the cart, remove it first to avoid quantity accumulation.
-			if cartResp, errList := l.svcCtx.MallRpc.ListCart(l.ctx, &mall.UserIDReq{UserId: in.UserId}); errList == nil {
-				for _, item := range cartResp.Items {
-					if item.ProductId == input.ProductID {
-						_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{
-							UserId: in.UserId,
-							Id:     item.Id,
-						})
+			if len(input.Items) == 0 {
+				execErr = errors.New("下单商品列表不能为空")
+				break
+			}
+
+			var addedCartIDs []int64
+
+			// Add each item to cart after pre-cleanup
+			for _, item := range input.Items {
+				// Pre-cleanup: If the product is already in the cart, remove it first to avoid quantity accumulation.
+				if cartResp, errList := l.svcCtx.MallRpc.ListCart(l.ctx, &mall.UserIDReq{UserId: in.UserId}); errList == nil {
+					for _, cItem := range cartResp.Items {
+						if cItem.ProductId == item.ProductID {
+							_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{
+								UserId: in.UserId,
+								Id:     cItem.Id,
+							})
+						}
 					}
 				}
-			}
 
-			// A. Add item to user's cart
-			_, execErr = l.svcCtx.MallRpc.AddCartItem(l.ctx, &mall.AddCartItemReq{
-				UserId:    in.UserId,
-				ProductId: input.ProductID,
-				Quantity:  input.Quantity,
-			})
-			if execErr != nil {
-				break
-			}
-
-			// B. Fetch user's cart
-			var cartResp *mall.CartResp
-			cartResp, execErr = l.svcCtx.MallRpc.ListCart(l.ctx, &mall.UserIDReq{
-				UserId: in.UserId,
-			})
-			if execErr != nil {
-				break
-			}
-
-			var cartID int64
-			for _, item := range cartResp.Items {
-				if item.ProductId == input.ProductID {
-					cartID = item.Id
+				// A. Add item to user's cart
+				_, execErr = l.svcCtx.MallRpc.AddCartItem(l.ctx, &mall.AddCartItemReq{
+					UserId:    in.UserId,
+					ProductId: item.ProductID,
+					Quantity:  item.Quantity,
+				})
+				if execErr != nil {
 					break
 				}
+
+				// B. Fetch user's cart to locate cart item ID
+				var cartResp *mall.CartResp
+				cartResp, execErr = l.svcCtx.MallRpc.ListCart(l.ctx, &mall.UserIDReq{
+					UserId: in.UserId,
+				})
+				if execErr != nil {
+					break
+				}
+
+				var cartID int64
+				for _, cItem := range cartResp.Items {
+					if cItem.ProductId == item.ProductID {
+						cartID = cItem.Id
+						break
+					}
+				}
+
+				if cartID == 0 {
+					execErr = errors.New("未能成功在购物车中定位商品")
+					break
+				}
+				addedCartIDs = append(addedCartIDs, cartID)
 			}
 
-			if cartID == 0 {
-				execErr = errors.New("未能成功在购物车中定位商品")
+			// Clean up and break if any error occurred in the loop
+			if execErr != nil {
+				for _, cid := range addedCartIDs {
+					_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{UserId: in.UserId, Id: cid})
+				}
 				break
 			}
-			addedCartID = cartID
 
 			// C. Find available stores
 			var storesResp *mall.StoreListResp
 			storesResp, execErr = l.svcCtx.MallRpc.ListAvailableStores(l.ctx, &mall.ListAvailableStoresReq{
 				UserId:  in.UserId,
-				CartIds: []int64{cartID},
+				CartIds: addedCartIDs,
 			})
 			if execErr != nil {
-				// Cleanup: remove the cart item we just added
-				_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{UserId: in.UserId, Id: addedCartID})
+				for _, cid := range addedCartIDs {
+					_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{UserId: in.UserId, Id: cid})
+				}
 				break
 			}
 
@@ -157,12 +181,13 @@ func (l *ApproveActionLogic) ApproveAction(in *agent.ApproveActionReq) (*agent.A
 			var orderInfo *mall.OrderInfo
 			orderInfo, execErr = l.svcCtx.MallRpc.CreateOrder(l.ctx, &mall.CreateOrderReq{
 				UserId:  in.UserId,
-				CartIds: []int64{cartID},
+				CartIds: addedCartIDs,
 				StoreId: storeID,
 			})
 			if execErr != nil {
-				// Cleanup: remove the cart item we just added
-				_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{UserId: in.UserId, Id: addedCartID})
+				for _, cid := range addedCartIDs {
+					_, _ = l.svcCtx.MallRpc.RemoveCartItem(l.ctx, &mall.RemoveCartItemReq{UserId: in.UserId, Id: cid})
+				}
 				break
 			}
 
