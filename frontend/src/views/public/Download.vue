@@ -94,31 +94,14 @@
               </div>
 
               <!-- QR Code Sub-Card -->
-              <div class="qr-card">
+              <div class="qr-card" @click="showQRModal = true">
                 <div class="qr-container">
-                  <!-- Futuristic QR Design with SVGs -->
-                  <svg viewBox="0 0 100 100" class="qr-svg">
-                    <rect x="10" y="10" width="25" height="25" fill="none" stroke="#3b82f6" stroke-width="3"/>
-                    <rect x="15" y="15" width="15" height="15" fill="#3b82f6"/>
-                    <rect x="65" y="10" width="25" height="25" fill="none" stroke="#3b82f6" stroke-width="3"/>
-                    <rect x="70" y="15" width="15" height="15" fill="#3b82f6"/>
-                    <rect x="10" y="65" width="25" height="25" fill="none" stroke="#3b82f6" stroke-width="3"/>
-                    <rect x="15" y="70" width="15" height="15" fill="#3b82f6"/>
-                    
-                    <!-- Random bits -->
-                    <rect x="42" y="15" width="5" height="5" fill="#10b981"/>
-                    <rect x="50" y="25" width="10" height="5" fill="#cbd5e1"/>
-                    <rect x="45" y="45" width="10" height="10" fill="#3b82f6"/>
-                    <rect x="65" y="45" width="5" height="5" fill="#10b981"/>
-                    <rect x="75" y="55" width="10" height="10" fill="#3b82f6"/>
-                    <rect x="50" y="75" width="5" height="15" fill="#cbd5e1"/>
-                    <rect x="80" y="75" width="10" height="5" fill="#10b981"/>
-                  </svg>
+                  <img src="/images/qr-code.png" alt="QR Code" class="qr-img" />
                   <div class="qr-scan-line"></div>
                 </div>
                 <div class="qr-text">
                   <p class="qr-title">手机扫码下载</p>
-                  <p class="qr-desc">支持任意扫码工具</p>
+                  <p class="qr-desc">点击放大二维码</p>
                 </div>
               </div>
             </div>
@@ -250,6 +233,20 @@
         <p class="footer-sub">安全等级：TLS 1.3 | SHA256 证书校验已启用</p>
       </footer>
     </div>
+
+    <!-- Beautiful QR Code Modal -->
+    <div class="qr-modal-overlay" v-if="showQRModal" @click.self="showQRModal = false">
+      <div class="qr-modal-card glass-panel">
+        <button class="modal-close-btn" @click="showQRModal = false">✕</button>
+        <h3 class="modal-title">手机扫码快速下载</h3>
+        <p class="modal-subtitle">请使用手机相机、微信或扫码工具扫描下方二维码</p>
+        <div class="modal-qr-wrap">
+          <img src="/images/qr-code.png" alt="QR Code" class="modal-qr-img" />
+          <div class="modal-qr-scan-line"></div>
+        </div>
+        <p class="modal-footer-text">下载完成后即可直接在手机端安装并登录使用</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -258,6 +255,7 @@ import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 
 const downloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || 'https://communitysvc.xyz/smart-community/app/__UNI__036BB94__20260706193449.apk'
+const showQRModal = ref(false)
 
 function handleDownload() {
   if (!downloadUrl || downloadUrl === '#') {
@@ -974,5 +972,134 @@ function handleDownload() {
     grid-template-columns: 1fr;
     gap: 12px;
   }
+}
+
+/* Scoped Styles for Real QR & Modal */
+.qr-card {
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+}
+
+.qr-card:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.qr-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Modal styling */
+.qr-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.qr-modal-card {
+  position: relative;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  padding: 40px 24px 30px;
+  box-sizing: border-box;
+  animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.modal-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.modal-qr-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  margin: 0 auto 20px;
+  box-sizing: border-box;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.modal-qr-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.modal-qr-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #3b82f6;
+  box-shadow: 0 0 8px #3b82f6;
+  animation: scan 2.5s linear infinite;
+}
+
+.modal-footer-text {
+  font-size: 11px;
+  color: #475569;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>
