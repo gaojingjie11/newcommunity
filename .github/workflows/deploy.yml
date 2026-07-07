@@ -22,6 +22,18 @@ jobs:
           script_stop: true                      # Stop workflow immediately if any command fails
           script: |
             cd /data/www/newcommunity
+
+            echo "0. Docker disk usage before cleanup..."
+            docker system df || true
+
+            echo "0.1 Pre-build cleanup..."
+            docker container prune -f || true
+            docker image prune -af || true
+            docker builder prune -af || true
+            docker network prune -f || true
+
+            echo "0.2 Docker disk usage after cleanup..."
+            docker system df || true
             
             echo "1. Pulling latest code..."
             git pull
@@ -49,9 +61,14 @@ jobs:
             cd /data/www/newcommunity
             
             echo "3. Restarting containers with new images..."
-            docker-compose up -d
+            docker-compose up -d --remove-orphans
             
-            echo "4. Pruning unused old docker images..."
-            docker image prune -f
+            echo "4. Post-deploy docker cleanup..."
+            docker image prune -af || true
+            docker builder prune -af || true
+            docker network prune -f || true
+
+            echo "5. Docker disk usage after deploy..."
+            docker system df || true
             
             echo "Deployment successfully completed!"

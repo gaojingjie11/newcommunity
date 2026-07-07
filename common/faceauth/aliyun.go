@@ -29,12 +29,14 @@ import (
 const (
 	defaultEndpoint         = "facebody.cn-shanghai.aliyuncs.com"
 	defaultRegion           = "cn-shanghai"
-	defaultMinConfidence    = float32(75)
+	defaultMinConfidence    = float32(85)
 	defaultQualityThreshold = float32(70)
 
 	maxImageDownloadBytes = 8 << 20
 	targetImageBytes      = 700 << 10
 	downloadTimeout       = 8 * time.Second
+	compareConnectTimeout = 3000
+	compareReadTimeout    = 10000
 )
 
 type compareConfig struct {
@@ -121,9 +123,6 @@ func VerifyMatch(ctx context.Context, registeredURL, capturedURL string) (*Compa
 		result.MessageTips = strings.TrimSpace(*data.MessageTips)
 	}
 
-	if result.MessageTips != "" {
-		return result, errors.New(formatMessageTips(result.MessageTips))
-	}
 	if result.Confidence <= 0 {
 		return result, errors.New("未能识别有效人脸，请正对摄像头重新尝试")
 	}
@@ -203,26 +202,7 @@ func formatMessageTips(raw string) string {
 }
 
 func compareFace(client *facebody.Client, cfg compareConfig, registeredURL, capturedURL string) (*facebody.CompareFaceResponse, error) {
-	switch cfg.mode {
-	case "download":
-		return compareFaceByDownload(client, cfg, registeredURL, capturedURL)
-	case "auto":
-		resp, err := compareFaceByURL(client, cfg, registeredURL, capturedURL)
-		if err == nil {
-			return resp, nil
-		}
-		return compareFaceByDownload(client, cfg, registeredURL, capturedURL)
-	default:
-		return compareFaceByURL(client, cfg, registeredURL, capturedURL)
-	}
-}
-
-func compareFaceByURL(client *facebody.Client, cfg compareConfig, registeredURL, capturedURL string) (*facebody.CompareFaceResponse, error) {
-	req := (&facebody.CompareFaceRequest{}).
-		SetImageURLA(registeredURL).
-		SetImageURLB(capturedURL).
-		SetQualityScoreThreshold(cfg.qualityThreshold)
-	return client.CompareFaceWithOptions(req, &dara.RuntimeOptions{})
+	return compareFaceByDownload(client, cfg, registeredURL, capturedURL)
 }
 
 func compareFaceByDownload(client *facebody.Client, cfg compareConfig, registeredURL, capturedURL string) (*facebody.CompareFaceResponse, error) {
@@ -237,9 +217,11 @@ func compareFaceByDownload(client *facebody.Client, cfg compareConfig, registere
 
 	req := (&facebody.CompareFaceAdvanceRequest{}).
 		SetImageURLAObject(bytes.NewReader(imageA)).
-		SetImageURLBObject(bytes.NewReader(imageB)).
-		SetQualityScoreThreshold(cfg.qualityThreshold)
-	return client.CompareFaceAdvance(req, &dara.RuntimeOptions{})
+		SetImageURLBObject(bytes.NewReader(imageB))
+	runtime := (&dara.RuntimeOptions{}).
+		SetConnectTimeout(compareConnectTimeout).
+		SetReadTimeout(compareReadTimeout)
+	return client.CompareFaceAdvance(req, runtime)
 }
 
 func downloadAndOptimizeImage(rawURL string) ([]byte, error) {
