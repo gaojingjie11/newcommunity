@@ -29,7 +29,7 @@ import (
 const (
 	defaultEndpoint         = "facebody.cn-shanghai.aliyuncs.com"
 	defaultRegion           = "cn-shanghai"
-	defaultMinConfidence    = float32(85)
+	defaultMinConfidence    = float32(75)
 	defaultQualityThreshold = float32(70)
 
 	maxImageDownloadBytes = 8 << 20
