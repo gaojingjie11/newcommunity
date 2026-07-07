@@ -96,7 +96,7 @@
               <!-- QR Code Sub-Card -->
               <div class="qr-card" @click="showQRModal = true">
                 <div class="qr-container">
-                  <img src="/images/qr-code.png" alt="QR Code" class="qr-img" />
+                  <img :src="qrCodeUrl" alt="QR Code" class="qr-img" />
                   <div class="qr-scan-line"></div>
                 </div>
                 <div class="qr-text">
@@ -241,7 +241,7 @@
         <h3 class="modal-title">手机扫码快速下载</h3>
         <p class="modal-subtitle">请使用手机相机、微信或扫码工具扫描下方二维码</p>
         <div class="modal-qr-wrap">
-          <img src="/images/qr-code.png" alt="QR Code" class="modal-qr-img" />
+          <img :src="qrCodeUrl" alt="QR Code" class="modal-qr-img" />
           <div class="modal-qr-scan-line"></div>
         </div>
         <p class="modal-footer-text">下载完成后即可直接在手机端安装并登录使用</p>
@@ -256,6 +256,7 @@ import { ref } from 'vue'
 
 const downloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || 'https://communitysvc.xyz/smart-community/app/__UNI__036BB94__20260706193449.apk'
 const showQRModal = ref(false)
+const qrCodeUrl = '/images/qr-code.png'
 
 function handleDownload() {
   if (!downloadUrl || downloadUrl === '#') {
