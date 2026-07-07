@@ -22,6 +22,9 @@ jobs:
           script_stop: true                      # Stop workflow immediately if any command fails
           script: |
             cd /data/www/newcommunity
+            cat << 'EOF' > build_step.sh
+            #!/bin/bash
+            set -e
 
             echo "0. Docker disk usage before cleanup..."
             docker system df || true
@@ -123,6 +126,10 @@ jobs:
             echo "2. Starting limited parallel build..."
             COMPOSE_PARALLEL_LIMIT=2 docker-compose build --parallel ${BUILD_SERVICES}
             echo "All builds completed successfully!"
+            EOF
+            chmod +x build_step.sh
+            ./build_step.sh
+            rm -f build_step.sh
 
       # ================= Step 2: Restart containers only if compile succeeded =================
       - name: Start/Update Containers (Launch)
@@ -134,6 +141,9 @@ jobs:
           port: 22
           script: |
             cd /data/www/newcommunity
+            cat << 'EOF' > launch_step.sh
+            #!/bin/bash
+            set -e
 
             DEPLOY_SERVICES=$(cat .deploy-services 2>/dev/null | xargs || true)
             if [ -z "${DEPLOY_SERVICES}" ]; then
@@ -160,3 +170,7 @@ jobs:
             docker system df || true
             
             echo "Deployment successfully completed!"
+            EOF
+            chmod +x launch_step.sh
+            ./launch_step.sh
+            rm -f launch_step.sh
