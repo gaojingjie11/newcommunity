@@ -26,13 +26,21 @@ jobs:
             echo "0. Docker disk usage before cleanup..."
             docker system df || true
 
-            echo "0.1 Pre-build cleanup..."
+            echo "0.1 Lightweight pre-build cleanup..."
             docker container prune -f || true
-            docker image prune -af || true
-            docker builder prune -af || true
             docker network prune -f || true
 
-            echo "0.2 Docker disk usage after cleanup..."
+            DISK_USAGE=$(df -P / | awk 'NR==2 {gsub("%","",$5); print $5}')
+            echo "0.2 Current root disk usage: ${DISK_USAGE}%"
+            if [ "${DISK_USAGE}" -ge 92 ]; then
+              echo "0.3 Disk usage too high, running emergency docker cleanup..."
+              docker image prune -af || true
+              docker builder prune -af || true
+              docker container prune -f || true
+              docker network prune -f || true
+            fi
+
+            echo "0.4 Docker disk usage after cleanup..."
             docker system df || true
             
             echo "1. Pulling latest code..."
@@ -64,9 +72,16 @@ jobs:
             docker-compose up -d --remove-orphans
             
             echo "4. Post-deploy docker cleanup..."
-            docker image prune -af || true
-            docker builder prune -af || true
+            docker image prune -f || true
             docker network prune -f || true
+
+            DISK_USAGE=$(df -P / | awk 'NR==2 {gsub("%","",$5); print $5}')
+            echo "4.1 Root disk usage after deploy: ${DISK_USAGE}%"
+            if [ "${DISK_USAGE}" -ge 92 ]; then
+              echo "4.2 Disk usage still high, pruning old images and build cache..."
+              docker image prune -af || true
+              docker builder prune -af || true
+            fi
 
             echo "5. Docker disk usage after deploy..."
             docker system df || true
