@@ -195,15 +195,15 @@
         <div class="glass-card box-h-35">
           <div class="glass-card-header">
             <div class="glass-card-accent"></div>
-            <span class="glass-card-title">社区环保累计积分先锋榜</span>
+            <span class="glass-card-title">累计积分先锋榜</span>
             <el-radio-group
               v-model="rankingView"
               size="small"
               class="dark-radio"
               style="margin-left: auto"
             >
-              <el-radio-button label="datav">动态展示</el-radio-button>
-              <el-radio-button label="table">经典表格</el-radio-button>
+              <el-radio-button label="datav">动态</el-radio-button>
+              <el-radio-button label="table">表格</el-radio-button>
             </el-radio-group>
           </div>
           <div class="ranking-wrap ranking-wrap-glass">
