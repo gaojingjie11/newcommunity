@@ -10,6 +10,12 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
+const (
+	tempPayFacePrefix          = "face/temp-pay/"
+	tempPayFaceCleanupInterval = 30 * time.Minute
+	tempPayFaceTTL             = 30 * time.Minute
+)
+
 type ReportScheduler struct {
 	reportSvc   *ReportService
 	minioClient *minio.Client
@@ -27,6 +33,7 @@ func NewReportScheduler(reportSvc *ReportService, minioClient *minio.Client, buc
 }
 
 func (s *ReportScheduler) Start() {
+	go s.startTempPayFaceCleanupLoop()
 	go func() {
 		log.Println("[Report Scheduler] Starting automatic daily AI report scheduler...")
 		for {
@@ -65,29 +72,66 @@ func (s *ReportScheduler) Start() {
 }
 
 func (s *ReportScheduler) CleanupGarbage() {
+	s.cleanupPrefix("", "garbage/", 0)
+}
+
+func (s *ReportScheduler) startTempPayFaceCleanupLoop() {
 	if s.minioClient == nil || s.bucket == "" {
-		log.Println("[Report Scheduler Cleanup] MinIO client or bucket not configured, skipping garbage image cleanup.")
+		log.Println("[Temp Face Cleanup] MinIO client or bucket not configured, periodic temp face cleanup skipped.")
 		return
 	}
 
-	log.Println("[Report Scheduler Cleanup] Starting cleanup of garbage recognition images under 'garbage/' prefix...")
+	ticker := time.NewTicker(tempPayFaceCleanupInterval)
+	defer ticker.Stop()
+
+	log.Printf("[Temp Face Cleanup] Periodic cleanup started. Prefix=%s interval=%v ttl=%v", tempPayFacePrefix, tempPayFaceCleanupInterval, tempPayFaceTTL)
+
+	for {
+		select {
+		case <-ticker.C:
+			s.cleanupPrefix("[Temp Face Cleanup] ", tempPayFacePrefix, tempPayFaceTTL)
+		case <-s.stopCh:
+			log.Println("[Temp Face Cleanup] Stopping periodic temp face cleanup.")
+			return
+		}
+	}
+}
+
+func (s *ReportScheduler) cleanupPrefix(logPrefix, prefix string, olderThan time.Duration) {
+	if s.minioClient == nil || s.bucket == "" {
+		log.Printf("%sMinIO client or bucket not configured, cleanup skipped.", logPrefix)
+		return
+	}
+
+	if logPrefix == "" {
+		logPrefix = "[Report Scheduler Cleanup] "
+	}
+
+	if olderThan > 0 {
+		log.Printf("%sStarting cleanup for prefix '%s' older than %v...", logPrefix, prefix, olderThan)
+	} else {
+		log.Printf("%sStarting cleanup for all objects under prefix '%s'...", logPrefix, prefix)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// 1. List objects with prefix "garbage/"
 	objectCh := s.minioClient.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
-		Prefix:    "garbage/",
+		Prefix:    prefix,
 		Recursive: true,
 	})
 
-	// 2. Queue objects for deletion and count them
 	objectsToDelete := make(chan minio.ObjectInfo)
 	queuedCount := 0
+	cutoff := time.Now().Add(-olderThan)
 	go func() {
 		defer close(objectsToDelete)
 		for object := range objectCh {
 			if object.Err != nil {
-				log.Printf("[Report Scheduler Cleanup] error listing object: %v", object.Err)
+				log.Printf("%serror listing object: %v", logPrefix, object.Err)
+				continue
+			}
+			if olderThan > 0 && !object.LastModified.Before(cutoff) {
 				continue
 			}
 			objectsToDelete <- object
@@ -95,15 +139,14 @@ func (s *ReportScheduler) CleanupGarbage() {
 		}
 	}()
 
-	// 3. RemoveObjects (returns errors only)
 	errorCount := 0
 	for rErr := range s.minioClient.RemoveObjects(ctx, s.bucket, objectsToDelete, minio.RemoveObjectsOptions{}) {
-		log.Printf("[Report Scheduler Cleanup] error deleting object %s: %v", rErr.ObjectName, rErr.Err)
+		log.Printf("%serror deleting object %s: %v", logPrefix, rErr.ObjectName, rErr.Err)
 		errorCount++
 	}
 
 	successCount := queuedCount - errorCount
-	log.Printf("[Report Scheduler Cleanup] Completed. Successfully removed %d (out of %d) garbage images from MinIO bucket '%s'.", successCount, queuedCount, s.bucket)
+	log.Printf("%sCompleted. Successfully removed %d (out of %d) objects from MinIO bucket '%s' with prefix '%s'.", logPrefix, successCount, queuedCount, s.bucket, prefix)
 }
 
 func (s *ReportScheduler) Stop() {

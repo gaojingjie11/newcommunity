@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"smartcommunity-microservices/app/community/rpc/internal/config"
+	"smartcommunity-microservices/app/community/rpc/internal/model"
 	"smartcommunity-microservices/app/community/rpc/internal/repository"
 	"smartcommunity-microservices/app/mall/rpc/mallrpc"
-	"smartcommunity-microservices/app/community/rpc/internal/model"
 	"smartcommunity-microservices/common/db"
 	"smartcommunity-microservices/common/mq"
 	"smartcommunity-microservices/common/redis"
@@ -46,6 +46,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		&model.PropertyFeePayment{},
 		&model.CommunityMessage{},
 	)
+
+	if err := database.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_user_parking_bindings_active_plate_unique
+		ON user_parking_bindings (car_plate)
+		WHERE status = 1 AND car_plate <> ''
+	`).Error; err != nil {
+		log.Printf("failed to ensure active car plate unique index: %v", err)
+	}
 
 	// Initialize Redis
 	rdb, err := redis.Init(c.BizRedis)
@@ -88,4 +96,3 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		MallRpc:         mallClient,
 	}
 }
-

@@ -312,6 +312,6 @@ func getCompareMode() string {
 	case "download", "auto", "url":
 		return mode
 	default:
-		return "url"
+		return "download"
 	}
 }

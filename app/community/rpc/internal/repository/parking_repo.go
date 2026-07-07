@@ -95,6 +95,11 @@ func (r *ParkingRepo) Assign(spaceID int64, mobile, carPlate string) (*model.Use
 			return tx.Save(&space).Error
 		}
 
+		normalizedPlate := NormalizeCarPlate(carPlate)
+		if !IsValidStandardBluePlate(normalizedPlate) {
+			return ErrInvalidCarPlate
+		}
+
 		var user struct {
 			ID int64
 		}
@@ -109,9 +114,12 @@ func (r *ParkingRepo) Assign(spaceID int64, mobile, carPlate string) (*model.Use
 		if err := tx.Save(&space).Error; err != nil {
 			return err
 		}
+		if err := ensureCarPlateAvailable(tx, normalizedPlate, activeBinding.ID); err != nil {
+			return err
+		}
 		if activeBinding.ID != 0 {
 			activeBinding.UserID = user.ID
-			activeBinding.CarPlate = strings.TrimSpace(carPlate)
+			activeBinding.CarPlate = normalizedPlate
 			activeBinding.UnboundAt = nil
 			if err := tx.Save(&activeBinding).Error; err != nil {
 				return err
@@ -123,12 +131,15 @@ func (r *ParkingRepo) Assign(spaceID int64, mobile, carPlate string) (*model.Use
 		binding = model.UserParkingBinding{
 			UserID:         user.ID,
 			ParkingSpaceID: spaceID,
-			CarPlate:       strings.TrimSpace(carPlate),
+			CarPlate:       normalizedPlate,
 			Status:         1,
 			BoundAt:        time.Now(),
 		}
 		return tx.Create(&binding).Error
 	})
+	if isDuplicateEntry(err) {
+		return nil, ErrCarPlateAlreadyExists
+	}
 	return &binding, err
 }
 
@@ -140,10 +151,38 @@ func (r *ParkingRepo) BindPlate(bindingID, userID int64, carPlate string) (*mode
 			First(&binding).Error; err != nil {
 			return err
 		}
-		binding.CarPlate = carPlate
+
+		normalizedPlate := NormalizeCarPlate(carPlate)
+		if !IsValidStandardBluePlate(normalizedPlate) {
+			return ErrInvalidCarPlate
+		}
+		if err := ensureCarPlateAvailable(tx, normalizedPlate, binding.ID); err != nil {
+			return err
+		}
+
+		binding.CarPlate = normalizedPlate
 		return tx.Save(&binding).Error
 	})
+	if isDuplicateEntry(err) {
+		return nil, ErrCarPlateAlreadyExists
+	}
 	return &binding, err
+}
+
+func ensureCarPlateAvailable(tx *gorm.DB, carPlate string, excludeBindingID int64) error {
+	var count int64
+	query := tx.Model(&model.UserParkingBinding{}).
+		Where("status = ? AND car_plate = ?", 1, carPlate)
+	if excludeBindingID > 0 {
+		query = query.Where("id <> ?", excludeBindingID)
+	}
+	if err := query.Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return ErrCarPlateAlreadyExists
+	}
+	return nil
 }
 
 func (r *ParkingRepo) Stats() (map[string]int64, error) {

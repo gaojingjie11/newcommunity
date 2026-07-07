@@ -183,6 +183,7 @@ import Navbar from '@/components/layout/Navbar.vue'
 import { getAdminParkingList, getParkingStats, assignParking, createParking } from '@/api/admin'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, Van, Warning, CircleCheck, InfoFilled } from '@element-plus/icons-vue'
+import { getCarPlateValidationMessage, isValidStandardBluePlate, normalizeCarPlate } from '@/utils/carPlate'
 
 const list = ref([])
 const stats = ref({})
@@ -225,11 +226,23 @@ const openAssignModal = (item) => {
 }
 
 const saveAssign = async () => {
+  const mobile = form.mobile.trim()
+  const normalizedPlate = normalizeCarPlate(form.car_plate)
+
+  if (mobile && !normalizedPlate) {
+    ElMessage.warning('请输入车牌号')
+    return
+  }
+  if (normalizedPlate && !isValidStandardBluePlate(normalizedPlate)) {
+    ElMessage.warning(getCarPlateValidationMessage())
+    return
+  }
+
   loading.value = true
   try {
     await assignParking(currentItem.value.id, {
-      mobile: form.mobile.trim(),
-      car_plate: form.car_plate.trim()
+      mobile,
+      car_plate: normalizedPlate
     })
     ElMessage.success('分配/解绑操作成功')
     showModal.value = false

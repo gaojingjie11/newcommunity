@@ -54,6 +54,7 @@ import { ref, onMounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import { getMyParking, bindCar } from '@/api/service'
 import { ElMessage } from 'element-plus'
+import { getCarPlateValidationMessage, isValidStandardBluePlate, normalizeCarPlate } from '@/utils/carPlate'
 
 const parkingList = ref([])
 const loading = ref(false)
@@ -78,15 +79,20 @@ const fetchParking = async () => {
 }
 
 const handleBindCar = async (item) => {
-  if (!item.editCarPlate || !item.editCarPlate.trim()) {
+  const normalizedPlate = normalizeCarPlate(item.editCarPlate)
+  if (!normalizedPlate) {
     ElMessage.warning('请输入车牌号')
+    return
+  }
+  if (!isValidStandardBluePlate(normalizedPlate)) {
+    ElMessage.warning(getCarPlateValidationMessage())
     return
   }
   
   loading.value = true
   try {
     await bindCar(item.id, {
-        car_plate: item.editCarPlate
+        car_plate: normalizedPlate
     })
     ElMessage.success('更新成功！')
     await fetchParking()
