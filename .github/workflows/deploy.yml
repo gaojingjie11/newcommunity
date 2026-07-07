@@ -22,6 +22,7 @@ jobs:
           script_stop: true                      # Stop workflow immediately if any command fails
           script: |
             cd /data/www/newcommunity
+            git reset --hard HEAD
             git pull
             chmod +x scripts/deploy_build.sh
             ./scripts/deploy_build.sh
