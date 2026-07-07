@@ -100,7 +100,7 @@ func VerifyMatch(ctx context.Context, registeredURL, capturedURL string) (*Compa
 	resp, err := compareFace(client, cfg, registeredURL, capturedURL)
 	if err != nil {
 		log.Printf("[FaceAuth] compare failed: registered=%s captured=%s err=%v", registeredURL, capturedURL, err)
-		return nil, errors.New("人脸比对失败，请稍后重试")
+		return nil, classifyCompareError(err)
 	}
 	if resp == nil || resp.Body == nil || resp.Body.Data == nil {
 		return nil, errors.New("人脸比对结果异常，请重新尝试")
@@ -198,6 +198,29 @@ func formatMessageTips(raw string) string {
 		return "请摘下口罩后重新尝试"
 	default:
 		return "人脸校验未通过，请确保仅本人正对摄像头并保持光线充足"
+	}
+}
+
+func classifyCompareError(err error) error {
+	if err == nil {
+		return nil
+	}
+	msg := strings.ToLower(strings.TrimSpace(err.Error()))
+	switch {
+	case strings.Contains(msg, "registered image download failed"):
+		return errors.New("登记人脸底图读取失败，请重新录入人脸后再试")
+	case strings.Contains(msg, "captured image download failed"):
+		return errors.New("本次抓拍图片读取失败，请重新抓拍后再试")
+	case strings.Contains(msg, "http status 403"), strings.Contains(msg, "http status 404"):
+		return errors.New("人脸图片访问失败，请重新抓拍或重新录入后再试")
+	case strings.Contains(msg, "content-type is not image"), strings.Contains(msg, "empty image content"):
+		return errors.New("人脸图片内容异常，请重新抓拍后再试")
+	case strings.Contains(msg, "image is too large"):
+		return errors.New("人脸图片过大，请重新抓拍后再试")
+	case strings.Contains(msg, "timeout"), strings.Contains(msg, "i/o timeout"), strings.Contains(msg, "connection refused"):
+		return errors.New("人脸服务连接超时，请稍后重试")
+	default:
+		return errors.New("人脸比对失败，请稍后重试")
 	}
 }
 

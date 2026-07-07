@@ -42,19 +42,86 @@ jobs:
 
             echo "0.4 Docker disk usage after cleanup..."
             docker system df || true
+
+            PREV_HEAD=$(git rev-parse HEAD 2>/dev/null || true)
             
             echo "1. Pulling latest code..."
             git pull
+
+            NEW_HEAD=$(git rev-parse HEAD 2>/dev/null || true)
+
+            ALL_SERVICES="user-rpc mall-rpc community-rpc workorder-rpc stats-rpc agent-rpc gateway-api frontend"
+            ALL_GO_SERVICES="user-rpc mall-rpc community-rpc workorder-rpc stats-rpc agent-rpc gateway-api"
+            BUILD_SERVICES=""
+            BUILD_GO_ALL=0
+            BUILD_FRONTEND=0
+
+            add_service() {
+              case " ${BUILD_SERVICES} " in
+                *" $1 "*) ;;
+                *) BUILD_SERVICES="${BUILD_SERVICES} $1" ;;
+              esac
+            }
+
+            if [ -z "${PREV_HEAD}" ] || [ -z "${NEW_HEAD}" ] || [ "${PREV_HEAD}" = "${NEW_HEAD}" ]; then
+              echo "1.1 Unable to determine changed files reliably, fallback to full build."
+              BUILD_SERVICES="${ALL_SERVICES}"
+            else
+              CHANGED_FILES=$(git diff --name-only "${PREV_HEAD}" "${NEW_HEAD}")
+              echo "1.1 Changed files:"
+              echo "${CHANGED_FILES}"
+
+              for file in ${CHANGED_FILES}; do
+                case "${file}" in
+                  go.mod|go.sum|docker-compose.yml|.dockerignore|common/*)
+                    BUILD_GO_ALL=1
+                    ;;
+                  app/user/rpc/*)
+                    add_service user-rpc
+                    ;;
+                  app/mall/rpc/*)
+                    add_service mall-rpc
+                    ;;
+                  app/community/rpc/*)
+                    add_service community-rpc
+                    ;;
+                  app/workorder/rpc/*)
+                    add_service workorder-rpc
+                    ;;
+                  app/stats/rpc/*)
+                    add_service stats-rpc
+                    ;;
+                  app/agent/rpc/*)
+                    add_service agent-rpc
+                    ;;
+                  app/gateway/api/*)
+                    add_service gateway-api
+                    ;;
+                  frontend/*)
+                    BUILD_FRONTEND=1
+                    ;;
+                esac
+              done
+
+              if [ "${BUILD_GO_ALL}" -eq 1 ]; then
+                BUILD_SERVICES="${ALL_GO_SERVICES}"
+              fi
+              if [ "${BUILD_FRONTEND}" -eq 1 ]; then
+                add_service frontend
+              fi
+            fi
+
+            BUILD_SERVICES=$(echo "${BUILD_SERVICES}" | xargs || true)
+            echo "${BUILD_SERVICES}" > .deploy-services
+
+            if [ -z "${BUILD_SERVICES}" ]; then
+              echo "1.2 No deployable service changes detected, skipping build."
+              exit 0
+            fi
             
-            echo "2. Starting sequential build..."
-            docker-compose build user-rpc
-            docker-compose build mall-rpc
-            docker-compose build community-rpc
-            docker-compose build workorder-rpc
-            docker-compose build stats-rpc
-            docker-compose build agent-rpc
-            docker-compose build gateway-api
-            docker-compose build frontend
+            echo "2. Services to build: ${BUILD_SERVICES}"
+            echo "2. Starting limited parallel build..."
+            COMPOSE_PARALLEL_LIMIT=2 docker-compose build --parallel ${BUILD_SERVICES}
             echo "All builds completed successfully!"
 
       # ================= Step 2: Restart containers only if compile succeeded =================
@@ -67,9 +134,15 @@ jobs:
           port: 22
           script: |
             cd /data/www/newcommunity
+
+            DEPLOY_SERVICES=$(cat .deploy-services 2>/dev/null | xargs || true)
+            if [ -z "${DEPLOY_SERVICES}" ]; then
+              echo "3. No deployable service changes detected, skipping container restart."
+              exit 0
+            fi
             
-            echo "3. Restarting containers with new images..."
-            docker-compose up -d --remove-orphans
+            echo "3. Restarting containers with new images: ${DEPLOY_SERVICES}"
+            docker-compose up -d --remove-orphans ${DEPLOY_SERVICES}
             
             echo "4. Post-deploy docker cleanup..."
             docker image prune -f || true
