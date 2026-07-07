@@ -31,6 +31,11 @@
         </div>
 
         <div class="navbar-right">
+          <router-link to="/app-download" class="download-nav-btn">
+            <span class="nav-download-icon">📱</span>
+            下载 App
+          </router-link>
+
           <router-link to="/cart" class="cart-icon" v-if="userStore.isLoggedIn">
             <img :src="cartIcon" alt="购物车" class="cart-icon-img" />
             <span class="cart-badge" v-if="cartStore.cartCount > 0">
@@ -292,5 +297,30 @@ const handleLogout = () => {
 
 .btn-register:hover {
   background: #f0f0f0;
+}
+
+.download-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 14px;
+  border-radius: 99px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.download-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.nav-download-icon {
+  font-size: 14px;
 }
 </style>
