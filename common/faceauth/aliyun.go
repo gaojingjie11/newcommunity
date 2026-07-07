@@ -10,6 +10,7 @@ import (
 	"image/jpeg"
 	_ "image/png"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,6 +22,8 @@ import (
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
 	facebody "github.com/alibabacloud-go/facebody-20191230/v6/client"
 	"github.com/alibabacloud-go/tea/dara"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 const (
@@ -50,11 +53,21 @@ type CompareResult struct {
 	MessageTips   string  `json:"message_tips"`
 }
 
+type minioResolver struct {
+	client    *minio.Client
+	bucket    string
+	publicURL string
+}
+
 var (
 	loadOnce     sync.Once
 	sharedClient *facebody.Client
 	sharedCfg    compareConfig
 	sharedErr    error
+
+	minioOnce      sync.Once
+	sharedMinio    *minioResolver
+	sharedMinioErr error
 )
 
 func ValidateEnrollment(ctx context.Context, imageURL string) error {
@@ -84,6 +97,7 @@ func VerifyMatch(ctx context.Context, registeredURL, capturedURL string) (*Compa
 
 	resp, err := compareFace(client, cfg, registeredURL, capturedURL)
 	if err != nil {
+		log.Printf("[FaceAuth] compare failed: registered=%s captured=%s err=%v", registeredURL, capturedURL, err)
 		return nil, errors.New("人脸比对失败，请稍后重试")
 	}
 	if resp == nil || resp.Body == nil || resp.Body.Data == nil {
@@ -229,6 +243,20 @@ func compareFaceByDownload(client *facebody.Client, cfg compareConfig, registere
 }
 
 func downloadAndOptimizeImage(rawURL string) ([]byte, error) {
+	if resolver, err := getMinioResolver(); err == nil && resolver != nil {
+		if data, ok, err := resolver.fetch(rawURL); ok {
+			if err != nil {
+				log.Printf("[FaceAuth] minio fetch failed for %s: %v", rawURL, err)
+			} else {
+				optimized, optimizeErr := compressImageIfNeeded(data)
+				if optimizeErr != nil {
+					return data, nil
+				}
+				return optimized, nil
+			}
+		}
+	}
+
 	parsed, err := url.ParseRequestURI(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid image url: %w", err)
@@ -304,6 +332,90 @@ func compressImageIfNeeded(raw []byte) ([]byte, error) {
 	}
 
 	return best, nil
+}
+
+func getMinioResolver() (*minioResolver, error) {
+	minioOnce.Do(func() {
+		endpoint := strings.TrimSpace(os.Getenv("MINIO_ENDPOINT"))
+		accessKey := strings.TrimSpace(os.Getenv("MINIO_ACCESS_KEY"))
+		secretKey := strings.TrimSpace(os.Getenv("MINIO_SECRET_KEY"))
+		bucket := strings.TrimSpace(os.Getenv("MINIO_BUCKET"))
+		if endpoint == "" || accessKey == "" || secretKey == "" || bucket == "" {
+			return
+		}
+
+		useSSL := strings.EqualFold(strings.TrimSpace(os.Getenv("MINIO_USE_SSL")), "true")
+		client, err := minio.New(endpoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+			Secure: useSSL,
+		})
+		if err != nil {
+			sharedMinioErr = err
+			return
+		}
+
+		sharedMinio = &minioResolver{
+			client:    client,
+			bucket:    bucket,
+			publicURL: strings.TrimSuffix(strings.TrimSpace(os.Getenv("MINIO_PUBLIC_URL")), "/"),
+		}
+	})
+
+	return sharedMinio, sharedMinioErr
+}
+
+func (r *minioResolver) fetch(rawURL string) ([]byte, bool, error) {
+	objectKey := r.resolveObjectKey(rawURL)
+	if objectKey == "" {
+		return nil, false, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), downloadTimeout)
+	defer cancel()
+
+	object, err := r.client.GetObject(ctx, r.bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, true, err
+	}
+	defer object.Close()
+
+	if _, err := object.Stat(); err != nil {
+		return nil, true, err
+	}
+
+	reader := io.LimitReader(object, maxImageDownloadBytes+1)
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, true, err
+	}
+	if len(data) == 0 {
+		return nil, true, errors.New("empty image content")
+	}
+	if len(data) > maxImageDownloadBytes {
+		return nil, true, fmt.Errorf("image is too large, max %d bytes", maxImageDownloadBytes)
+	}
+	return data, true, nil
+}
+
+func (r *minioResolver) resolveObjectKey(rawURL string) string {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return ""
+	}
+
+	if r.publicURL != "" {
+		publicPrefix := r.publicURL + "/" + r.bucket + "/"
+		if strings.HasPrefix(rawURL, publicPrefix) {
+			return strings.TrimPrefix(rawURL, publicPrefix)
+		}
+	}
+
+	search := "/" + r.bucket + "/"
+	if idx := strings.Index(rawURL, search); idx >= 0 {
+		return strings.TrimPrefix(rawURL[idx+len(search):], "/")
+	}
+
+	return ""
 }
 
 func getCompareMode() string {
