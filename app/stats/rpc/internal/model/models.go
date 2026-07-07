@@ -130,6 +130,7 @@ type EcoLeaderboard struct {
 	Username    string `json:"username"`
 	RealName    string `json:"real_name"`
 	GreenPoints int64  `json:"green_points"`
+	Avatar      string `json:"avatar"`
 }
 
 type CommunityOverview struct {

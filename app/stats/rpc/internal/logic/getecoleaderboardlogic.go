@@ -41,6 +41,7 @@ func (l *GetEcoLeaderboardLogic) GetEcoLeaderboard(in *stats.BaseResp) (*stats.E
 			RealName:    item.RealName,
 			Nickname:    nickname,
 			Points:      item.GreenPoints,
+			Avatar:      item.Avatar,
 		})
 	}
 

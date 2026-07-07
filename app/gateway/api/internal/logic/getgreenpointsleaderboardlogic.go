@@ -41,6 +41,7 @@ func (l *GetGreenPointsLeaderboardLogic) GetGreenPointsLeaderboard(req *types.Ra
 			RealName: item.RealName,
 			Nickname: item.Nickname,
 			Points:   item.Points,
+			Avatar:   item.Avatar,
 		})
 	}
 

@@ -257,7 +257,7 @@ func (r *StatsRepo) GreenPointsLeaderboard(limit int) ([]model.EcoLeaderboard, e
 		Where("status = 1 AND green_points_total_earned > 0").
 		Order("green_points_total_earned DESC, id ASC").
 		Limit(limit).
-		Select("id AS user_id, username, real_name, green_points_total_earned AS green_points").
+		Select("id AS user_id, username, real_name, green_points_total_earned AS green_points, avatar").
 		Scan(&results).Error
 	return results, err
 }

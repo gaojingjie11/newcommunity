@@ -60,6 +60,7 @@ message EcoLeaderboardInfo {
   string real_name = 3;
   string nickname = 4;
   int64 points = 5;
+  string avatar = 6;
 }
 
 message EcoStatsResp {

@@ -355,6 +355,7 @@ type EcoLeaderboardInfo struct {
 	RealName string `json:"real_name"`
 	Nickname string `json:"nickname"`
 	Points   int64  `json:"points"`
+	Avatar   string `json:"avatar"`
 }
 
 type EcoStatsResp struct {
