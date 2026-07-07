@@ -254,7 +254,7 @@
 import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 
-const downloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || 'https://communitysvc.xyz/smart-community/app/__UNI__036BB94__20260706193449.apk'
+const downloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || 'https://communitysvc.xyz/community/app/__UNI__036BB94__20260706193449.apk'
 const showQRModal = ref(false)
 const qrCodeUrl = '/images/qr-code.png'
 
