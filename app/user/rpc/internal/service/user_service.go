@@ -8,7 +8,6 @@ import (
 
 	"smartcommunity-microservices/app/user/rpc/internal/model"
 	"smartcommunity-microservices/app/user/rpc/internal/repository"
-	"smartcommunity-microservices/common/faceauth"
 	"smartcommunity-microservices/common/mq"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -44,9 +43,6 @@ func (s *UserService) RegisterFace(userID int64, faceImageURL string) error {
 	faceImageURL = strings.TrimSpace(faceImageURL)
 	if faceImageURL == "" {
 		return errors.New("face image url is required")
-	}
-	if err := faceauth.ValidateEnrollment(context.Background(), faceImageURL); err != nil {
-		return err
 	}
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {

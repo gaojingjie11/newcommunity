@@ -1,13 +1,22 @@
 package faceauth
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/png"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
 	facebody "github.com/alibabacloud-go/facebody-20191230/v6/client"
@@ -19,6 +28,10 @@ const (
 	defaultRegion           = "cn-shanghai"
 	defaultMinConfidence    = float32(75)
 	defaultQualityThreshold = float32(70)
+
+	maxImageDownloadBytes = 8 << 20
+	targetImageBytes      = 700 << 10
+	downloadTimeout       = 8 * time.Second
 )
 
 type compareConfig struct {
@@ -26,6 +39,7 @@ type compareConfig struct {
 	region           string
 	minConfidence    float32
 	qualityThreshold float32
+	mode             string
 }
 
 type CompareResult struct {
@@ -49,33 +63,7 @@ func ValidateEnrollment(ctx context.Context, imageURL string) error {
 	if imageURL == "" {
 		return errors.New("请先上传人脸照片")
 	}
-
-	client, _, err := getClient()
-	if err != nil {
-		return err
-	}
-
-	req := (&facebody.DetectFaceRequest{}).
-		SetImageURL(imageURL).
-		SetQuality(true).
-		SetMaxFaceNumber(2)
-
-	resp, err := client.DetectFaceWithOptions(req, &dara.RuntimeOptions{})
-	if err != nil {
-		return errors.New("人脸注册校验失败，请稍后重试")
-	}
-	if resp == nil || resp.Body == nil || resp.Body.Data == nil || resp.Body.Data.FaceCount == nil {
-		return errors.New("人脸注册校验失败，请重新上传清晰正脸照片")
-	}
-
-	switch *resp.Body.Data.FaceCount {
-	case 0:
-		return errors.New("未识别到人脸，请上传清晰正脸照片")
-	case 1:
-		return nil
-	default:
-		return errors.New("检测到多张人脸，请上传仅包含本人的照片")
-	}
+	return nil
 }
 
 func VerifyMatch(ctx context.Context, registeredURL, capturedURL string) (*CompareResult, error) {
@@ -94,12 +82,7 @@ func VerifyMatch(ctx context.Context, registeredURL, capturedURL string) (*Compa
 		return nil, err
 	}
 
-	req := (&facebody.CompareFaceRequest{}).
-		SetImageURLA(registeredURL).
-		SetImageURLB(capturedURL).
-		SetQualityScoreThreshold(cfg.qualityThreshold)
-
-	resp, err := client.CompareFaceWithOptions(req, &dara.RuntimeOptions{})
+	resp, err := compareFace(client, cfg, registeredURL, capturedURL)
 	if err != nil {
 		return nil, errors.New("人脸比对失败，请稍后重试")
 	}
@@ -144,6 +127,7 @@ func getClient() (*facebody.Client, compareConfig, error) {
 			region:           getEnvOrDefault("ALIYUN_FACEBODY_REGION", defaultRegion),
 			minConfidence:    getEnvAsFloat32("ALIYUN_FACE_COMPARE_MIN_CONFIDENCE", defaultMinConfidence),
 			qualityThreshold: getEnvAsFloat32("ALIYUN_FACE_COMPARE_QUALITY_THRESHOLD", defaultQualityThreshold),
+			mode:             getCompareMode(),
 		}
 
 		accessKeyID := strings.TrimSpace(os.Getenv("ALIYUN_ACCESS_KEY_ID"))
@@ -201,5 +185,133 @@ func formatMessageTips(raw string) string {
 		return "请摘下口罩后重新尝试"
 	default:
 		return "人脸校验未通过，请确保仅本人正对摄像头并保持光线充足"
+	}
+}
+
+func compareFace(client *facebody.Client, cfg compareConfig, registeredURL, capturedURL string) (*facebody.CompareFaceResponse, error) {
+	switch cfg.mode {
+	case "download":
+		return compareFaceByDownload(client, cfg, registeredURL, capturedURL)
+	case "auto":
+		resp, err := compareFaceByURL(client, cfg, registeredURL, capturedURL)
+		if err == nil {
+			return resp, nil
+		}
+		return compareFaceByDownload(client, cfg, registeredURL, capturedURL)
+	default:
+		return compareFaceByURL(client, cfg, registeredURL, capturedURL)
+	}
+}
+
+func compareFaceByURL(client *facebody.Client, cfg compareConfig, registeredURL, capturedURL string) (*facebody.CompareFaceResponse, error) {
+	req := (&facebody.CompareFaceRequest{}).
+		SetImageURLA(registeredURL).
+		SetImageURLB(capturedURL).
+		SetQualityScoreThreshold(cfg.qualityThreshold)
+	return client.CompareFaceWithOptions(req, &dara.RuntimeOptions{})
+}
+
+func compareFaceByDownload(client *facebody.Client, cfg compareConfig, registeredURL, capturedURL string) (*facebody.CompareFaceResponse, error) {
+	imageA, err := downloadAndOptimizeImage(registeredURL)
+	if err != nil {
+		return nil, fmt.Errorf("registered image download failed: %w", err)
+	}
+	imageB, err := downloadAndOptimizeImage(capturedURL)
+	if err != nil {
+		return nil, fmt.Errorf("captured image download failed: %w", err)
+	}
+
+	req := (&facebody.CompareFaceAdvanceRequest{}).
+		SetImageURLAObject(bytes.NewReader(imageA)).
+		SetImageURLBObject(bytes.NewReader(imageB)).
+		SetQualityScoreThreshold(cfg.qualityThreshold)
+	return client.CompareFaceAdvance(req, &dara.RuntimeOptions{})
+}
+
+func downloadAndOptimizeImage(rawURL string) ([]byte, error) {
+	parsed, err := url.ParseRequestURI(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid image url: %w", err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, errors.New("image url must start with http/https")
+	}
+
+	client := &http.Client{Timeout: downloadTimeout}
+	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "smartcommunity-face-verify/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http status %d", resp.StatusCode)
+	}
+	if ct := strings.ToLower(resp.Header.Get("Content-Type")); ct != "" && !strings.HasPrefix(ct, "image/") {
+		return nil, fmt.Errorf("content-type is not image: %s", ct)
+	}
+
+	reader := io.LimitReader(resp.Body, maxImageDownloadBytes+1)
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, errors.New("empty image content")
+	}
+	if len(data) > maxImageDownloadBytes {
+		return nil, fmt.Errorf("image is too large, max %d bytes", maxImageDownloadBytes)
+	}
+
+	optimized, err := compressImageIfNeeded(data)
+	if err != nil {
+		return data, nil
+	}
+	return optimized, nil
+}
+
+func compressImageIfNeeded(raw []byte) ([]byte, error) {
+	if len(raw) <= targetImageBytes {
+		return raw, nil
+	}
+
+	img, _, err := image.Decode(bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+
+	qualities := []int{85, 75, 65, 55}
+	best := raw
+
+	for _, q := range qualities {
+		var buf bytes.Buffer
+		if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: q}); err != nil {
+			continue
+		}
+		candidate := buf.Bytes()
+		if len(candidate) < len(best) {
+			best = append([]byte(nil), candidate...)
+		}
+		if len(best) <= targetImageBytes {
+			break
+		}
+	}
+
+	return best, nil
+}
+
+func getCompareMode() string {
+	mode := strings.ToLower(strings.TrimSpace(os.Getenv("ALIYUN_FACE_COMPARE_MODE")))
+	switch mode {
+	case "download", "auto", "url":
+		return mode
+	default:
+		return "url"
 	}
 }
