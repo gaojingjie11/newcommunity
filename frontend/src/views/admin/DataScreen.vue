@@ -195,7 +195,7 @@
         <div class="glass-card box-h-35">
           <div class="glass-card-header">
             <div class="glass-card-accent"></div>
-            <span class="glass-card-title">社区环保积分先锋榜</span>
+            <span class="glass-card-title">社区环保累计积分先锋榜</span>
             <el-radio-group
               v-model="rankingView"
               size="small"
@@ -241,7 +241,7 @@
               </el-table-column>
               <el-table-column
                 prop="points"
-                label="环保积分"
+                label="累计积分"
                 width="110"
                 align="center"
               >

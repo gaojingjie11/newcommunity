@@ -3,23 +3,24 @@ package model
 import "time"
 
 type SysUser struct {
-	ID             int64     `gorm:"primaryKey" json:"id"`
-	Username       string    `gorm:"type:varchar(64);uniqueIndex" json:"username"`
-	Password       string    `gorm:"type:varchar(255)" json:"-"`
-	RealName       string    `gorm:"column:real_name;type:varchar(64)" json:"real_name"`
-	Mobile         string    `gorm:"type:varchar(20);uniqueIndex" json:"mobile"`
-	Age            int       `json:"age"`
-	Gender         int       `json:"gender"`
-	Email          string    `gorm:"type:varchar(128)" json:"email"`
-	Avatar         string    `gorm:"type:varchar(255)" json:"avatar"`
-	GreenPoints    int       `gorm:"column:green_points;not null;default:0" json:"green_points"`
-	Balance        float64   `gorm:"->" json:"balance"`
-	FaceRegistered bool      `gorm:"column:face_registered;not null;default:false" json:"face_registered"`
-	FaceImageURL   string    `gorm:"column:face_image_url;type:varchar(512)" json:"face_image_url"`
-	Role           string    `gorm:"type:varchar(32)" json:"role"` // legacy compat; use sys_user_role for actual RBAC
-	Status         int       `json:"status"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID                     int64     `gorm:"primaryKey" json:"id"`
+	Username               string    `gorm:"type:varchar(64);uniqueIndex" json:"username"`
+	Password               string    `gorm:"type:varchar(255)" json:"-"`
+	RealName               string    `gorm:"column:real_name;type:varchar(64)" json:"real_name"`
+	Mobile                 string    `gorm:"type:varchar(20);uniqueIndex" json:"mobile"`
+	Age                    int       `json:"age"`
+	Gender                 int       `json:"gender"`
+	Email                  string    `gorm:"type:varchar(128)" json:"email"`
+	Avatar                 string    `gorm:"type:varchar(255)" json:"avatar"`
+	GreenPoints            int       `gorm:"column:green_points;not null;default:0" json:"green_points"`
+	GreenPointsTotalEarned int       `gorm:"column:green_points_total_earned;not null;default:0" json:"green_points_total_earned"`
+	Balance                float64   `gorm:"->" json:"balance"`
+	FaceRegistered         bool      `gorm:"column:face_registered;not null;default:false" json:"face_registered"`
+	FaceImageURL           string    `gorm:"column:face_image_url;type:varchar(512)" json:"face_image_url"`
+	Role                   string    `gorm:"type:varchar(32)" json:"role"` // legacy compat; use sys_user_role for actual RBAC
+	Status                 int       `json:"status"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
 }
 
 func (SysUser) TableName() string { return "sys_user" }

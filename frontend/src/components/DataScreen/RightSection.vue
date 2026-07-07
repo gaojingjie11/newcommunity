@@ -2,7 +2,7 @@
   <div class="column-side">
     <dv-border-box-13 class="tech-card box-h-35">
       <div class="chart-title flex-between">
-        <span>社区环保积分先锋榜</span>
+        <span>社区环保累计积分先锋榜</span>
         <el-radio-group v-model="rankingView" size="small" class="dark-radio">
           <el-radio-button label="datav">动态</el-radio-button>
           <el-radio-button label="table">表格</el-radio-button>

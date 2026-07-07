@@ -78,7 +78,7 @@
 
         <div class="card premium-card">
           <div class="card-header">
-            <span class="header-indicator"></span> 积分排行榜
+            <span class="header-indicator"></span> 累计积分排行榜
           </div>
 
           <el-table
@@ -103,7 +103,7 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="points" label="总积分" width="100" align="right">
+            <el-table-column prop="points" label="累计积分" width="100" align="right">
               <template #default="{ row }">
                 <strong class="points-text">{{ row.points }}</strong>
               </template>

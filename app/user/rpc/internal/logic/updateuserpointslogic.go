@@ -27,9 +27,16 @@ func NewUpdateUserPointsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 
 // Points Management
 func (l *UpdateUserPointsLogic) UpdateUserPoints(in *user.UpdateUserPointsReq) (*user.BaseResp, error) {
+	updates := map[string]interface{}{
+		"green_points": gorm.Expr("green_points + ?", in.Points),
+	}
+	if in.Points > 0 {
+		updates["green_points_total_earned"] = gorm.Expr("green_points_total_earned + ?", in.Points)
+	}
+
 	err := l.svcCtx.DB.Model(&model.SysUser{}).
 		Where("id = ?", in.UserId).
-		Update("green_points", gorm.Expr("green_points + ?", in.Points)).Error
+		Updates(updates).Error
 	if err != nil {
 		l.Errorf("failed to update user green_points: %v", err)
 		return &user.BaseResp{
@@ -43,4 +50,3 @@ func (l *UpdateUserPointsLogic) UpdateUserPoints(in *user.UpdateUserPointsReq) (
 		Message: "success",
 	}, nil
 }
-

@@ -254,10 +254,10 @@ func (r *StatsRepo) WorkorderSummary() ([]model.WorkorderSummary, error) {
 func (r *StatsRepo) GreenPointsLeaderboard(limit int) ([]model.EcoLeaderboard, error) {
 	var results []model.EcoLeaderboard
 	err := r.db.Model(&model.SysUserStats{}).
-		Where("status = 1 AND green_points > 0").
-		Order("green_points DESC").
+		Where("status = 1 AND green_points_total_earned > 0").
+		Order("green_points_total_earned DESC, id ASC").
 		Limit(limit).
-		Select("id AS user_id, username, real_name, green_points").
+		Select("id AS user_id, username, real_name, green_points_total_earned AS green_points").
 		Scan(&results).Error
 	return results, err
 }
@@ -266,7 +266,7 @@ func (r *StatsRepo) TotalGreenPointsIssued() (int64, error) {
 	var total int64
 	err := r.db.Model(&model.SysUserStats{}).
 		Where("status = 1").
-		Select("COALESCE(SUM(green_points), 0)").
+		Select("COALESCE(SUM(green_points_total_earned), 0)").
 		Scan(&total).Error
 	return total, err
 }

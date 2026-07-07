@@ -34,12 +34,13 @@ type OrderItem struct {
 func (OrderItem) TableName() string { return "oms_order_item" }
 
 type SysUserStats struct {
-	ID          int64     `gorm:"primaryKey" json:"id"`
-	Username    string    `json:"username"`
-	RealName    string    `json:"real_name"`
-	GreenPoints int64     `json:"green_points"`
-	Status      int       `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID                     int64     `gorm:"primaryKey" json:"id"`
+	Username               string    `json:"username"`
+	RealName               string    `json:"real_name"`
+	GreenPoints            int64     `json:"green_points"`
+	GreenPointsTotalEarned int64     `json:"green_points_total_earned"`
+	Status                 int       `json:"status"`
+	CreatedAt              time.Time `json:"created_at"`
 }
 
 func (SysUserStats) TableName() string { return "sys_user" }
@@ -77,15 +78,14 @@ type UserParkingBinding struct {
 func (UserParkingBinding) TableName() string { return "user_parking_bindings" }
 
 type WorkOrder struct {
-	ID          int64      `gorm:"primaryKey" json:"id"`
-	Type        string     `json:"type"`
-	Category    string     `json:"category"`
-	Status      int        `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID        int64     `gorm:"primaryKey" json:"id"`
+	Type      string    `json:"type"`
+	Category  string    `json:"category"`
+	Status    int       `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (WorkOrder) TableName() string { return "workorders" }
-
 
 // Statistics aggregation result structs
 type ProductSalesRank struct {
@@ -141,14 +141,14 @@ type CommunityOverview struct {
 	FeeCount       int64 `json:"fee_count"`
 	FeePaidCount   int64 `json:"fee_paid_count"`
 
-	TotalUsers     int64        `json:"total_users"`
-	TodayOrders    int64        `json:"today_orders"`
-	ParkingRate    string       `json:"parking_rate"`
-	MonthIncome    float64      `json:"month_income"`
-	RepairStats    []RepairStat `json:"repair_stats"`
-	IncomeDates    []string     `json:"income_dates"`
-	IncomeTrend    []float64    `json:"income_trend"`
-	CostStructure  []float64    `json:"cost_structure"`
+	TotalUsers    int64        `json:"total_users"`
+	TodayOrders   int64        `json:"today_orders"`
+	ParkingRate   string       `json:"parking_rate"`
+	MonthIncome   float64      `json:"month_income"`
+	RepairStats   []RepairStat `json:"repair_stats"`
+	IncomeDates   []string     `json:"income_dates"`
+	IncomeTrend   []float64    `json:"income_trend"`
+	CostStructure []float64    `json:"cost_structure"`
 }
 
 // AI Report

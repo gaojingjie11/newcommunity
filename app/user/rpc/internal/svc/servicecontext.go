@@ -4,14 +4,14 @@ import (
 	"log"
 	"time"
 
-	"smartcommunity-microservices/common/db"
-	"smartcommunity-microservices/common/mq"
-	"smartcommunity-microservices/common/redis"
-	"smartcommunity-microservices/common/storage"
 	"smartcommunity-microservices/app/user/rpc/internal/config"
 	"smartcommunity-microservices/app/user/rpc/internal/model"
 	"smartcommunity-microservices/app/user/rpc/internal/repository"
 	"smartcommunity-microservices/app/user/rpc/internal/service"
+	"smartcommunity-microservices/common/db"
+	"smartcommunity-microservices/common/mq"
+	"smartcommunity-microservices/common/redis"
+	"smartcommunity-microservices/common/storage"
 
 	"github.com/minio/minio-go/v7"
 	goredis "github.com/redis/go-redis/v9"
@@ -50,6 +50,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		&model.UserLoginLog{},
 		&model.PasswordResetCode{},
 	)
+
+	if err := database.Exec(`
+		UPDATE sys_user
+		SET green_points_total_earned = green_points
+		WHERE green_points_total_earned < green_points
+	`).Error; err != nil {
+		log.Printf("warning: failed to backfill green_points_total_earned in user-rpc: %v", err)
+	}
 
 	rdb, err := redis.Init(c.BizRedis)
 	if err != nil {
@@ -94,4 +102,3 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		MinioClient:     minioClient,
 	}
 }
-
