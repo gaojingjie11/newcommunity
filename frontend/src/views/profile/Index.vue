@@ -425,7 +425,17 @@ function formatAmount(value) {
 }
 
 function openEditProfile() {
-  editForm.value = { ...userInfo.value };
+  editForm.value = {
+    avatar: userInfo.value?.avatar || "",
+    real_name: userInfo.value?.real_name || "",
+    username: userInfo.value?.username || "",
+    gender:
+      userInfo.value?.gender === 1 || userInfo.value?.gender === 2
+        ? Number(userInfo.value.gender)
+        : undefined,
+    age: userInfo.value?.age ? Number(userInfo.value.age) : undefined,
+    email: userInfo.value?.email || ""
+  };
   pwdForm.value = { old_password: "", new_password: "" };
   activeTab.value = "info";
   showEditDialog.value = true;

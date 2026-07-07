@@ -39,5 +39,8 @@ func mapUserInfo(u *model.SysUser, roleNames map[string]string) *user.UserInfo {
 		FaceRegistered: u.FaceRegistered,
 		FaceImageUrl:   u.FaceImageURL,
 		Balance:        u.Balance,
+		Gender:         int32(u.Gender),
+		Email:          u.Email,
+		Age:            int32(u.Age),
 	}
 }

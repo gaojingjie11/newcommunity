@@ -836,6 +836,9 @@ type UserInfo struct {
 	FaceRegistered bool     `json:"face_registered"`
 	FaceImageUrl   string   `json:"face_image_url"`
 	Balance        float64  `json:"balance"`
+	Gender         int32    `json:"gender"`
+	Email          string   `json:"email"`
+	Age            int32    `json:"age"`
 	Permissions    []string `json:"permissions"`
 }
 

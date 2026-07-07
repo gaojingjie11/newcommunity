@@ -62,6 +62,9 @@ func (l *GetMeLogic) GetMe() (resp *types.UserInfo, err error) {
 		FaceRegistered: rpcResp.FaceRegistered,
 		FaceImageUrl:   rpcResp.FaceImageUrl,
 		Balance:        rpcResp.Balance,
+		Gender:         rpcResp.Gender,
+		Email:          rpcResp.Email,
+		Age:            rpcResp.Age,
 		Permissions:    permissions,
 	}, nil
 }
