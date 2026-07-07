@@ -21,24 +21,19 @@ fi
 echo "0.4 Docker disk usage after cleanup..."
 docker system df || true
 
-PREV_HEAD=$(git rev-parse HEAD 2>/dev/null || true)
-
-# Git pull is already run by the GitHub Actions runner before executing this script
-# But we can run it again or just read the heads.
-# Since we pulled in deploy.yml already, NEW_HEAD is the current HEAD.
-# To compute changed files, we need the PREV_HEAD which was before we pulled.
-# Wait! If git pull is run in deploy.yml, the local repository HEAD moves to NEW_HEAD.
-# So PREV_HEAD in this script would be the SAME as NEW_HEAD if we run it after pulling!
-# Ah! That is a very important point!
-# If we run "git pull" in deploy.yml, then by the time this script runs, the HEAD has already changed!
-# So git rev-parse HEAD will return the NEW head, and we won't know the PREV head!
-# How do we solve this?
-# We can read the git reflog on the server to see the previous commit!
-# In git reflog, HEAD@{1} is the commit before the git pull!
-# Yes! `git rev-parse HEAD@{1}` is exactly the PREV_HEAD!
-# This is a brilliant and standard git trick!
-# Let's verify: does HEAD@{1} point to the commit before pulling?
-# Yes, because git pull updates the local head, which appends to the reflog, shifting the previous head to HEAD@{1}!
+# Calculate current .env MD5 hash to detect manual config updates on the server
+ENV_CHANGED=0
+if [ -f ".env" ]; then
+  CURRENT_ENV_MD5=$(md5sum .env 2>/dev/null | awk '{print $1}' || md5 .env 2>/dev/null | awk '{print $1}' || true)
+  if [ -n "${CURRENT_ENV_MD5}" ]; then
+    PAST_ENV_MD5=$(cat .env.md5 2>/dev/null || true)
+    if [ "${CURRENT_ENV_MD5}" != "${PAST_ENV_MD5}" ]; then
+      echo "Config change detected: .env file has been modified."
+      ENV_CHANGED=1
+      echo "${CURRENT_ENV_MD5}" > .env.md5
+    fi
+  fi
+fi
 
 PREV_HEAD=$(git rev-parse HEAD@{1} 2>/dev/null || true)
 NEW_HEAD=$(git rev-parse HEAD 2>/dev/null || true)
@@ -105,14 +100,28 @@ else
 fi
 
 BUILD_SERVICES=$(echo "${BUILD_SERVICES}" | xargs || true)
-echo "${BUILD_SERVICES}" > .deploy-services
 
-if [ -z "${BUILD_SERVICES}" ]; then
-  echo "1.2 No deployable service changes detected, skipping build."
+if [ -z "${BUILD_SERVICES}" ] && [ "${ENV_CHANGED}" -eq 0 ]; then
+  echo "1.2 No code changes or config changes detected, skipping deploy step."
+  echo "" > .deploy-services
   exit 0
 fi
 
-echo "2. Services to build: ${BUILD_SERVICES}"
-echo "2. Starting limited parallel build..."
-COMPOSE_PARALLEL_LIMIT=2 docker-compose build --parallel ${BUILD_SERVICES}
-echo "All builds completed successfully!"
+# Build only the services that actually had code changes
+if [ -n "${BUILD_SERVICES}" ]; then
+  echo "2. Services to build: ${BUILD_SERVICES}"
+  echo "2. Starting limited parallel build..."
+  COMPOSE_PARALLEL_LIMIT=2 docker-compose build --parallel ${BUILD_SERVICES}
+  echo "All builds completed successfully!"
+else
+  echo "2. No code changes detected, skipping docker build."
+fi
+
+# Determine which services to launch/restart
+if [ "${ENV_CHANGED}" -eq 1 ]; then
+  echo "2.1 Config (.env) changed, all services will be restarted to apply variables: ${ALL_SERVICES}"
+  echo "${ALL_SERVICES}" > .deploy-services
+else
+  echo "2.1 Only changed services will be restarted: ${BUILD_SERVICES}"
+  echo "${BUILD_SERVICES}" > .deploy-services
+fi
