@@ -10,6 +10,7 @@ import (
 	"smartcommunity-microservices/app/gateway/api/internal/svc"
 	"smartcommunity-microservices/app/gateway/api/internal/types"
 	"smartcommunity-microservices/app/user/rpc/userrpc"
+	"smartcommunity-microservices/common/faceauth"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -84,6 +85,9 @@ func (l *CommunityPayFeeLogic) CommunityPayFee(req *types.PayPropertyFeeReq) (re
 		}
 		if req.FaceImageUrl == "" {
 			return nil, fmt.Errorf("请先完成刷脸验证")
+		}
+		if _, err := faceauth.VerifyMatch(l.ctx, profile.FaceImageUrl, req.FaceImageUrl); err != nil {
+			return nil, err
 		}
 	}
 

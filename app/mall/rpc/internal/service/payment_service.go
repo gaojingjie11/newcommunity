@@ -11,6 +11,7 @@ import (
 	"smartcommunity-microservices/app/mall/rpc/internal/consts"
 	"smartcommunity-microservices/app/mall/rpc/internal/model"
 	"smartcommunity-microservices/app/mall/rpc/internal/repository"
+	"smartcommunity-microservices/common/faceauth"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -384,6 +385,9 @@ func (s *PaymentService) ValidatePayAuth(userID int64, req PayOrderRequest) erro
 		}
 		if req.FaceImageURL == "" {
 			return errors.New("请先完成刷脸验证")
+		}
+		if _, err := faceauth.VerifyMatch(context.Background(), user.FaceImageURL, req.FaceImageURL); err != nil {
+			return err
 		}
 	default:
 		return errors.New("不支持的支付方式")
